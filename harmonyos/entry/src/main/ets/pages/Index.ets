@@ -3,6 +3,7 @@ import { FlutterPage } from '@ohos/flutter_ohos'
 import { PhotoPickerComponent, PickerController, PickerOptions } from '@kit.MediaLibraryKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { resolvePickerResult } from '../entryability/EntryAbility';
+import { WebPage } from './WebPage';
 
 let storage = LocalStorage.getShared()
 const EVENT_BACK_PRESS = 'EVENT_BACK_PRESS'
@@ -88,6 +89,9 @@ struct PickerDialog {
 struct Index {
   private context = getContext(this) as common.UIAbilityContext
   @LocalStorageLink('viewId') viewId: string = "";
+  @State webViewUrl: string = '';
+  @State showWebView: boolean = false;
+
   private pickerDialog: CustomDialogController = new CustomDialogController({
     builder: PickerDialog(),
     autoCancel: false,
@@ -98,23 +102,53 @@ struct Index {
 
   aboutToAppear(): void {
     setInterval(() => {
-      const signal = AppStorage.Get<number>('navToPicker');
-      if (signal != null) {
+      // Check picker signal
+      const pickerSignal = AppStorage.Get<number>('navToPicker');
+      if (pickerSignal != null) {
         AppStorage.Delete('navToPicker');
         this.pickerDialog.open();
+      }
+      // Check webview signal
+      const url = AppStorage.Get<string>('webViewUrl');
+      if (url != null && url.length > 0) {
+        AppStorage.Delete('webViewUrl');
+        this.webViewUrl = url;
+        this.showWebView = true;
+      }
+      // Check webview back
+      const back = AppStorage.Get<string>('webViewBack');
+      if (back != null) {
+        AppStorage.Delete('webViewBack');
+        this.showWebView = false;
+        this.webViewUrl = '';
       }
     }, 500);
   }
 
   build() {
-    Column() {
-      FlutterPage({ viewId: this.viewId })
+    Stack() {
+      // Flutter layer (always present)
+      Column() {
+        FlutterPage({ viewId: this.viewId })
+      }
+      .width('100%')
+      .height('100%')
+
+      // WebView overlay (shown on demand)
+      if (this.showWebView) {
+        WebPage({ url: this.webViewUrl })
+      }
     }
     .width('100%')
     .height('100%')
   }
 
   onBackPress(): boolean {
+    if (this.showWebView) {
+      this.showWebView = false;
+      this.webViewUrl = '';
+      return true;
+    }
     this.context.eventHub.emit(EVENT_BACK_PRESS)
     return true
   }

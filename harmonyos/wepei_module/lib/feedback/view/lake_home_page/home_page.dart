@@ -72,9 +72,11 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
     super.initState();
     _departmentsProvider =
         Provider.of<FbDepartmentsProvider>(context, listen: false);
-    LakeUtil.getClipboardWeKoContents(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       initPage();
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        LakeUtil.getClipboardWeKoContents(context);
+      });
     });
   }
 

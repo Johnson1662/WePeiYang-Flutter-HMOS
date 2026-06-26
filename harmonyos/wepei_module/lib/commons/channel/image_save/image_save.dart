@@ -70,6 +70,40 @@ class ImageSave {
     }
   }
 
+  /// Read clipboard text via OHOS system pasteboard (harmonyos native).
+  /// Returns null if clipboard is empty or read fails.
+  static Future<String?> getClipboardText() async {
+    try {
+      final result = await _channel.invokeMethod<String>('getClipboardText');
+      return result;
+    } catch (e) {
+      debugPrint('[ImageSave] getClipboardText failed: $e');
+      return null;
+    }
+  }
+
+  /// Copy text to system clipboard via OHOS native pasteboard (harmonyos only).
+  static Future<bool> copyToClipboard(String text) async {
+    try {
+      final result = await _channel.invokeMethod<bool>('copyToClipboard', text);
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[ImageSave] copyToClipboard failed: $e');
+      return false;
+    }
+  }
+
+  /// Open a URL in the system browser (harmonyos only).
+  static Future<bool> openWebView(String url) async {
+    try {
+      final result = await _channel.invokeMethod<bool>('openWebView', url);
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[ImageSave] openWebView failed: $e');
+      return false;
+    }
+  }
+
   /// Open system settings for this app (so user can manually grant permissions).
   static Future<bool> openAppSettings() async {
     try {

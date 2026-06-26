@@ -10,7 +10,13 @@ import {
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { fileIo } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
-import { common } from '@kit.AbilityKit';
+import { common, Want } from '@kit.AbilityKit';
+import pasteboard from '@ohos.pasteboard';
+
+// Legacy — kept for Index.ets PickerDialog (currently unused)
+export function resolvePickerResult(paths: string[]): void {
+  console.info(TAG, 'resolvePickerResult (legacy stub): ' + JSON.stringify(paths));
+}
 
 const TAG = 'EntryAbility';
 
@@ -31,6 +37,15 @@ class SaveImgHandler implements MethodCallHandler {
       }
       case 'pickImages':
         this.pickImages(result);
+        break;
+      case 'getClipboardText':
+        this.getClipboardText(result);
+        break;
+      case 'copyToClipboard':
+        this.copyToClipboard('' + call['argument'], result);
+        break;
+      case 'openWebView':
+        this.openWebView('' + call['argument'], result);
         break;
       default:
         result.notImplemented();
@@ -87,6 +102,63 @@ class SaveImgHandler implements MethodCallHandler {
       console.error(TAG, 'PhotoViewPicker error code: ' + (e as ESObject).code);
       console.error(TAG, 'PhotoViewPicker error message: ' + (e as ESObject).message);
       result.success([]);
+    }
+  }
+
+  private getClipboardText(result: MethodResult): void {
+    console.info(TAG, 'getClipboardText called');
+    try {
+      const pb = pasteboard.getSystemPasteboard();
+      console.info(TAG, 'got system pasteboard');
+      pb.getData((err, data) => {
+        if (err) {
+          console.warn(TAG, 'getClipboardText callback error: ' + JSON.stringify(err));
+          result.success(null);
+          return;
+        }
+        const text = data.getPrimaryText();
+        if (text) {
+          result.success(text);
+        } else {
+          result.success(null);
+        }
+      });
+    } catch (e) {
+      console.warn(TAG, 'getClipboardText failed: ' + JSON.stringify(e));
+      result.success(null);
+    }
+  }
+
+  private copyToClipboard(text: string, result: MethodResult): void {
+    try {
+      const pb = pasteboard.getSystemPasteboard();
+      const data = pasteboard.createData({ mimeType: pasteboard.MIMETYPE_TEXT_PLAIN, value: text });
+      pb.setData(data);
+      result.success(true);
+    } catch (e) {
+      console.warn(TAG, 'copyToClipboard failed: ' + JSON.stringify(e));
+      result.success(false);
+    }
+  }
+
+  private openWebView(url: string, result: MethodResult): void {
+    try {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Open in system browser
+        const want: Want = {
+          uri: url,
+          action: 'ohos.want.action.viewData',
+          parameters: {},
+        };
+        this.context.startAbility(want);
+        result.success(true);
+      } else {
+        console.warn(TAG, 'invalid webview url: ' + url);
+        result.success(false);
+      }
+    } catch (e) {
+      console.warn(TAG, 'openWebView failed: ' + JSON.stringify(e));
+      result.success(false);
     }
   }
 
