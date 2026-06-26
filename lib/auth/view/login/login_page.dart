@@ -70,7 +70,7 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
                 child: Text.rich(TextSpan(children: [
                   TextSpan(
                       text: "Welcome\n\n",
-                      style: TextUtil.base.normal.NotoSansSC
+                      style: TextUtil.base.normal.ProductSans
                           .sp(40)
                           .w700
                           .bright(context)),

@@ -1,0 +1,55 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\lneoo\\.ohos\\config\\default_harmonyos_zT7e2yPl2PPRqyWB0CEX5_3raWJ71pCGs1pfcr673pE=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001AD70F8F1848E5561CC0FED28DE062CDB290F08C542276977C204C22037A02B65D620E9E19DA38",
+          "profile": "C:\\Users\\lneoo\\.ohos\\config\\default_harmonyos_zT7e2yPl2PPRqyWB0CEX5_3raWJ71pCGs1pfcr673pE=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\lneoo\\.ohos\\config\\default_harmonyos_zT7e2yPl2PPRqyWB0CEX5_3raWJ71pCGs1pfcr673pE=.p12",
+          "storePassword": "0000001AE183E16B984412D8085D20781A6B47C576859B6461320AC20DF4C235BECE351B1D46D2690CA3"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

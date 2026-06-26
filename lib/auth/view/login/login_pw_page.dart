@@ -31,8 +31,10 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
       else if (!checkNotifier.value)
         ToastProvider.error('请同意用户协议与隐私政策并继续');
       else {
+        ToastProvider.running("登录中...");
         AuthService.pwLogin(account, password,
             onResult: (result) {
+              ToastProvider.cancelCurrent();
               if (result['telephone'] == null || result['email'] == null) {
                 Navigator.pushNamed(context, AuthRouter.addInfo);
               } else {
@@ -54,8 +56,10 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
       } else if (!checkNotifier.value)
         ToastProvider.error('请同意用户协议与隐私政策并继续');
       else {
+        ToastProvider.running("登录中...");
         AuthService.codeLogin(account, code,
             onResult: (result) {
+              ToastProvider.cancelCurrent();
               if (result['telephone'] == null || result['email'] == null) {
                 Navigator.pushNamed(context, AuthRouter.addInfo);
               } else {

@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "WePeiYang HarmonyOS entry",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "flutter_module": "file:./libs/flutter_module.har"
+  }
+}
