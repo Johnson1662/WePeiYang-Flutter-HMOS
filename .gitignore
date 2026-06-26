@@ -56,3 +56,15 @@ dev.keystore
 .fvmrc
 
 .codex
+
+# AI tooling
+.agent/
+.claude/
+.codegraph/
+.omp/
+
+# Temp / backups
+flutter_picker_src/
+*_orig.dart
+*_restore.dart
+*_backup.dart
