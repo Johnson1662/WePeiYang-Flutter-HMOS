@@ -196,17 +196,23 @@ class LakeUtil {
     );
   }
 
+  static String _lastAutoOpenedPostId = '';
+
   static Future<void> getClipboardWeKoContents(BuildContext context) async {
     final clipboardData = await _getValidClipboardData();
     if (clipboardData == null) return;
 
     final id = _extractIdFromText(clipboardData);
-    if (id.isEmpty || !_shouldFetchPost(id)) return;
+    if (id.isEmpty) return;
+    if (id == _lastAutoOpenedPostId) return;
+    if (CommonPreferences.lakeToken.value.isEmpty) return;
 
+    _lastAutoOpenedPostId = id;
     _fetchPostById(context, id);
   }
 
   static Future<String?> _getValidClipboardData() async {
+    // Use Flutter framework clipboard API (reads full multi-line correctly on OHOS)
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     if (clipboardData?.text?.trim().isNotEmpty ?? false) {
       return clipboardData!.text!.trim();

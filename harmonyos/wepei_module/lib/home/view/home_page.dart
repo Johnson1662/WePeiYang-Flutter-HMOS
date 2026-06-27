@@ -58,6 +58,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           setState(() {
             _currentIndex = _tabController.index;
           });
+          if (_tabController.index == 1) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              LakeUtil.getClipboardWeKoContents(context);
+            });
+          }
         }
       });
     WidgetsBinding.instance.addPostFrameCallback((_) async {

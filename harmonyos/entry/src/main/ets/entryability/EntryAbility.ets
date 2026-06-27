@@ -10,8 +10,9 @@ import {
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { fileIo } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
-import { common, Want } from '@kit.AbilityKit';
+import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
 import pasteboard from '@ohos.pasteboard';
+import { BusinessError } from '@ohos.base';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -108,23 +109,58 @@ class SaveImgHandler implements MethodCallHandler {
   private getClipboardText(result: MethodResult): void {
     console.info(TAG, 'getClipboardText called');
     try {
-      const pb = pasteboard.getSystemPasteboard();
-      console.info(TAG, 'got system pasteboard');
-      pb.getData((err, data) => {
-        if (err) {
-          console.warn(TAG, 'getClipboardText callback error: ' + JSON.stringify(err));
-          result.success(null);
-          return;
-        }
-        const text = data.getPrimaryText();
-        if (text) {
-          result.success(text);
+      const atManager = abilityAccessCtrl.createAtManager();
+      const permissions: Permissions[] = ['ohos.permission.READ_PASTEBOARD'];
+      atManager.requestPermissionsFromUser(this.context, permissions).then((data) => {
+        const grantStatus: number[] = data.authResults;
+        if (grantStatus.length > 0 && grantStatus[0] === 0) {
+          console.info(TAG, 'clipboard permission granted');
+          this.readPasteboard(result);
         } else {
+          console.warn(TAG, 'clipboard permission denied by user');
           result.success(null);
         }
+      }).catch((err: BusinessError) => {
+        console.warn(TAG, 'requestPermissionsFromUser failed: ' + JSON.stringify(err));
+        result.success(null);
       });
     } catch (e) {
       console.warn(TAG, 'getClipboardText failed: ' + JSON.stringify(e));
+      result.success(null);
+    }
+  }
+
+  private readPasteboard(result: MethodResult): void {
+    try {
+      const pb = pasteboard.getSystemPasteboard();
+      pb.getData(async (err: BusinessError, data: pasteboard.PasteData) => {
+        if (err) {
+          console.warn(TAG, 'readPasteboard error: ' + JSON.stringify(err));
+          result.success(null);
+          return;
+        }
+        const recordCount = data.getRecordCount();
+        console.info(TAG, 'readPasteboard recordCount: ' + recordCount);
+        // Read all text records and concatenate
+        let fullText = data.getPrimaryText() || '';
+        for (let i = 0; i < recordCount; i++) {
+          try {
+            const record = data.getRecordAt(i);
+            if (record) {
+              const txt = await record.convertToText();
+              if (txt && txt.length > 0 && !fullText.includes(txt)) {
+                fullText += (fullText.length > 0 ? '\n' : '') + txt;
+              }
+            }
+          } catch (riErr) {
+            console.warn(TAG, 'record ' + i + ' convert failed: ' + JSON.stringify(riErr));
+          }
+        }
+        console.info(TAG, 'readPasteboard full len=' + fullText.length + ' preview=' + fullText.substring(0, 300));
+        result.success(fullText.length > 0 ? fullText : null);
+      });
+    } catch (e) {
+      console.warn(TAG, 'readPasteboard failed: ' + JSON.stringify(e));
       result.success(null);
     }
   }
@@ -219,9 +255,19 @@ class SaveImgHandler implements MethodCallHandler {
 }
 
 export default class EntryAbility extends FlutterAbility {
+  onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    console.info(TAG, 'onCreate: setting viewId');
+    AppStorage.Set<string>('viewId', this.context.abilityInfo.name);
+    super.onCreate(want, launchParam);
+    console.info(TAG, 'onCreate: done');
+  }
+
   configureFlutterEngine(flutterEngine: FlutterEngine) {
+    console.info(TAG, 'configureFlutterEngine START');
     super.configureFlutterEngine(flutterEngine);
+    console.info(TAG, 'super done');
     GeneratedPluginRegistrant.registerWith(flutterEngine);
+    console.info(TAG, 'plugins registered');
 
     const channel = new MethodChannel(
       flutterEngine.getDartExecutor(),
