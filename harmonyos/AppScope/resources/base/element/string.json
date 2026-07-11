@@ -11,6 +11,10 @@
     {
       "name": "reason_write_imagevideo",
       "value": "用于将图片保存到系统相册"
+    },
+    {
+      "name": "reason_camera",
+      "value": "用于拍照上传帖子图片"
     }
   ]
 }

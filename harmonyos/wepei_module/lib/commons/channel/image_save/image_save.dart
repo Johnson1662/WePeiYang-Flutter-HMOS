@@ -55,6 +55,20 @@ class ImageSave {
     }
   }
 
+  /// Take a photo via OHOS system camera (harmonyos only).
+  /// Returns the file path of the captured photo, or null on failure.
+  static Future<String?> takePhoto() async {
+    debugPrint('[ImageSave] takePhoto called');
+    try {
+      final result = await _channel.invokeMethod<String>('takePhoto');
+      debugPrint('[ImageSave] takePhoto result: $result');
+      return result;
+    } catch (e) {
+      debugPrint('[ImageSave] takePhoto failed: $e');
+      return null;
+    }
+  }
+
   /// Pick images from gallery via OHOS PhotoViewPicker (harmonyos only).
   /// Returns list of content URIs, or empty list on failure.
   static Future<List<String>> pickImagesFromGallery() async {

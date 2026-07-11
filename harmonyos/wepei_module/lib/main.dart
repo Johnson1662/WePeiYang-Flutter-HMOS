@@ -149,9 +149,11 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
             ChangeNotifierProvider(create: (_) => RemoteConfig()),
             ChangeNotifierProvider(create: (_) => xiaotianChatState()),
           ],
-          child: WpyTheme(
-            themeData: WpyThemeData.themeList[0],
-            child: MaterialApp(
+          child: ListenableBuilder(
+            listenable: globalTheme,
+            builder: (context, _) => WpyTheme(
+              themeData: globalTheme.value,
+              child: MaterialApp(
               navigatorKey: RouterManager.navigatorKey,
               debugShowCheckedModeBanner: false,
               title: 'WePeiYang',
@@ -168,6 +170,7 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
                 ),
               ),
               onGenerateRoute: RouterManager.create,
+              ),
             ),
           ),
         );

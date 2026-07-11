@@ -100,8 +100,8 @@ class SaveImgHandler implements MethodCallHandler {
       result.success(resultPaths);
     } catch (e) {
       console.error(TAG, 'PhotoViewPicker select failed: ' + JSON.stringify(e));
-      console.error(TAG, 'PhotoViewPicker error code: ' + (e as ESObject).code);
-      console.error(TAG, 'PhotoViewPicker error message: ' + (e as ESObject).message);
+      console.error(TAG, 'PhotoViewPicker error code: ' + (e as BusinessError).code);
+      console.error(TAG, 'PhotoViewPicker error message: ' + (e as BusinessError).message);
       result.success([]);
     }
   }
@@ -130,35 +130,29 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
-  private readPasteboard(result: MethodResult): void {
+  private async readPasteboard(result: MethodResult): Promise<void> {
     try {
       const pb = pasteboard.getSystemPasteboard();
-      pb.getData(async (err: BusinessError, data: pasteboard.PasteData) => {
-        if (err) {
-          console.warn(TAG, 'readPasteboard error: ' + JSON.stringify(err));
-          result.success(null);
-          return;
-        }
-        const recordCount = data.getRecordCount();
-        console.info(TAG, 'readPasteboard recordCount: ' + recordCount);
-        // Read all text records and concatenate
-        let fullText = data.getPrimaryText() || '';
-        for (let i = 0; i < recordCount; i++) {
-          try {
-            const record = data.getRecordAt(i);
-            if (record) {
-              const txt = await record.convertToText();
-              if (txt && txt.length > 0 && !fullText.includes(txt)) {
-                fullText += (fullText.length > 0 ? '\n' : '') + txt;
-              }
+      const data = await pb.getData();
+      const recordCount = data.getRecordCount();
+      console.info(TAG, 'readPasteboard recordCount: ' + recordCount);
+      // Read all text records and concatenate
+      let fullText = data.getPrimaryText() || '';
+      for (let i = 0; i < recordCount; i++) {
+        try {
+          const record = data.getRecordAt(i);
+          if (record) {
+            const txt = await record.convertToText();
+            if (txt && txt.length > 0 && !fullText.includes(txt)) {
+              fullText += (fullText.length > 0 ? '\n' : '') + txt;
             }
-          } catch (riErr) {
-            console.warn(TAG, 'record ' + i + ' convert failed: ' + JSON.stringify(riErr));
           }
+        } catch (riErr) {
+          console.warn(TAG, 'record ' + i + ' convert failed: ' + JSON.stringify(riErr));
         }
-        console.info(TAG, 'readPasteboard full len=' + fullText.length + ' preview=' + fullText.substring(0, 300));
-        result.success(fullText.length > 0 ? fullText : null);
-      });
+      }
+      console.info(TAG, 'readPasteboard full len=' + fullText.length + ' preview=' + fullText.substring(0, 300));
+      result.success(fullText.length > 0 ? fullText : null);
     } catch (e) {
       console.warn(TAG, 'readPasteboard failed: ' + JSON.stringify(e));
       result.success(null);

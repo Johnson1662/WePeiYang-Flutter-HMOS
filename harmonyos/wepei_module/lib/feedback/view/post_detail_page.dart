@@ -5,11 +5,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 
-import 'package:image_picker/image_picker.dart';
 import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -19,6 +17,7 @@ import 'package:wepei_module/commons/speech_to_text/API/aliyun_isi_protocol.dart
 import 'package:wepei_module/commons/util/dialog_provider.dart';
 import 'package:wepei_module/commons/util/router_manager.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
+import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/feedback/model/feedback_notifier.dart';
 import 'package:wepei_module/feedback/network/feedback_service.dart';
@@ -29,8 +28,6 @@ import 'package:wepei_module/feedback/view/image_view/local_image_view_page.dart
 import 'package:wepei_module/feedback/view/lake_home_page/normal_sub_page.dart';
 import 'package:wepei_module/feedback/view/report_question_page.dart';
 import 'package:wepei_module/main.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/widgets/w_button.dart';
 import 'package:wepei_module/schedule/page/course_page.dart';
@@ -1467,47 +1464,24 @@ class ImageSelectAndView extends StatefulWidget {
 
 class ImageSelectAndViewState extends State<ImageSelectAndView> {
   shotPic() async {
-    final asset = await ImagePicker().pickImage(source: ImageSource.camera);
-    if (asset == null) return;
-    File file = await File(asset.path);
-    for (int j = 0; file.lengthSync() > 2000 * 1024 && j < 10; j++) {
-      file = await FlutterNativeImage.compressImage(file.path, quality: 80);
-      if (j == 10) {
-        ToastProvider.error('您的图片实在太大了，请自行压缩到2MB内再试吧');
-        return;
-      }
+    // OHOS: camera not natively supported yet, fall through to gallery picker
+    final paths = await ImageSave.pickImagesFromGallery();
+    if (paths.isEmpty) return;
+    for (final path in paths) {
+      Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
     }
-    Provider.of<NewFloorProvider>(context, listen: false).images.add(file);
-    if (!mounted) return 0;
+    if (!mounted) return;
     setState(() {});
   }
 
   loadAssets() async {
-    final List<AssetEntity>? assets = await AssetPicker.pickAssets(
-      context,
-      pickerConfig: AssetPickerConfig(
-          maxAssets: 1,
-          requestType: RequestType.image,
-          themeColor:
-              WpyTheme.of(context).get(WpyColorKey.primaryTextButtonColor)),
-    );
-    if (assets == null) return; // 取消选择的情况
-    for (int i = 0; i < assets.length; i++) {
-      File? file = await assets[i].file;
-      if (file == null) {
-        ToastProvider.error('选取图片异常，请重新尝试');
-        return;
-      }
-      for (int j = 0; file!.lengthSync() > 2000 * 1024 && j < 10; j++) {
-        file = await FlutterNativeImage.compressImage(file.path, quality: 80);
-        if (j == 10) {
-          ToastProvider.error('您的图片实在太大了，请自行压缩到2MB内再试吧');
-          return;
-        }
-      }
-      Provider.of<NewFloorProvider>(context, listen: false).images.add(file);
+    // OHOS: use PhotoViewPicker via MethodChannel
+    final paths = await ImageSave.pickImagesFromGallery();
+    if (paths.isEmpty) return;
+    for (final path in paths) {
+      Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
     }
-    if (!mounted) return 0;
+    if (!mounted) return;
     setState(() {});
   }
 
