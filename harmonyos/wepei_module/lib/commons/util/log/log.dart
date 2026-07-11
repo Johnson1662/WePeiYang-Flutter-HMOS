@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 /// OHOS 日志门面（代替 talker）
 /// talker_flutter 无法在 OHOS Flutter SDK 上编译
 class Log {
