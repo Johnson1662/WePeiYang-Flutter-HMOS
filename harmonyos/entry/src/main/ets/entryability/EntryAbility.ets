@@ -9,6 +9,7 @@ import {
 } from '@ohos/flutter_ohos';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { cameraPicker } from '@kit.CameraKit';
+import router from '@ohos.router';
 import { fileIo } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
 import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
@@ -214,13 +215,11 @@ class SaveImgHandler implements MethodCallHandler {
   private openWebView(url: string, result: MethodResult): void {
     try {
       if (url.startsWith('http://') || url.startsWith('https://')) {
-        // Open in system browser
-        const want: Want = {
-          uri: url,
-          action: 'ohos.want.action.viewData',
-          parameters: {},
-        };
-        this.context.startAbility(want);
+        console.info(TAG, 'openWebView: url=' + url);
+        // Store URL in AppStorage; Index.ets watches webViewPending flag
+        // and navigates to WebPage via router.pushUrl (from ArkUI component context)
+        AppStorage.Set<string>('webViewUrl', url);
+        AppStorage.Set<boolean>('webViewPending', true);
         result.success(true);
       } else {
         console.warn(TAG, 'invalid webview url: ' + url);

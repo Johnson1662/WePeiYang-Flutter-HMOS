@@ -1,3 +1,5 @@
+import router from '@ohos.router';
+
 @Entry
 @Component
 struct WebPage {
@@ -5,6 +7,7 @@ struct WebPage {
   private controller: WebController = new WebController();
 
   aboutToAppear(): void {
+    // Read URL from AppStorage (set by native openWebView handler)
     const storedUrl = AppStorage.Get<string>('webViewUrl');
     if (storedUrl && storedUrl.length > 0) {
       AppStorage.Delete('webViewUrl');
@@ -26,7 +29,7 @@ struct WebPage {
         .padding({ left: 16, right: 16 })
         .margin({ left: 12, top: 8, bottom: 8 })
         .onClick(() => {
-          AppStorage.Set<string>('webViewBack', '1');
+          router.back();
         })
 
         Blank()

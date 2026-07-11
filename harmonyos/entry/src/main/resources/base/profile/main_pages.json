@@ -1,7 +1,7 @@
 {
   "src": [
     "pages/Index",
-    "pages/FlutterPage",
-    "pages/PickerPage"
+    "pages/PickerPage",
+    "pages/WebPage"
   ]
 }
