@@ -8,6 +8,7 @@ import {
   MethodCall,
 } from '@ohos/flutter_ohos';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { cameraPicker } from '@kit.CameraKit';
 import { fileIo } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
 import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
@@ -36,6 +37,9 @@ class SaveImgHandler implements MethodCallHandler {
         this.saveToAlbum(path, result);
         break;
       }
+      case 'takePhoto':
+        this.takePhoto(result);
+        break;
       case 'pickImages':
         this.pickImages(result);
         break;
@@ -50,6 +54,42 @@ class SaveImgHandler implements MethodCallHandler {
         break;
       default:
         result.notImplemented();
+    }
+  }
+
+  private async takePhoto(result: MethodResult) {
+    console.info(TAG, 'takePhoto entered');
+    try {
+      const profile = new cameraPicker.PickerProfile();
+      profile.cameraPosition = 1; // REAR camera
+      const resultData = await cameraPicker.pick(
+        this.context,
+        [cameraPicker.PickerMediaType.PHOTO],
+        profile
+      );
+      console.info(TAG, 'takePhoto: resultUri=' + resultData.resultUri + ' resultCode=' + resultData.resultCode);
+
+      if (resultData.resultUri && resultData.resultUri.length > 0) {
+        // Copy to cache dir
+        const cacheDir = this.context.cacheDir + '/picker_temp';
+        try { fs.mkdirSync(cacheDir); } catch (e) {}
+        const srcUri = resultData.resultUri;
+        const ext = srcUri.split('.').pop() || 'jpg';
+        const destPath = cacheDir + '/camera_' + Date.now() + '.' + ext;
+        const srcFile = fs.openSync(srcUri);
+        const destFile = fs.openSync(destPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+        fs.copyFileSync(srcFile.fd, destFile.fd);
+        fs.closeSync(srcFile);
+        fs.closeSync(destFile);
+        console.info(TAG, 'takePhoto: copied to ' + destPath);
+        result.success(destPath);
+      } else {
+        console.warn(TAG, 'takePhoto: user cancelled or no result');
+        result.success(null);
+      }
+    } catch (e) {
+      console.error(TAG, 'takePhoto failed: ' + JSON.stringify(e));
+      result.success(null);
     }
   }
 

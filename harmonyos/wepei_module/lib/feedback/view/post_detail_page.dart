@@ -1464,12 +1464,10 @@ class ImageSelectAndView extends StatefulWidget {
 
 class ImageSelectAndViewState extends State<ImageSelectAndView> {
   shotPic() async {
-    // OHOS: camera not natively supported yet, fall through to gallery picker
-    final paths = await ImageSave.pickImagesFromGallery();
-    if (paths.isEmpty) return;
-    for (final path in paths) {
-      Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
-    }
+    // OHOS: use system camera via @kit.CameraKit cameraPicker
+    final path = await ImageSave.takePhoto();
+    if (path == null || path.isEmpty) return;
+    Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
     if (!mounted) return;
     setState(() {});
   }
