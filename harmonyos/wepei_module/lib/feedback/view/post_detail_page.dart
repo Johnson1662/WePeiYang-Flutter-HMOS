@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:gallery_saver/gallery_saver.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:provider/provider.dart';
@@ -743,12 +743,8 @@ class _PostDetailPageState extends State<PostDetailPage>
                             !_refreshController.isRefresh) {
                           String weCo =
                               '我在微北洋发现了个有趣的问题【${widget.post.title}】\n#MP${widget.post.id} ，你也来看看吧~\n将本条微口令复制到微北洋求实论坛打开问题 wpy://school_project/${widget.post.id}';
-                          // OHOS: use native pasteboard to preserve multi-line content
-                          ImageSave.copyToClipboard(weCo).then((ok) {
-                            if (!ok) {
-                              Clipboard.setData(ClipboardData(text: weCo));
-                            }
-                          });
+                          ClipboardData data = ClipboardData(text: weCo);
+                          Clipboard.setData(data);
                           CommonPreferences.feedbackLastWeCo.value =
                               widget.post.id.toString();
                           ToastProvider.success('微口令复制成功，快去给小伙伴分享吧！');

@@ -12,7 +12,7 @@ import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/token/lake_token_manager.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
-import 'package:miui_long_screenshot/miui_long_screenshot.dart';
+
 import 'package:wepei_module/commons/widgets/wpy_pic.dart';
 import 'package:wepei_module/feedback/view/components/post_card.dart';
 import 'package:wepei_module/feedback/view/components/widget/activity_card.dart';
@@ -305,9 +305,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                   // 这里是Post的Listview, 需要监听Post刷新
                   listenable: pageController.postHolder,
                   builder: (context, oldChild) {
-                    return MiuiLongScreenshot(
-                      controller: pageController.scrollController,
-                      child: SmartRefresher(
+                    return SmartRefresher(
                         physics: BouncingScrollPhysics(),
                         controller: pageController.refreshController,
                         scrollController: pageController.scrollController,
@@ -348,7 +346,6 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                                         4,
                                 itemBuilder: _buildPostList,
                               ),
-                      ),
                     );
                   },
                 ),
