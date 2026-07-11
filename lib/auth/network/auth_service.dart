@@ -480,8 +480,10 @@ class AuthService with AsyncTimer {
       CommonPreferences.termStart.value = result['semesterStartTimestamp'];
       CommonPreferences.termName.value = result['semesterName'];
       CommonPreferences.termStartDate.value = result['semesterStartAt'];
-      MethodChannel('com.twt.service/widget')
-          .invokeMethod("refreshScheduleWidget");
+      try {
+        MethodChannel('com.twt.service/widget')
+            .invokeMethod("refreshScheduleWidget");
+      } catch (_) {}
     } on DioException catch (_) {}
   }
 

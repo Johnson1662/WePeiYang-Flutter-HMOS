@@ -30,7 +30,6 @@ class AuthDio extends DioAbstract {
   InterceptorsWrapper? get errorInterceptor =>
       InterceptorsWrapper(onRequest: (options, handler) {
         options.headers['token'] = CommonPreferences.token.value;
-        print("token: " + CommonPreferences.token.value);
         return handler.next(options);
       }, onResponse: (response, handler) {
         var code = response.data['error_code'] ?? -1;
@@ -44,7 +43,7 @@ class AuthDio extends DioAbstract {
             break;
           case 40005:
             Navigator.pushNamedAndRemoveUntil(
-                WePeiYangApp.navigatorState.context!,
+                WePeiYangApp.navigatorState.overlay!.context,
                 AuthRouter.login,
                 (route) => false);
             error = "登录失效，请重新登录";
@@ -481,9 +480,10 @@ class AuthService with AsyncTimer {
       CommonPreferences.termStart.value = result['semesterStartTimestamp'];
       CommonPreferences.termName.value = result['semesterName'];
       CommonPreferences.termStartDate.value = result['semesterStartAt'];
-      MethodChannel('com.twt.service/widget')
-          .invokeMethod("refreshScheduleWidget")
-          .catchError((_) {});
+      try {
+        MethodChannel('com.twt.service/widget')
+            .invokeMethod("refreshScheduleWidget");
+      } catch (_) {}
     } on DioException catch (_) {}
   }
 

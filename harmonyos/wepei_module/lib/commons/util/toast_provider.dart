@@ -12,6 +12,8 @@ class ToastProvider {
   static NavigatorState? get _nav =>
       RouterManager.navigatorKey.currentState;
 
+  static OverlayEntry? _currentEntry;
+
   static void unFocusAllAndHideKeyboard(BuildContext context) {
     final currentFocus = FocusScope.of(context);
     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
@@ -25,6 +27,9 @@ class ToastProvider {
     required String svgAsset,
     Color? svgTint,
   }) {
+    // Remove existing toast before showing a new one
+    cancelCurrent();
+
     final nav = _nav;
     if (nav == null || nav.overlay == null) return;
 
@@ -32,7 +37,10 @@ class ToastProvider {
     entry = OverlayEntry(builder: (context) {
       return _ToastFadeWidget(
         duration: const Duration(milliseconds: 250),
-        onDismiss: () => entry?.remove(),
+        onDismiss: () {
+          if (_currentEntry == entry) _currentEntry = null;
+          entry?.remove();
+        },
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
@@ -78,6 +86,7 @@ class ToastProvider {
       );
     });
 
+    _currentEntry = entry;
     nav.overlay!.insert(entry!);
   }
 
@@ -115,8 +124,15 @@ class ToastProvider {
     );
   }
 
-  static void cancelCurrent() {}
-  static void cancelAll() {}
+  static void cancelCurrent() {
+    _currentEntry?.remove();
+    _currentEntry = null;
+  }
+
+  static void cancelAll() {
+    _currentEntry?.remove();
+    _currentEntry = null;
+  }
 }
 
 class _ToastFadeWidget extends StatefulWidget {

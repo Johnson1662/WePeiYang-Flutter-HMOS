@@ -1,34 +1,31 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 
 class InstallManager {
   static const _channel = MethodChannel('com.twt.service/install');
   static bool canGoToMarket = false;
 
   static void install(String apkName) {
-    if (Platform.isIOS) return;
-    var argument = {'path': apkName};
-    _channel.invokeMethod('install', argument).catchError((_) {});
-  }
-
-  static Future<void> goToMarket() async {
-    if (Platform.isIOS) return;
     try {
-      await _channel.invokeMethod<bool>("goToMarket").catchError((_) {});
+      var argument = {'path': apkName};
+      _channel.invokeMethod('install', argument);
     } catch (_) {}
   }
 
-  static Future<void> getCanGoToMarket() async {
-    if (Platform.isIOS) {
-      canGoToMarket = false;
-      return;
+  static Future<void> goToMarket() async {
+    try {
+      await _channel.invokeMethod<bool>("goToMarket");
+    } catch (e, s) {
+      Log.e(e, s, 'install');
     }
+  }
+
+  static Future<void> getCanGoToMarket() async {
     try {
       canGoToMarket =
-          await _channel.invokeMethod<bool>("canGoToMarket").catchError((_) => false) ?? false;
-    } catch (_) {
-      canGoToMarket = false;
+          await _channel.invokeMethod<bool>("canGoToMarket") ?? false;
+    } catch (e, s) {
+      Log.e(e, s, 'install');
     }
   }
 }

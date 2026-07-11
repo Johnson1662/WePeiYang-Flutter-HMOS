@@ -23,8 +23,9 @@ dependencies:
   dio_smart_retry: any
   dio_cookie_caching_handler:
     path: ./lib/commons/network/dio_cookie_cached_handler
-  talker_flutter: any
-  talker_dio_logger: any
+  # talker removed — incompatible with OHOS Flutter SDK version
+  # Use flutter3.44's Log abstraction which wraps talker
+  # talker/logging: using custom Log (OHOS compatible)
   record: any
   extended_tabs: any
   extended_image: any

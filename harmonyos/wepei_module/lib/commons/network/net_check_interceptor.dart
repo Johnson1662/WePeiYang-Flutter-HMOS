@@ -7,14 +7,33 @@ class NetStatusListener {
 
   factory NetStatusListener() => _instance;
 
-  static Future<void> init() async {}
+  static void init() {
+    try {
+      final connectivity = Connectivity();
+      connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
+        _instance._status = [result];
+      });
+      unawaited(connectivity.checkConnectivity().then((ConnectivityResult result) {
+        _instance._status = [result];
+      }).catchError((_) {
+        _instance._status = [ConnectivityResult.wifi];
+      }));
+    } catch (_) {
+      _instance._status = [ConnectivityResult.wifi];
+    }
+  }
 
-  bool get hasNetwork => true;
+  List<ConnectivityResult>? _status;
+
+  bool get hasNetwork => _instance._status?.any((r) => r != ConnectivityResult.none) ?? true;
 }
 
 class NetCheckInterceptor extends InterceptorsWrapper {
   @override
   Future onRequest(options, handler) async {
-    return handler.next(options);
+    if (NetStatusListener().hasNetwork)
+      return handler.next(options);
+    else
+      return handler.reject(WpyDioException(error: '网络未连接'));
   }
 }

@@ -6,8 +6,10 @@ class InstallManager {
   static bool canGoToMarket = false;
 
   static void install(String apkName) {
-    var argument = {'path': apkName};
-    _channel.invokeMethod('install', argument);
+    try {
+      var argument = {'path': apkName};
+      _channel.invokeMethod('install', argument);
+    } catch (_) {}
   }
 
   static Future<void> goToMarket() async {
