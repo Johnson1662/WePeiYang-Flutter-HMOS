@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import 'package:simple_url_preview_v2/simple_url_preview.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wepei_module/auth/view/message/message_router.dart';
+import 'package:wepei_module/commons/widgets/webview_page.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/dialog_provider.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
@@ -345,112 +345,11 @@ class _TextMailContent extends StatelessWidget {
                             .NotoSansSC
                             .sp(14),
                       ),
-                      onPressed: () async {
+                      onPressed: () {
                         var url = data.url.startsWith('http')
                             ? data.url
                             : 'https://${data.url}';
-                        if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-                          showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return LakeDialogWidget(
-                                    title: '同学你好：',
-                                    titleTextStyle: TextUtil.base.normal
-                                        .label(context)
-                                        .NotoSansSC
-                                        .sp(26)
-                                        .w600,
-                                    content: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(' 你即将离开微北洋，去往：'),
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(left: 6),
-                                          child: Text(url,
-                                              style: url.startsWith(
-                                                          'https://b23.tv/') ||
-                                                      url.startsWith(
-                                                          'https://www.bilibili.com/')
-                                                  ? TextUtil.base
-                                                      .biliPink(context)
-                                                      .w600
-                                                      .h(1.6)
-                                                  : TextUtil.base
-                                                      .label(context)
-                                                      .w600
-                                                      .h(1.6)),
-                                        ),
-                                        SimpleUrlPreview(
-                                          url: url,
-                                          bgColor: WpyTheme.of(context).get(
-                                              WpyColorKey
-                                                  .primaryBackgroundColor),
-                                          titleLines: 2,
-                                          imageLoaderColor: WpyTheme.of(context)
-                                              .get(WpyColorKey
-                                                  .iconAnimationStartColor),
-                                          previewHeight: 130,
-                                          previewContainerPadding:
-                                              EdgeInsets.symmetric(
-                                                  vertical: 10),
-                                          onTap: () async {
-                                            await launchUrl(Uri.parse(url)).catchError((_) {});
-                                            Navigator.pop(context);
-                                          },
-                                          titleStyle: url.startsWith(
-                                                      'https://b23.tv/') ||
-                                                  url.startsWith(
-                                                      'https://www.bilibili.com/')
-                                              ? TextUtil.base
-                                                  .biliPink(context)
-                                                  .w600
-                                                  .h(1.6)
-                                                  .sp(14)
-                                              : TextUtil.base
-                                                  .label(context)
-                                                  .w600
-                                                  .h(1.6)
-                                                  .sp(24),
-                                          siteNameStyle: TextUtil.base
-                                              .sp(12)
-                                              .customColor(Theme.of(context)
-                                                  .primaryColor),
-                                        ),
-                                      ],
-                                    ),
-                                    cancelText: "取消",
-                                    confirmTextStyle: TextUtil.base.normal
-                                        .reverse(context)
-                                        .NotoSansSC
-                                        .sp(16)
-                                        .w600,
-                                    confirmButtonColor:
-                                        url.startsWith('https://b23.tv/') ||
-                                                url.startsWith(
-                                                    'https://www.bilibili.com/')
-                                            ? WpyTheme.of(context)
-                                                .get(WpyColorKey.biliPink)
-                                            : WpyTheme.of(context).get(
-                                                WpyColorKey.primaryActionColor),
-                                    cancelTextStyle: TextUtil.base.normal
-                                        .primary(context)
-                                        .NotoSansSC
-                                        .sp(16)
-                                        .w400,
-                                    confirmText: "继续",
-                                    cancelFun: () {
-                                      Navigator.pop(context);
-                                    },
-                                    confirmFun: () async {
-                                      await launchUrl(Uri.parse(url)).catchError((_) {});
-                                      Navigator.pop(context);
-                                    });
-                              });
-                        } else {
-                          ToastProvider.error('请检查网址是否有误或检查网络状态');
-                        }
+                        openUrlInApp(context, url, title: data.title);
                       },
                     ),
                   ],

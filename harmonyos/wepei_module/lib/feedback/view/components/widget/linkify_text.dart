@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:linkfy_text/linkfy_text.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:wepei_module/commons/widgets/webview_page.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/util/dialog_provider.dart';
@@ -69,71 +69,6 @@ class _LinkTextState extends State<LinkText> {
   }
 
   checkUrl(String url) async {
-    if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return LakeDialogWidget(
-                title: '天外天工作室提示您',
-                titleTextStyle: TextUtil.base.normal
-                    .infoText(context)
-                    .PingFangSC
-                    .sp(22)
-                    .w600,
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      ' 你即将离开微北洋，去往：',
-                      style: TextStyle(
-                          color: WpyTheme.of(context)
-                              .get(WpyColorKey.basicTextColor)),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6, bottom: 6),
-                      child: Text(url,
-                          style: checkBili(url)
-                              ? TextUtil.base.PingFangSC
-                                  .biliPink(context)
-                                  .w600
-                                  .h(1.6)
-                              : TextUtil.base.PingFangSC
-                                  .link(context)
-                                  .w600
-                                  .h(1.6)),
-                    ),
-                    Text(
-                      ' 请注意您的账号和财产安全\n',
-                      style: TextStyle(
-                          color: WpyTheme.of(context)
-                              .get(WpyColorKey.basicTextColor)),
-                    ),
-                  ],
-                ),
-                cancelText: "取消",
-                confirmTextStyle:
-                    TextUtil.base.normal.bright(context).PingFangSC.sp(16).w600,
-                confirmButtonColor: checkBili(url)
-                    ? WpyTheme.of(context).get(WpyColorKey.biliPink)
-                    : WpyTheme.of(context)
-                        .get(WpyColorKey.primaryTextButtonColor),
-                cancelTextStyle:
-                    TextUtil.base.normal.label(context).PingFangSC.sp(16).w400,
-                confirmText: "继续",
-                cancelFun: () {
-                  Navigator.pop(context);
-                },
-                confirmFun: () async {
-                  await launchUrl(Uri.parse(url),
-                      mode: checkBili(url)
-                          ? LaunchMode.externalNonBrowserApplication
-                          : LaunchMode.externalApplication).catchError((_) {});
-                  Navigator.pop(context);
-                });
-          });
-    } else {
-      ToastProvider.error('请检查网址是否有误或检查网络状态');
-    }
+    openUrlInApp(context, url);
   }
 }

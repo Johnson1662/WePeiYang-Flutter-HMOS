@@ -118,6 +118,11 @@ class ImageSave {
     }
   }
 
+  /// Open via system browser (alias for openWebView).
+  static Future<bool> openInBrowser(String url) async {
+    return openWebView(url);
+  }
+
   /// Open system settings for this app (so user can manually grant permissions).
   static Future<bool> openAppSettings() async {
     try {

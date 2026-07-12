@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:wepei_module/commons/widgets/webview_page.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -289,6 +290,16 @@ class SliverCardsWidget extends StatelessWidget {
   final List<CardBean> cards;
   final List<int> order;
   final ScrollController controller = ScrollController();
+  // Used on non-OHOS platforms: open URL via system browser
+  void _openExternalUrl(String url) async {
+    if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
+      await launchUrl(Uri.parse(url),
+          mode: LaunchMode.externalApplication).catchError((_) {});
+    } else {
+      ToastProvider.error('请检查网络状态');
+    }
+  }
+
   static List<String> peiyangLabel = [
     '课程表',
     '入校码',
@@ -319,14 +330,17 @@ class SliverCardsWidget extends StatelessWidget {
             .contains(cardBean.label)) {
           return WButton(
             key: ValueKey(cardBean.route),
-            onPressed: () async {
-              if (await canLaunchUrl(
-                  Uri.parse(cardBean.route)).catchError((_) => false)) {
-                await launchUrl(
-                    Uri.parse(cardBean.route),
-                    mode: LaunchMode.externalApplication).catchError((_) {});
+            onPressed: () {
+              if (Platform.operatingSystem == 'ohos') {
+                // OHOS: use in-app WebView instead of url_launcher
+                final route = cardBean.route;
+                if (route.contains('wiki.tjubot.cn')) {
+                  openUrlInApp(context, 'https://wiki.tjubot.cn/', title: '北洋维基');
+                } else {
+                  openUrlInApp(context, route);
+                }
               } else {
-                ToastProvider.error('请检查网络状态');
+                _openExternalUrl(cardBean.route);
               }
             },
             child:

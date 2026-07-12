@@ -1,13 +1,13 @@
+import { webview } from '@kit.ArkWeb';
 import router from '@ohos.router';
 
 @Entry
 @Component
 struct WebPage {
   @State url: string = '';
-  private controller: WebController = new WebController();
+  private controller: webview.WebviewController = new webview.WebviewController();
 
   aboutToAppear(): void {
-    // Read URL from AppStorage (set by native openWebView handler)
     const storedUrl = AppStorage.Get<string>('webViewUrl');
     if (storedUrl && storedUrl.length > 0) {
       AppStorage.Delete('webViewUrl');

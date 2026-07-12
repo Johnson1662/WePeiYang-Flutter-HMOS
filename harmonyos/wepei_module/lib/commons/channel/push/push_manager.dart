@@ -122,6 +122,12 @@ class PushManager extends ChangeNotifier {
   // 在设置里，可以手动打开推送
   Future<void> turnOnPushService(
       Function success, Function failure, Function error) async {
+    // OHOS: no native push channel; toggle locally
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      openPush = true;
+      success();
+      return;
+    }
     try {
       final result = await _pushChannel.invokeMethod("turnOnPushService").timeout(const Duration(seconds: 3)).catchError((_) {});
       switch (result) {
@@ -156,6 +162,12 @@ class PushManager extends ChangeNotifier {
   }
 
   Future<void> turnOffPushService(Function success, Function error) async {
+    // OHOS: no native push channel; toggle locally
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      openPush = false;
+      success();
+      return;
+    }
     try {
       await _pushChannel.invokeMethod("turnOffPushService").timeout(const Duration(seconds: 3)).catchError((_) {});
       openPush = false;

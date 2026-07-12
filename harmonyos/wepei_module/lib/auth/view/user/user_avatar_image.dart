@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:transparent_image/transparent_image.dart';
@@ -10,19 +8,6 @@ import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 
 import '../../../commons/themes/template/wpy_theme_data.dart';
-
-Dio _createDio() {
-  final dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 10)));
-  final adapter = dio.httpClientAdapter;
-  if (adapter is IOHttpClientAdapter) {
-    adapter.createHttpClient = () {
-      final client = HttpClient();
-      client.badCertificateCallback = (cert, host, port) => true;
-      return client;
-    };
-  }
-  return dio;
-}
 
 class UserAvatarImage extends StatelessWidget {
   final double size;
@@ -83,6 +68,7 @@ class _DioImage extends StatefulWidget {
 }
 
 class _DioImageState extends State<_DioImage> {
+  static final Map<String, Uint8List> _cache = {};
   Uint8List? _bytes;
   bool _loading = true;
 
@@ -94,14 +80,37 @@ class _DioImageState extends State<_DioImage> {
   }
 
   Future<void> _load() async {
-    try {
-      final dio = _createDio();
-      final response = await dio.get<List<int>>(widget.url,
-          options: Options(responseType: ResponseType.bytes));
-      if (response.data != null && mounted) {
-        _bytes = Uint8List.fromList(response.data!);
+    // Check cache first
+    final cached = _cache[widget.url];
+    if (cached != null) {
+      if (mounted) {
+        _bytes = cached;
         _loading = false;
-        if (mounted) setState(() {});
+        setState(() {});
+      }
+      return;
+    }
+
+    try {
+      final client = HttpClient()
+        ..badCertificateCallback = (cert, host, port) => true;
+      final request = await client.getUrl(Uri.parse(widget.url));
+      final response = await request.close();
+      final bytes = await response.fold<Uint8List>(
+        Uint8List(0),
+        (prev, chunk) {
+          final combined = Uint8List(prev.length + chunk.length);
+          combined.setRange(0, prev.length, prev);
+          combined.setRange(prev.length, combined.length, chunk);
+          return combined;
+        },
+      );
+      client.close();
+      _cache[widget.url] = bytes;
+      if (mounted) {
+        _bytes = bytes;
+        _loading = false;
+        setState(() {});
       }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
@@ -132,6 +141,7 @@ class _DioBoxImage extends StatefulWidget {
 }
 
 class _DioBoxImageState extends State<_DioBoxImage> {
+  static final Map<String, Uint8List> _cache = {};
   Uint8List? _bytes;
 
   @override
@@ -141,13 +151,35 @@ class _DioBoxImageState extends State<_DioBoxImage> {
   }
 
   Future<void> _load() async {
+    // Check cache first
+    final cached = _cache[widget.url];
+    if (cached != null) {
+      if (mounted) {
+        _bytes = cached;
+        setState(() {});
+      }
+      return;
+    }
+
     try {
-      final dio = _createDio();
-      final response = await dio.get<List<int>>(widget.url,
-          options: Options(responseType: ResponseType.bytes));
-      if (response.data != null && mounted) {
-        _bytes = Uint8List.fromList(response.data!);
-        if (mounted) setState(() {});
+      final client = HttpClient()
+        ..badCertificateCallback = (cert, host, port) => true;
+      final request = await client.getUrl(Uri.parse(widget.url));
+      final response = await request.close();
+      final bytes = await response.fold<Uint8List>(
+        Uint8List(0),
+        (prev, chunk) {
+          final combined = Uint8List(prev.length + chunk.length);
+          combined.setRange(0, prev.length, prev);
+          combined.setRange(prev.length, combined.length, chunk);
+          return combined;
+        },
+      );
+      client.close();
+      _cache[widget.url] = bytes;
+      if (mounted) {
+        _bytes = bytes;
+        setState(() {});
       }
     } catch (_) {}
   }

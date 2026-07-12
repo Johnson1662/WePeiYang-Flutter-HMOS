@@ -9,7 +9,6 @@ import {
 } from '@ohos/flutter_ohos';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { cameraPicker } from '@kit.CameraKit';
-import router from '@ohos.router';
 import { fileIo } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
 import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
@@ -52,6 +51,9 @@ class SaveImgHandler implements MethodCallHandler {
         break;
       case 'openWebView':
         this.openWebView('' + call['argument'], result);
+        break;
+      case 'openInBrowser':
+        this.openInBrowser('' + call['argument'], result);
         break;
       default:
         result.notImplemented();
@@ -212,17 +214,53 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
-  private openWebView(url: string, result: MethodResult): void {
+  private async openInBrowser(url: string, result: MethodResult): Promise<void> {
+    try {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        console.info(TAG, 'openInBrowser: url=' + url);
+        // Wrap in new microtask to ensure UI thread dispatch
+        await new Promise<void>((resolve) => {
+          setTimeout(async () => {
+            try {
+              await this.context.openLink(url, { appLinkingOnly: false });
+              console.info(TAG, 'openInBrowser: openLink succeeded');
+              result.success(true);
+            } catch (e) {
+              console.warn(TAG, 'openLink failed: ' + JSON.stringify(e));
+              try {
+                await this.context.startAbility({
+                  bundleName: 'com.huawei.hmos.browser',
+                  uri: url,
+                });
+                console.info(TAG, 'openInBrowser: Huawei Browser succeeded');
+                result.success(true);
+              } catch (e2) {
+                console.error(TAG, 'Huawei Browser also failed: ' + JSON.stringify(e2));
+                result.success(false);
+              }
+            }
+            resolve();
+          }, 0);
+        });
+      } else {
+        result.success(false);
+      }
+    } catch (e) {
+      console.warn(TAG, 'openInBrowser failed: ' + JSON.stringify(e));
+      result.success(false);
+    }
+  }
+
+  private async openWebView(url: string, result: MethodResult): Promise<void> {
     try {
       if (url.startsWith('http://') || url.startsWith('https://')) {
         console.info(TAG, 'openWebView: url=' + url);
-        // Store URL in AppStorage; Index.ets watches webViewPending flag
-        // and navigates to WebPage via router.pushUrl (from ArkUI component context)
+        // Use AppStorage (polled by Index.ets)
         AppStorage.Set<string>('webViewUrl', url);
         AppStorage.Set<boolean>('webViewPending', true);
+        console.info(TAG, 'openWebView: set AppStorage signals');
         result.success(true);
       } else {
-        console.warn(TAG, 'invalid webview url: ' + url);
         result.success(false);
       }
     } catch (e) {

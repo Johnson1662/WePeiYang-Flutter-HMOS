@@ -83,6 +83,7 @@ dependencies:
   cupertino_icons: any
   dio_cookie_manager: any
   cookie_jar: any
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_lints: any
@@ -90,6 +91,16 @@ dev_dependencies:
 
 dependency_overrides:
   photo_manager: 3.6.4
+  flutter_inappwebview:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_inappwebview.git"
+      path: "flutter_inappwebview"
+      ref: br_v6.1.5_ohos
+  flutter_inappwebview_platform_interface:
+    git:
+      url: "https://gitcode.com/CPF-Flutter/flutter_inappwebview.git"
+      path: "flutter_inappwebview_platform_interface"
+      ref: "br_v6.1.5_ohos"
 
 flutter:
   uses-material-design: true
