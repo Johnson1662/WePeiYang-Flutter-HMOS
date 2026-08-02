@@ -38,8 +38,14 @@ class FeedbackDio extends DioAbstract {
         //       true);
         default: // 其他错误
           var data = response.data['data'];
-          if (data == null || data['error'] == null) return;
-          return handler.reject(WpyDioException(error: data['error']), true);
+          if (code == 401) {
+            // token 失效，清除旧 token，下一次请求会重新换取
+            CommonPreferences.lakeToken.value = '';
+          }
+          var error = (data is Map && data['error'] != null)
+              ? data['error'].toString()
+              : response.data['msg']?.toString() ?? '请求失败';
+          return handler.reject(WpyDioException(error: error), true);
       }
     })
   ];
