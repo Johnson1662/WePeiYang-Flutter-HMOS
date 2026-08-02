@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, ValueNotifier;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wepei_module/home/view/wpy_page.dart';
@@ -35,6 +35,7 @@ class CommonPreferences {
       sharedPref = await SharedPreferences.getInstance()
           .timeout(const Duration(seconds: 3));
     }
+    showXiaotianTabNotifier.value = showXiaotianTab.value;
   }
   /// 天外天账号系统
   static final isLogin = PrefsBean<bool>('login');
@@ -124,6 +125,8 @@ class CommonPreferences {
   static final hideGPA = PrefsBean<bool>('hideGPA', true); // 首页不显示GPA
   static final hideExam = PrefsBean<bool>('hideExam'); // 首页不显示考表
   static final showMap = PrefsBean<bool>('showMap', false); // 首页不显示考表
+  static final showXiaotianTab = PrefsBean<bool>('showXiaotianTab', true);
+  static final showXiaotianTabNotifier = ValueNotifier<bool>(true);
   static final nightMode = PrefsBean<bool>('nightMode', true); // 开启夜猫子模式
   static final useClassesBackend =
       PrefsBean<bool>('useClassesBackend', false); // 用后端爬虫代替前端爬虫（课表、考表、GPA）

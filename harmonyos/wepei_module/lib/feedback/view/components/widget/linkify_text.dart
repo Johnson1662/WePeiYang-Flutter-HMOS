@@ -21,6 +21,9 @@ class LinkText extends StatefulWidget {
 }
 
 class _LinkTextState extends State<LinkText> {
+  static final _postRefPattern = RegExp(r'^#MP-?\d+$', caseSensitive: false);
+  static final _httpUrlPattern = RegExp(r'^https?://', caseSensitive: false);
+
   bool checkBili(String url) {
     return url.contains('b23.tv') || url.contains('bilibili.com');
   }
@@ -35,15 +38,11 @@ class _LinkTextState extends State<LinkText> {
       textStyle: widget.style.PingFangSC.w400.sp(16),
       linkStyle: widget.style.link(context).w500.sp(16),
       onTap: (link) async {
-        // 粗暴地解决了，但是肯定不是个长久之计
-        if (link.value!.startsWith('#MP') &&
-            RegExp(r'^-?[0-9]+').hasMatch(link.value!.substring(3))) {
-          checkPostId(link.value!.substring(3));
+        final value = link.value?.trim() ?? '';
+        if (_postRefPattern.hasMatch(value)) {
+          checkPostId(value.substring(3));
         } else if (link.type == LinkType.url) {
-          var url = link.value!.startsWith('http')
-              ? link.value!
-              : 'https://${link.value}';
-          checkUrl(url);
+          checkUrl(_normalizeUrl(value));
         } else {
           ToastProvider.error('无效的帖子编号！');
         }
@@ -66,6 +65,11 @@ class _LinkTextState extends State<LinkText> {
         return;
       },
     );
+  }
+
+  String _normalizeUrl(String value) {
+    final url = value.trim();
+    return _httpUrlPattern.hasMatch(url) ? url : 'https://$url';
   }
 
   checkUrl(String url) async {

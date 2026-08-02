@@ -20,7 +20,30 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
   @override
   void initState() {
     super.initState();
+    if (CommonPreferences.firstPrivacy.value == true) {
+      rootBundle.loadString('privacy/privacy_content.md').then((str) {
+        if (!mounted) return;
+        setState(() {
+          md = str;
+        });
+      });
+    }
+
+    ///首次打开APP弹出隐私协议
+    ///修改为拒绝后再次打开APP仍弹出隐私协议
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      if (CommonPreferences.firstPrivacy.value == true) {
+        if (md.isEmpty) {
+          md = await rootBundle.loadString('privacy/privacy_content.md');
+        }
+        await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return PrivacyDialog(md, check: ValueNotifier<bool>(true));
+            });
+        CommonPreferences.firstPrivacy.value = false;
+      }
       UmengCommonSdk.initCommon().catchError((_) {});
     });
   }
@@ -50,7 +73,7 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
                 child: Text.rich(TextSpan(children: [
                   TextSpan(
                       text: "Welcome\n\n",
-                      style: TextUtil.base.normal.ProductSans
+                      style: TextUtil.base.normal.NotoSansSC
                           .sp(40)
                           .w700
                           .bright(context)),

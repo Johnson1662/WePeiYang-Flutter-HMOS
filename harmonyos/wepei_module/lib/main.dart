@@ -55,6 +55,7 @@ void main() async {
   HttpOverrides.global = _InsecureHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.init();
+  await StorageUtil.init();
   await CommonPreferences.init();
   WpyTheme.init();
   _loadLoginState();
@@ -62,8 +63,26 @@ void main() async {
   debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily BEFORE loadFontFromList=${TextUtil.base.fontFamily}');
   await _loadHarmonyOSFonts();
   debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily AFTER loadFontFromList=${TextUtil.base.fontFamily}');
-  runApp(const WePeiYangApp());
+  final now = DateTime.now().toLocal();
+  final importantDates = [
+    DateTime(now.year, 5, 12),
+    DateTime(now.year, 12, 13),
+  ];
+  final isSpecialDate = importantDates.any((date) =>
+      date.year == now.year &&
+      date.month == now.month &&
+      date.day == now.day);
 
+  if (isSpecialDate) {
+    runApp(
+      ColorFiltered(
+        colorFilter: ColorFilter.mode(Colors.white, BlendMode.color),
+        child: const WePeiYangApp(),
+      ),
+    );
+  } else {
+    runApp(const WePeiYangApp());
+  }
 }
 
 Future<void> _loadHarmonyOSFonts() async {
@@ -139,14 +158,41 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
             ...scheduleProviders,
             ChangeNotifierProvider(create: (_) => CampusProvider()),
             ChangeNotifierProvider(create: (_) => TimeProvider()),
-            ChangeNotifierProvider(create: (_) => MessageProvider()),
+            ChangeNotifierProvider(
+              lazy: false,
+              create: (_) {
+                final messageProvider = MessageProvider()..refreshFeedbackCount();
+                _pushChannel.setMethodCallHandler((call) async {
+                  switch (call.method) {
+                    case 'refreshFeedbackMessageCount':
+                      await messageProvider.refreshFeedbackCount();
+                      return 'success';
+                    case 'showMessageDialogOnlyText':
+                      final arguments = call.arguments;
+                      if (arguments is Map && arguments['data'] is String) {
+                        final content = arguments['data'] as String;
+                        final dialogContext =
+                            RouterManager.navigatorKey.currentState?.overlay?.context;
+                        if (dialogContext != null && content.isNotEmpty) {
+                          await showMessageDialog(dialogContext, content);
+                        }
+                      }
+                      break;
+                  }
+                });
+                return messageProvider;
+              },
+            ),
             ...feedbackProviders,
             ...lostAndFoundProviders,
             ChangeNotifierProvider(create: (_) => PushManager()),
             ChangeNotifierProvider(create: (_) => UpdateManager()),
             ChangeNotifierProvider(create: (_) => AnimationProvider()),
             ChangeNotifierProvider(create: (_) => xiaotianInputState()),
-            ChangeNotifierProvider(create: (_) => RemoteConfig()),
+            ChangeNotifierProvider(
+              lazy: false,
+              create: (_) => RemoteConfig()..getRemoteConfig(),
+            ),
             ChangeNotifierProvider(create: (_) => xiaotianChatState()),
           ],
           child: ListenableBuilder(
@@ -187,18 +233,63 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  String? _remoteUrl;
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WePeiYangApp.navigatorState = Navigator.of(context);
+      WbyFontLoader.initFonts();
+      if (CommonPreferences.token.value.isNotEmpty) {
+        unawaited(LakeTokenManager().refreshToken().catchError((_) => ''));
+      }
+      unawaited(_loadSplashIcon());
       _redirect();
     });
   }
 
   void _redirect() {
-    if (!context.mounted) return;
-    // Load cached course/GPA/exam data before navigating
+    unawaited(_appInitProcess());
+  }
+
+  void _navigateHome() {
+    _navigateOnce((navigator) {
+      navigator.pushNamedAndRemoveUntil(HomeRouter.home, (route) => false);
+    });
+  }
+
+  void _navigateLogin() {
+    _navigateOnce((navigator) {
+      navigator.pushReplacementNamed(AuthRouter.login);
+    });
+  }
+
+  bool _navigateOnce(void Function(NavigatorState navigator) navigate) {
+    if (!mounted || _hasNavigated) return false;
+    final navigator = RouterManager.navigatorKey.currentState;
+    if (navigator == null) return false;
+    _hasNavigated = true;
+    navigate(navigator);
+    return true;
+  }
+
+  Future<void> _appInitProcess() async {
+    unawaited(
+      context.read<UpdateManager>().checkUpdate().catchError((_) {}),
+    );
+    unawaited(LocalSetting.changeSecurity(false).catchError((_) {}));
+
+    if (CommonPreferences.updateTime.value == '') {
+      CommonPreferences.updateTime.value = '20221019';
+    } else if (CommonPreferences.updateTime.value != '20221019') {
+      CommonPreferences.clearAllPrefs();
+      _navigateLogin();
+      return;
+    }
+
+    // Load cached course/GPA/exam data before navigating.
     try {
       context.read<CourseProvider>().readPref();
     } catch (_) {}
@@ -209,15 +300,74 @@ class _SplashScreenState extends State<SplashScreen> {
       context.read<ExamProvider>().readPref();
     } catch (_) {}
 
-    final route = CommonPreferences.isLogin.value && CommonPreferences.token.value.isNotEmpty
-        ? HomeRouter.home
-        : AuthRouter.login;
-    Navigator.pushReplacementNamed(context, route);
+    if (CommonPreferences.isLogin.value &&
+        CommonPreferences.token.value.isNotEmpty) {
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted || _hasNavigated) return;
+      AuthService.getInfo(
+        onSuccess: _navigateHome,
+        onFailure: (_) {
+          if (CommonPreferences.account.value.isNotEmpty &&
+              CommonPreferences.password.value.isNotEmpty) {
+            AuthService.pwLogin(
+              CommonPreferences.account.value,
+              CommonPreferences.password.value,
+              onResult: (_) {},
+              onFailure: (_) {},
+            );
+          }
+          _navigateHome();
+        },
+      );
+      return;
+    }
+
+    await Future<void>.delayed(const Duration(seconds: 1));
+    if (!mounted || _hasNavigated) return;
+    _navigateLogin();
+  }
+
+  Future<void> _loadSplashIcon() async {
+    try {
+      final isDark = WpyTheme.of(context).brightness == Brightness.dark;
+      final url = await (isDark
+              ? SplashService.getSplashDark()
+              : SplashService.getSplashLight())
+          .timeout(const Duration(seconds: 3));
+      if (!mounted || url.isEmpty || url.startsWith('assets/')) return;
+      setState(() => _remoteUrl = url);
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isDarkMode = WpyTheme.of(context).brightness == Brightness.dark;
+    final asset = isDarkMode
+        ? 'assets/images/splash_screen_dark.png'
+        : 'assets/images/splash_screen.png';
+    final content = _remoteUrl == null
+        ? Padding(
+            padding: const EdgeInsets.all(30),
+            child: Center(
+              child: ColoredIcon(asset, color: WpyTheme.of(context).primary),
+            ),
+          )
+        : WpyPic(
+            _remoteUrl!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            withHolder: false,
+          );
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      child: Container(
+        key: ValueKey(_remoteUrl ?? 'local'),
+        color: isDarkMode ? Colors.black : Colors.white,
+        constraints: const BoxConstraints.expand(),
+        child: content,
+      ),
+    );
   }
 }
 
