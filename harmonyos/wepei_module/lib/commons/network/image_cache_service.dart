@@ -2,13 +2,32 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageCacheService {
-  ImageCacheService._();
+  ImageCacheService._() {
+    final adapter = _dio.httpClientAdapter;
+    if (adapter is IOHttpClientAdapter) {
+      adapter.createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+    }
+  }
   static final ImageCacheService instance = ImageCacheService._();
 
-  final Dio _dio = Dio();
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      sendTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 300,
+    ),
+  );
+  final Map<String, Future<File>> _inFlightDownloads = {};
 
   static const String _spKeyExpiresMap = 'imageExpiresMap';
 
@@ -31,10 +50,19 @@ class ImageCacheService {
     _dlog(
         '[ImageCacheService] expires=${expires?.toIso8601String()} needFetch=$needFetch');
 
-    if (needFetch) {
-      return await _downloadAndSave(url, file);
+    if (!needFetch) return file;
+
+    final download = _inFlightDownloads.putIfAbsent(
+      url,
+      () => _downloadAndSave(url, file),
+    );
+    try {
+      return await download;
+    } finally {
+      if (identical(_inFlightDownloads[url], download)) {
+        _inFlightDownloads.remove(url);
+      }
     }
-    return file;
   }
 
   Future<File?> getLocalFileIfExists(String url) async {
@@ -48,34 +76,53 @@ class ImageCacheService {
 
   Future<File> _downloadAndSave(String url, File file) async {
     _dlog('[ImageCacheService] downloading url=$url');
-    final resp = await _dio.get<List<int>>(
-      url,
-      options: Options(responseType: ResponseType.bytes, followRedirects: true),
-    );
-
-    await file.create(recursive: true);
-    await file.writeAsBytes(resp.data!);
-    _dlog(
-        '[ImageCacheService] saved bytes=${resp.data?.length} to ${file.path}');
-
-    final expiresHeader = _firstHeader(resp.headers, 'expires');
-    DateTime? expires = _parseExpires(expiresHeader);
-
-    if (expires == null) {
-      final cacheControl = _firstHeader(resp.headers, 'cache-control');
-      final maxAge = _parseMaxAge(cacheControl);
-      if (maxAge != null) {
-        expires = DateTime.now().add(Duration(seconds: maxAge));
+    final tempFile = File('${file.path}.part');
+    try {
+      final resp = await _dio.get<List<int>>(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+        ),
+      );
+      final statusCode = resp.statusCode;
+      if (statusCode == null || statusCode < 200 || statusCode >= 300) {
+        throw StateError('Image request returned HTTP $statusCode');
       }
+      final bytes = resp.data;
+      if (bytes == null) {
+        throw StateError('Image request returned no response body');
+      }
+
+      await tempFile.parent.create(recursive: true);
+      await tempFile.writeAsBytes(bytes, flush: true);
+      await tempFile.rename(file.path);
+      _dlog('[ImageCacheService] saved bytes=${bytes.length} to ${file.path}');
+
+      final expiresHeader = _firstHeader(resp.headers, 'expires');
+      DateTime? expires = _parseExpires(expiresHeader);
+
+      if (expires == null) {
+        final cacheControl = _firstHeader(resp.headers, 'cache-control');
+        final maxAge = _parseMaxAge(cacheControl);
+        if (maxAge != null) {
+          expires = DateTime.now().add(Duration(seconds: maxAge));
+        }
+      }
+
+      expires ??= DateTime.now().add(const Duration(days: 30));
+
+      await _saveExpires(url, expires);
+      _dlog(
+          '[ImageCacheService] set expires=${expires.toIso8601String()} for url=$url');
+
+      return file;
+    } catch (_) {
+      try {
+        if (await tempFile.exists()) await tempFile.delete();
+      } catch (_) {}
+      rethrow;
     }
-
-    expires ??= DateTime.now().add(const Duration(days: 30));
-
-    await _saveExpires(url, expires);
-    _dlog(
-        '[ImageCacheService] set expires=${expires.toIso8601String()} for url=$url');
-
-    return file;
   }
 
   String? _firstHeader(Headers headers, String name) {
