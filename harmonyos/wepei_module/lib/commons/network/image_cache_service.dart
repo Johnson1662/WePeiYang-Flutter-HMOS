@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wepei_module/commons/preferences/mock_shared_prefs.dart';
 
 class ImageCacheService {
   ImageCacheService._() {
@@ -174,22 +175,44 @@ class ImageCacheService {
     return hasExt ? '${sanitized}_$hash' : '${sanitized}_$hash.img';
   }
 
+  bool get _isOhos => !Platform.isAndroid && !Platform.isIOS;
+
+  Future<String?> _getPreferenceString(String key) async {
+    if (_isOhos) {
+      return (await MockSharedPreferences.getInstance()).getString(key);
+    }
+    return (await SharedPreferences.getInstance()).getString(key);
+  }
+
+  Future<void> _setPreferenceString(String key, String value) async {
+    if (_isOhos) {
+      await (await MockSharedPreferences.getInstance()).setString(key, value);
+    } else {
+      await (await SharedPreferences.getInstance()).setString(key, value);
+    }
+  }
+
+  Future<void> _removePreference(String key) async {
+    if (_isOhos) {
+      await (await MockSharedPreferences.getInstance()).remove(key);
+    } else {
+      await (await SharedPreferences.getInstance()).remove(key);
+    }
+  }
+
   Future<void> _saveExpires(String url, DateTime expires) async {
     try {
-      final sp = await SharedPreferences.getInstance();
-      final raw = sp.getString(_spKeyExpiresMap) ?? '{}';
+      final raw = await _getPreferenceString(_spKeyExpiresMap) ?? '{}';
       final Map<String, dynamic> map = _decodeJsonSafe(raw);
       map[url] = expires.millisecondsSinceEpoch;
-      await sp.setString(_spKeyExpiresMap, json.encode(map));
+      await _setPreferenceString(_spKeyExpiresMap, json.encode(map));
     } catch (_) {}
   }
 
   Future<DateTime?> _getExpires(String url) async {
     try {
-      final sp = await SharedPreferences.getInstance();
-      final raw = sp.getString(_spKeyExpiresMap) ?? '{}';
-      final Map<String, dynamic> map = _decodeJsonSafe(raw);
-      final v = map[url];
+      final raw = await _getPreferenceString(_spKeyExpiresMap) ?? '{}';
+      final v = _decodeJsonSafe(raw)[url];
       if (v == null) return null;
       return DateTime.fromMillisecondsSinceEpoch(v as int);
     } catch (_) {
@@ -217,8 +240,7 @@ class ImageCacheService {
       _dlog('[ImageCacheService] cleared cache dir ${cacheDir.path}');
     }
     try {
-      final sp = await SharedPreferences.getInstance();
-      await sp.remove(_spKeyExpiresMap);
+      await _removePreference(_spKeyExpiresMap);
     } catch (_) {}
   }
 
