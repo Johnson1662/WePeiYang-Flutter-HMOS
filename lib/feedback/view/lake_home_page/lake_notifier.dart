@@ -9,7 +9,6 @@ import 'package:we_pei_yang_flutter/commons/util/toast_provider.dart';
 import 'package:we_pei_yang_flutter/feedback/feedback_router.dart';
 import 'package:we_pei_yang_flutter/feedback/network/feedback_service.dart';
 import 'package:we_pei_yang_flutter/feedback/network/post.dart';
-import 'package:we_pei_yang_flutter/commons/channel/image_save/image_save.dart';
 import 'package:we_pei_yang_flutter/feedback/view/components/widget/we_ko_dialog.dart';
 
 class FbDepartmentsProvider {
@@ -198,41 +197,16 @@ class LakeUtil {
   }
 
   static Future<void> getClipboardWeKoContents(BuildContext context) async {
-    debugPrint('[LakeUtil] getClipboardWeKoContents start');
-    // Debug: show Toast what clipboard contains
-    try {
-      final testClip = await ImageSave.getClipboardText();
-      if (testClip != null && testClip.isNotEmpty) {
-        ToastProvider.success('剪贴板: ${testClip.length > 50 ? testClip.substring(0, 50) + "..." : testClip}');
-      } else {
-        ToastProvider.error('剪贴板: 空');
-      }
-    } catch (e) {
-      ToastProvider.error('剪贴板API错误: $e');
-    }
     final clipboardData = await _getValidClipboardData();
-    debugPrint('[LakeUtil] clipboard data: $clipboardData');
     if (clipboardData == null) return;
 
     final id = _extractIdFromText(clipboardData);
-    debugPrint('[LakeUtil] extracted id: $id');
     if (id.isEmpty || !_shouldFetchPost(id)) return;
 
     _fetchPostById(context, id);
   }
 
   static Future<String?> _getValidClipboardData() async {
-    // Try OHOS native pasteboard channel first (harmonyos)
-    try {
-      final ohosClip = await ImageSave.getClipboardText();
-      debugPrint('[LakeUtil] OHOS clipboard: $ohosClip');
-      if (ohosClip != null && ohosClip.trim().isNotEmpty) {
-        return ohosClip.trim();
-      }
-    } catch (e) {
-      debugPrint('[LakeUtil] OHOS clipboard error: $e');
-    }
-    // Fallback: Flutter framework clipboard API
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     if (clipboardData?.text?.trim().isNotEmpty ?? false) {
       return clipboardData!.text!.trim();

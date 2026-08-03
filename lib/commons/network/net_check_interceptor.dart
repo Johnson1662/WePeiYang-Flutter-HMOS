@@ -8,26 +8,18 @@ class NetStatusListener {
   factory NetStatusListener() => _instance;
 
   static void init() {
-    try {
-      final connectivity = Connectivity();
-      connectivity.onConnectivityChanged.listen((result) {
-        _instance._status = result;
-      });
-      unawaited(connectivity.checkConnectivity().then((result) {
-        _instance._status = result;
-      }).catchError((_) {
-        // OHOS: connectivity_plus not available — assume network is OK
-        _instance._status = [ConnectivityResult.wifi];
-      }));
-    } catch (_) {
-      // OHOS: connectivity_plus not available — assume network is OK
-      _instance._status = [ConnectivityResult.wifi];
-    }
+    final connectivity = Connectivity();
+    connectivity.onConnectivityChanged.listen((result) {
+      _instance._status = result;
+    });
+    unawaited(connectivity.checkConnectivity().then((result) {
+      _instance._status = result;
+    }).catchError((_) {}));
   }
 
   List<ConnectivityResult>? _status;
 
-  bool get hasNetwork => _instance._status?.any((r) => r != ConnectivityResult.none) ?? true;
+  bool get hasNetwork => _instance._status?.any((r) => r != ConnectivityResult.none) ?? false;
 }
 
 class NetCheckInterceptor extends InterceptorsWrapper {

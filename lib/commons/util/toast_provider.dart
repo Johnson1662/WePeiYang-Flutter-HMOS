@@ -224,15 +224,13 @@ class ToastProvider with AsyncTimer {
     );
   }
 
-  /// 取消当前正在显示的 Toast（同步清空队列，防止 OHOS 上同时显示多个）
+  /// 取消当前正在显示的 Toast
   static void cancelCurrent() {
-    _fToast.removeQueuedCustomToasts();
     _fToast.removeCustomToast();
   }
 
-  /// 取消队列中所有的 Toast
+  /// 取消队列中所有的 Toast，一般来说用这个比较好
   static void cancelAll() {
     _fToast.removeQueuedCustomToasts();
-    _fToast.removeCustomToast();
   }
 }

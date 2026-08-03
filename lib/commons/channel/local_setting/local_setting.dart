@@ -6,10 +6,9 @@ class LocalSetting {
   static const _channel = MethodChannel("com.twt.service/local_setting");
 
   static Future<void> changeBrightness(double brightness) async {
-    try {
-      await _channel
-          .invokeMethod("changeWindowBrightness", {'brightness': brightness});
-    } catch (_) {}
+    await _channel
+        .invokeMethod("changeWindowBrightness", {'brightness': brightness});
+    ;
   }
 
   static Future<void> changeSecurity(bool enable) async {
