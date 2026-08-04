@@ -90,10 +90,13 @@ class ToastProvider {
     nav.overlay!.insert(entry!);
   }
 
-  static void error(String msg) {
-    if (msg.isEmpty) return;
+  static void error(String? msg) {
+    final normalized = msg?.trim();
+    final text = normalized == null || normalized.isEmpty || normalized == 'null'
+        ? '请求失败'
+        : normalized;
     _showOverlayToast(
-      msg: msg,
+      msg: text,
       bgColor: _nav?.context != null
           ? WpyTheme.of(_nav!.context).get(WpyColorKey.dangerousRed)
           : Colors.red,

@@ -304,8 +304,14 @@ class _SplashScreenState extends State<SplashScreen> {
         CommonPreferences.token.value.isNotEmpty) {
       await Future<void>.delayed(Duration.zero);
       if (!mounted || _hasNavigated) return;
+      final initDone = Completer<void>();
+      void finishInit() {
+        if (!initDone.isCompleted) initDone.complete();
+        _navigateHome();
+      }
+
       AuthService.getInfo(
-        onSuccess: _navigateHome,
+        onSuccess: finishInit,
         onFailure: (_) {
           if (CommonPreferences.account.value.isNotEmpty &&
               CommonPreferences.password.value.isNotEmpty) {
@@ -316,8 +322,12 @@ class _SplashScreenState extends State<SplashScreen> {
               onFailure: (_) {},
             );
           }
-          _navigateHome();
+          finishInit();
         },
+      );
+      await initDone.future.timeout(
+        const Duration(seconds: 6),
+        onTimeout: _navigateHome,
       );
       return;
     }

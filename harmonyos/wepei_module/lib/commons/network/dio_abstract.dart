@@ -35,7 +35,10 @@ abstract class DioAbstract {
         return client;
       };
     }
-    _dio.interceptors.addAll([...interceptors]);
+    _dio.interceptors.addAll([
+      ...interceptors,
+      errorInterceptor ?? ErrorInterceptor(),
+    ]);
     _dio_debug = _dio;
   }
 }
