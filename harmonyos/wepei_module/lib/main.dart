@@ -243,12 +243,7 @@ class _AppEntryPageState extends State<AppEntryPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WePeiYangApp.navigatorState = Navigator.of(context);
       WbyFontLoader.initFonts();
-      unawaited(
-        _launchChannel
-            .invokeMethod('flutterFirstFrame')
-            .timeout(const Duration(seconds: 1))
-            .catchError((_) {}),
-      );
+      unawaited(_notifyNativeFirstFrame());
       unawaited(
         context.read<UpdateManager>().checkUpdate().catchError((_) {}),
       );
@@ -256,6 +251,15 @@ class _AppEntryPageState extends State<AppEntryPage> {
       _readCachedData();
       _refreshLoginState();
     });
+  }
+
+  Future<void> _notifyNativeFirstFrame() async {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    try {
+      await _launchChannel
+          .invokeMethod('flutterFirstFrame')
+          .timeout(const Duration(seconds: 1));
+    } catch (_) {}
   }
 
   bool _resolveInitialPage() {

@@ -155,7 +155,7 @@ struct Index {
     }, 300);
     setTimeout(() => {
       this.showLaunchOverlay = false;
-    }, 1500);
+    }, 3000);
   }
 
   build() {
