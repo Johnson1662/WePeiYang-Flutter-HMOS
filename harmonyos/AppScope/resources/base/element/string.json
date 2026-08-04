@@ -15,6 +15,10 @@
     {
       "name": "reason_camera",
       "value": "用于拍照上传帖子图片"
+    },
+    {
+      "name": "form_name_schedule",
+      "value": "课表"
     }
   ]
 }

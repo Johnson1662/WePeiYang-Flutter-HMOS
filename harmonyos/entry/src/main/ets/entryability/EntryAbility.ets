@@ -14,6 +14,8 @@ import fs from '@ohos.file.fs';
 import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
 import pasteboard from '@ohos.pasteboard';
 import { BusinessError } from '@ohos.base';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+import { formBindingData, formProvider } from '@kit.FormKit';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -22,6 +24,13 @@ export function resolvePickerResult(paths: string[]): void {
 
 const TAG = 'EntryAbility';
 
+interface FormCourseItem {
+  name: string;
+  location: string;
+  timeStart: string;
+  timeEnd: string;
+  time: string;
+}
 
 class SaveImgHandler implements MethodCallHandler {
   private context: common.UIAbilityContext;
@@ -55,6 +64,29 @@ class SaveImgHandler implements MethodCallHandler {
       case 'openInBrowser':
         this.openInBrowser('' + call['argument'], result);
         break;
+      case 'triggerFormUpdate': {
+        const formId: string = (call.argument as Object) as string;
+        if (formId) {
+          this.triggerFormUpdate(formId, result);
+        } else {
+          result.success(false);
+        }
+        break;
+      }
+      case 'syncWidgetCourseData': {
+        // Argument is a JSON string from Flutter (see WidgetDataSync)
+        const jsonStr: string = (call.argument as Object) as string;
+        try {
+          const parsed: Record<string, Object> = JSON.parse(jsonStr);
+          const courseData: string = (parsed['courseData'] as string) || '';
+          const currentWeek: number = (parsed['currentWeek'] as number) || 1;
+          this.syncWidgetCourseData(courseData, currentWeek, result);
+        } catch (e) {
+          console.warn(TAG, 'syncWidgetCourseData parse error: ' + JSON.stringify(e));
+          result.success(false);
+        }
+        break;
+      }
       case 'flutterFirstFrame':
         AppStorage.Set<boolean>('flutterFirstFrame', true);
         result.success(true);
@@ -255,6 +287,63 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
+  private triggerFormUpdate(formId: string, result: MethodResult): void {
+    try {
+      // Read the latest data file and re-send the form binding data
+      const path: string = this.context.cacheDir + '/schedule_widget_data.json';
+      const text: string = fs.readTextSync(path);
+      const data: Record<string, Object> = JSON.parse(text);
+      const courseDataStr: string = (data['courseData'] as string) || '';
+      const currentWeek: number = (data['currentWeek'] as number) || 1;
+      
+      // Parse courses the same way SDCFormAbility does
+      const todayCourses: FormCourseItem[] = [];
+      const today: number = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      
+      if (courseDataStr) {
+        const parsed: Record<string, Object> = JSON.parse(courseDataStr);
+        const allCourses: Array<Record<string, Object>> = [...((parsed['schoolCourses'] || []) as Array<Record<string, Object>>), ...((parsed['customCourses'] || []) as Array<Record<string, Object>>)];
+        for (const course of allCourses) {
+          const name: string = (course['name'] as string) || '未知课程';
+          const arranges: Array<Record<string, Object>> = (course['arrangeList'] as Array<Record<string, Object>>) || [];
+          for (const arrange of arranges) {
+            if ((arrange['weekday'] as number) !== today) continue;
+            const weekList: Array<number> = (arrange['weekList'] as Array<number>) || [];
+            if (weekList.length > 0 && !weekList.includes(currentWeek)) continue;
+            const location: string = ((arrange['location'] as string) || '————').replace(/-/g, '楼');
+            const units: Array<number> = (arrange['unitList'] as Array<number>) || [];
+            const timeStart: string = ['08:30','09:20','10:25','11:15','14:00','14:50','15:50','16:40','19:00','19:50'][(units[0] || 1) - 1] || '';
+            let timeEnd: string = '';
+            if (timeStart) {
+              const parts: string[] = timeStart.split(':');
+              const h: number = Number(parts[0]);
+              const m: number = Number(parts[1]);
+              const totalMin: number = h * 60 + m + 45;
+              const endH: number = Math.floor(totalMin / 60);
+              const endM: number = totalMin % 60;
+              timeEnd = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+            }
+            const item: FormCourseItem = { name: name, location: location, timeStart: timeStart, timeEnd: timeEnd, time: timeStart ? timeStart + '-' + timeEnd : '' };
+            todayCourses.push(item);
+          }
+        }
+        todayCourses.sort((a, b) => a.timeStart.localeCompare(b.timeStart));
+      }
+      
+      const formData: formBindingData.FormBindingData = formBindingData.createFormBindingData({
+        courses: todayCourses,
+        isEmpty: todayCourses.length === 0,
+        lastUpdate: Date.now(),
+      });
+      formProvider.updateForm(formId, formData);
+      console.info(TAG, 'triggerFormUpdate: updated form ' + formId);
+      result.success(true);
+    } catch (e) {
+      console.warn(TAG, 'triggerFormUpdate failed: ' + JSON.stringify(e));
+      result.success(false);
+    }
+  }
+
   private async openWebView(url: string, result: MethodResult): Promise<void> {
     try {
       if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -269,6 +358,35 @@ class SaveImgHandler implements MethodCallHandler {
       }
     } catch (e) {
       console.warn(TAG, 'openWebView failed: ' + JSON.stringify(e));
+      result.success(false);
+    }
+  }
+
+  private syncWidgetCourseData(courseData: string, currentWeek: number, result: MethodResult): void {
+    try {
+      const jsonStr = JSON.stringify({
+        courseData: courseData,
+        currentWeek: currentWeek,
+        lastUpdate: Date.now()
+      });
+      
+      // Write to application cache dir
+      const appCtx = this.context.getApplicationContext();
+      const path1 = appCtx.cacheDir + '/schedule_widget_data.json';
+      const f1 = fs.openSync(path1, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+      fs.writeSync(f1.fd, jsonStr);
+      fs.closeSync(f1);
+      
+      // Also write to own cache dir
+      const path2 = this.context.cacheDir + '/schedule_widget_data.json';
+      const f2 = fs.openSync(path2, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+      fs.writeSync(f2.fd, jsonStr);
+      fs.closeSync(f2);
+      
+      hilog.info(0x0001, TAG, 'syncWidgetCourseData: written to both dirs');
+      result.success(true);
+    } catch (e) {
+      hilog.warn(0x0001, TAG, 'syncWidgetCourseData failed: %{public}s', JSON.stringify(e));
       result.success(false);
     }
   }

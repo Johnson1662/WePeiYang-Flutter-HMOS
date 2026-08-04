@@ -1,0 +1,21 @@
+{
+  "forms": [
+    {
+      "name": "SDCForm",
+      "displayName": "课表",
+      "description": "课程表桌面卡片",
+      "src": "SDCFormCard",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 320,
+        "autoDesignWidth": true
+      },
+      "isDefault": true,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*2",
+      "supportDimensions": ["2*2"]
+    }
+  ]
+}

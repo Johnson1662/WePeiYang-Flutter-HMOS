@@ -13,7 +13,6 @@ import 'package:provider/provider.dart';
 import 'package:wepei_module/commons/font/font_loader.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/token/lake_token_manager.dart';
-
 import 'package:wepei_module/studyroom/model/studyroom_provider.dart';
 import 'package:wepei_module/xiaotian/model/xiaotian_state.dart';
 
@@ -23,6 +22,7 @@ import 'auth/view/login/login_page.dart';
 import 'auth/view/message/message_router.dart';
 import 'commons/channel/local_setting/local_setting.dart';
 import 'commons/channel/push/push_manager.dart';
+import 'commons/channel/widget_data_sync.dart';
 import 'commons/channel/remote_config/remote_config_manager.dart';
 import 'commons/environment/config.dart';
 import 'commons/local/animation_provider.dart';
@@ -36,7 +36,6 @@ import 'commons/util/navigator_observers.dart';
 import 'commons/util/router_manager.dart';
 import 'commons/util/storage_util.dart';
 import 'commons/util/text_util.dart';
-
 import 'feedback/model/feedback_providers.dart';
 import 'feedback/network/post.dart';
 import 'gpa/model/gpa_notifier.dart';
@@ -62,6 +61,8 @@ void main() async {
   debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily BEFORE loadFontFromList=${TextUtil.base.fontFamily}');
   await _loadHarmonyOSFonts();
   debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily AFTER loadFontFromList=${TextUtil.base.fontFamily}');
+  // Initial sync of course data for OHOS service widget
+  WidgetDataSync.syncCourseDataToFile();
   final now = DateTime.now().toLocal();
   final importantDates = [
     DateTime(now.year, 5, 12),

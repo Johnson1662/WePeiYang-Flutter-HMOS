@@ -1,0 +1,21 @@
+{
+  "forms": [
+    {
+      "name": "SDCForm",
+      "displayName": "$string:form_name_schedule",
+      "description": "课程表桌面卡片",
+      "src": "./ets/widget/pages/SDCFormCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 320,
+        "autoDesignWidth": true
+      },
+      "isDefault": true,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": ["2*2", "2*4"]
+    }
+  ]
+}

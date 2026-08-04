@@ -2,6 +2,7 @@ import 'dart:convert' show json;
 
 import 'package:http_parser/http_parser.dart';
 import 'package:wepei_module/auth/network/auth_service.dart';
+import 'package:wepei_module/commons/channel/widget_data_sync.dart';
 import 'package:wepei_module/commons/network/classes_service.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
@@ -42,6 +43,7 @@ class ClassesBackendService {
       }
       CommonPreferences.courseData.value =
           json.encode(CourseTable(courses, customCourses));
+      WidgetDataSync.syncCourseDataToFile();
       CommonPreferences.examData.value = json.encode(ExamTable(exams));
       CommonPreferences.gpaData.value = json.encode(gpaBean);
       // 刷新学期数据

@@ -9,6 +9,7 @@ import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/schedule/extension/logic_extension.dart';
 import 'package:wepei_module/schedule/model/course.dart';
+import 'package:wepei_module/commons/channel/widget_data_sync.dart';
 import 'package:wepei_module/schedule/network/custom_course_service.dart';
 import 'package:wepei_module/schedule/network/schdule_service.dart';
 
@@ -50,6 +51,8 @@ class CourseProvider with ChangeNotifier {
         json.encode(CourseTable(_schoolCourses, _customCourses));
     CommonPreferences.customUpdatedAt.value = time;
     _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
+    // Sync to OHOS service widget
+    WidgetDataSync.syncCourseDataToFile();
     // remote
     CustomCourseService.postCustomTable(_customCourses, time);
   }
@@ -75,6 +78,7 @@ class CourseProvider with ChangeNotifier {
     _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
     CommonPreferences.courseData.value =
         json.encode(CourseTable(_schoolCourses, _customCourses));
+    WidgetDataSync.syncCourseDataToFile();
   }
 
   int get selectedWeek => _selectedWeek;
@@ -139,6 +143,7 @@ class CourseProvider with ChangeNotifier {
       _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
       CommonPreferences.courseData.value =
           json.encode(CourseTable(_schoolCourses, _customCourses));
+      WidgetDataSync.syncCourseDataToFile();
       onSuccess?.call();
     }, onFailure: (e) {
       onFailure?.call(e);
@@ -161,6 +166,7 @@ class CourseProvider with ChangeNotifier {
             CommonPreferences.courseData.value =
                 json.encode(CourseTable(_schoolCourses, _customCourses));
             _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
+            WidgetDataSync.syncCourseDataToFile();
           }
         });
       });
