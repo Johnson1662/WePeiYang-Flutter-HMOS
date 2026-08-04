@@ -129,11 +129,32 @@ final _appState = WePeiYangAppState._();
 class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver {
   WePeiYangAppState._();
   @override
-  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
-  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
   @override
-  void didChangeAppLifecycleState(state) { super.didChangeAppLifecycleState(state); }
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      WpyTheme.updateAutoDarkTheme(context);
+    }
+  }
+
+  @override
+  void didChangePlatformBrightness() async {
+    super.didChangePlatformBrightness();
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    WpyTheme.updateAutoDarkTheme(context);
+  }
   void checkEventList() {}
   @override
   void didChangeDependencies() {
