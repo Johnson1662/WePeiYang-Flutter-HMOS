@@ -27,8 +27,14 @@ void openUrlInNativeApp(String url) {
 class WebViewPage extends StatefulWidget {
   final String url;
   final String? title;
+  final Color? backgroundColor;
 
-  const WebViewPage({super.key, required this.url, this.title});
+  const WebViewPage({
+    super.key,
+    required this.url,
+    this.title,
+    this.backgroundColor,
+  });
 
   @override
   State<WebViewPage> createState() => _WebViewPageState();
@@ -55,7 +61,14 @@ class _WebViewPageState extends State<WebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: widget.backgroundColor,
       appBar: AppBar(
+        backgroundColor: widget.backgroundColor,
+        foregroundColor: widget.backgroundColor == Colors.white
+            ? Colors.black87
+            : null,
+        surfaceTintColor:
+            widget.backgroundColor == null ? null : Colors.transparent,
         title: Text(
           _loadError
               ? '加载失败'

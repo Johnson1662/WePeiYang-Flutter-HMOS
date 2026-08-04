@@ -53,6 +53,7 @@ class _FestivalPageState extends State<FestivalPage> {
         return WebViewPage(
           url: snapshot.data!,
           title: widget.args.name,
+          backgroundColor: Colors.white,
         );
       },
     );
