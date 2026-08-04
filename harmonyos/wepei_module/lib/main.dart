@@ -233,6 +233,7 @@ class AppEntryPage extends StatefulWidget {
 }
 
 class _AppEntryPageState extends State<AppEntryPage> {
+  static const _launchChannel = MethodChannel('com.twt.service/saveImg');
   late final bool _openHome;
 
   @override
@@ -242,6 +243,12 @@ class _AppEntryPageState extends State<AppEntryPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WePeiYangApp.navigatorState = Navigator.of(context);
       WbyFontLoader.initFonts();
+      unawaited(
+        _launchChannel
+            .invokeMethod('flutterFirstFrame')
+            .timeout(const Duration(seconds: 1))
+            .catchError((_) {}),
+      );
       unawaited(
         context.read<UpdateManager>().checkUpdate().catchError((_) {}),
       );

@@ -55,6 +55,10 @@ class SaveImgHandler implements MethodCallHandler {
       case 'openInBrowser':
         this.openInBrowser('' + call['argument'], result);
         break;
+      case 'flutterFirstFrame':
+        AppStorage.Set<boolean>('flutterFirstFrame', true);
+        result.success(true);
+        break;
       default:
         result.notImplemented();
     }
