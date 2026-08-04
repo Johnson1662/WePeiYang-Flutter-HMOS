@@ -13,13 +13,13 @@ import 'package:provider/provider.dart';
 import 'package:wepei_module/commons/font/font_loader.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/token/lake_token_manager.dart';
-import 'package:wepei_module/commons/widgets/colored_icon.dart';
+
 import 'package:wepei_module/studyroom/model/studyroom_provider.dart';
 import 'package:wepei_module/xiaotian/model/xiaotian_state.dart';
 
 import 'auth/network/auth_service.dart';
 import 'auth/network/message_service.dart';
-import 'auth/network/screen_splash_service.dart';
+import 'auth/view/login/login_page.dart';
 import 'auth/view/message/message_router.dart';
 import 'commons/channel/local_setting/local_setting.dart';
 import 'commons/channel/push/push_manager.dart';
@@ -36,7 +36,7 @@ import 'commons/util/navigator_observers.dart';
 import 'commons/util/router_manager.dart';
 import 'commons/util/storage_util.dart';
 import 'commons/util/text_util.dart';
-import 'commons/widgets/wpy_pic.dart';
+
 import 'feedback/model/feedback_providers.dart';
 import 'feedback/network/post.dart';
 import 'gpa/model/gpa_notifier.dart';
@@ -45,8 +45,7 @@ import 'message/model/message_provider.dart';
 import 'schedule/model/course_provider.dart';
 import 'package:wepei_module/schedule/model/exam_provider.dart';
 import 'schedule/schedule_providers.dart';
-import 'auth/auth_router.dart';
-import 'home/home_router.dart';
+import 'home/view/home_page.dart';
 
 final _stateFile = File('${Directory.systemTemp.path}/wepeiyang_state.json');
 
@@ -206,7 +205,7 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
               theme: ThemeData.light().copyWith(
                 platform: TargetPlatform.android,
               ),
-              home: const SplashScreen(),
+              home: const AppEntryPage(),
               navigatorObservers: [AppRouteAnalysis()],
               builder: FlutterSmartDialog.init(
                 toastBuilder: (String msg) => Container(
@@ -226,70 +225,44 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
   bool _navInited = false;
 }
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class AppEntryPage extends StatefulWidget {
+  const AppEntryPage({super.key});
+
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<AppEntryPage> createState() => _AppEntryPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  String? _remoteUrl;
-  bool _hasNavigated = false;
+class _AppEntryPageState extends State<AppEntryPage> {
+  late final bool _openHome;
 
   @override
   void initState() {
     super.initState();
+    _openHome = _resolveInitialPage();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WePeiYangApp.navigatorState = Navigator.of(context);
       WbyFontLoader.initFonts();
-      if (CommonPreferences.token.value.isNotEmpty) {
-        unawaited(LakeTokenManager().refreshToken().catchError((_) => ''));
-      }
-      unawaited(_loadSplashIcon());
-      _redirect();
+      unawaited(
+        context.read<UpdateManager>().checkUpdate().catchError((_) {}),
+      );
+      unawaited(LocalSetting.changeSecurity(false).catchError((_) {}));
+      _readCachedData();
+      _refreshLoginState();
     });
   }
 
-  void _redirect() {
-    unawaited(_appInitProcess());
-  }
-
-  void _navigateHome() {
-    _navigateOnce((navigator) {
-      navigator.pushNamedAndRemoveUntil(HomeRouter.home, (route) => false);
-    });
-  }
-
-  void _navigateLogin() {
-    _navigateOnce((navigator) {
-      navigator.pushReplacementNamed(AuthRouter.login);
-    });
-  }
-
-  bool _navigateOnce(void Function(NavigatorState navigator) navigate) {
-    if (!mounted || _hasNavigated) return false;
-    final navigator = RouterManager.navigatorKey.currentState;
-    if (navigator == null) return false;
-    _hasNavigated = true;
-    navigate(navigator);
-    return true;
-  }
-
-  Future<void> _appInitProcess() async {
-    unawaited(
-      context.read<UpdateManager>().checkUpdate().catchError((_) {}),
-    );
-    unawaited(LocalSetting.changeSecurity(false).catchError((_) {}));
-
+  bool _resolveInitialPage() {
     if (CommonPreferences.updateTime.value == '') {
       CommonPreferences.updateTime.value = '20221019';
     } else if (CommonPreferences.updateTime.value != '20221019') {
       CommonPreferences.clearAllPrefs();
-      _navigateLogin();
-      return;
+      return false;
     }
+    return CommonPreferences.isLogin.value &&
+        CommonPreferences.token.value.isNotEmpty;
+  }
 
-    // Load cached course/GPA/exam data before navigating.
+  void _readCachedData() {
     try {
       context.read<CourseProvider>().readPref();
     } catch (_) {}
@@ -299,85 +272,34 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       context.read<ExamProvider>().readPref();
     } catch (_) {}
+  }
 
-    if (CommonPreferences.isLogin.value &&
-        CommonPreferences.token.value.isNotEmpty) {
-      await Future<void>.delayed(Duration.zero);
-      if (!mounted || _hasNavigated) return;
-      final initDone = Completer<void>();
-      void finishInit() {
-        if (!initDone.isCompleted) initDone.complete();
-        _navigateHome();
-      }
-
+  void _refreshLoginState() {
+    if (CommonPreferences.token.value.isEmpty) return;
+    unawaited(LakeTokenManager().refreshToken().catchError((_) => ''));
+    unawaited(
       AuthService.getInfo(
-        onSuccess: finishInit,
+        onSuccess: () {},
         onFailure: (_) {
           if (CommonPreferences.account.value.isNotEmpty &&
               CommonPreferences.password.value.isNotEmpty) {
-            AuthService.pwLogin(
-              CommonPreferences.account.value,
-              CommonPreferences.password.value,
-              onResult: (_) {},
-              onFailure: (_) {},
+            unawaited(
+              AuthService.pwLogin(
+                CommonPreferences.account.value,
+                CommonPreferences.password.value,
+                onResult: (_) {},
+                onFailure: (_) {},
+              ),
             );
           }
-          finishInit();
         },
-      );
-      await initDone.future.timeout(
-        const Duration(seconds: 6),
-        onTimeout: _navigateHome,
-      );
-      return;
-    }
-
-    await Future<void>.delayed(const Duration(seconds: 1));
-    if (!mounted || _hasNavigated) return;
-    _navigateLogin();
-  }
-
-  Future<void> _loadSplashIcon() async {
-    try {
-      final isDark = WpyTheme.of(context).brightness == Brightness.dark;
-      final url = await (isDark
-              ? SplashService.getSplashDark()
-              : SplashService.getSplashLight())
-          .timeout(const Duration(seconds: 3));
-      if (!mounted || url.isEmpty || url.startsWith('assets/')) return;
-      setState(() => _remoteUrl = url);
-    } catch (_) {}
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = WpyTheme.of(context).brightness == Brightness.dark;
-    final asset = isDarkMode
-        ? 'assets/images/splash_screen_dark.png'
-        : 'assets/images/splash_screen.png';
-    final content = _remoteUrl == null
-        ? Padding(
-            padding: const EdgeInsets.all(30),
-            child: Center(
-              child: ColoredIcon(asset, color: WpyTheme.of(context).primary),
-            ),
-          )
-        : WpyPic(
-            _remoteUrl!,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            withHolder: false,
-          );
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
-      child: Container(
-        key: ValueKey(_remoteUrl ?? 'local'),
-        color: isDarkMode ? Colors.black : Colors.white,
-        constraints: const BoxConstraints.expand(),
-        child: content,
-      ),
-    );
+    return _openHome ? HomePage(null) : LoginHomeWidget();
   }
 }
 
