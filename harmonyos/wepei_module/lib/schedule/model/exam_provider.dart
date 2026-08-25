@@ -20,7 +20,8 @@ class ExamProvider with ChangeNotifier {
     _finished = [];
     _exams.forEach((e) {
       if (e.date == '时间未安排') return;
-      var target = DateTime.parse(e.date);
+      var target = DateTime.tryParse(e.date);
+      if (target == null) return;
       if (target.isBefore(realNow)) _finished.add(e);
     });
     _finished.sort((a, b) => b.date.compareTo(a.date)); // 将`刚考完`的排在上面
@@ -31,11 +32,15 @@ class ExamProvider with ChangeNotifier {
     _exams.forEach((e) {
       if (e.date == '时间未安排') {
         tmp.add(e);
-      } else {
-        var target = DateTime.parse(e.date);
-        if (target.isAfter(realNow) || target.isAtSameMomentAs(realNow))
-          _unfinished.add(e);
+        return;
       }
+      var target = DateTime.tryParse(e.date);
+      if (target == null) {
+        tmp.add(e);
+        return;
+      }
+      if (target.isAfter(realNow) || target.isAtSameMomentAs(realNow))
+        _unfinished.add(e);
     });
 
     _unfinished.sort((a, b) => a.date.compareTo(b.date)); // 将`刚要考`的排在上面
@@ -45,7 +50,8 @@ class ExamProvider with ChangeNotifier {
     _unscheduled = [];
     _exams.forEach((e) {
       if (e.date == '时间未安排') return;
-      var target = DateTime.parse(e.date);
+      var target = DateTime.tryParse(e.date);
+      if (target == null) return;
       if (target.isAfter(realNow) || target.isAtSameMomentAs(realNow))
         _unscheduled.add(e);
     });

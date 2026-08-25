@@ -92,8 +92,8 @@ class MapAndCalenderState extends State<MapAndCalender> {
               onPressed: () {
                 Navigator.pushNamed(context, FeedbackRouter.localImageView,
                     arguments: LocalImageViewPageArgs([], [
-                      'assets/images/school_map/wjl.jpeg',
-                      'assets/images/school_map/byy.jpeg'
+                      'assets/images/school_map/wjl.png',
+                      'assets/images/school_map/byy.png'
                     ], 2, 0));
               },
               child: Stack(
@@ -133,8 +133,8 @@ class MapAndCalenderState extends State<MapAndCalender> {
               onPressed: () {
                 Navigator.pushNamed(context, FeedbackRouter.localImageView,
                     arguments: LocalImageViewPageArgs([], [
-                      'assets/images/school_map/wjl.jpeg',
-                      'assets/images/school_map/byy.jpeg'
+                      'assets/images/school_map/wjl.png',
+                      'assets/images/school_map/byy.png'
                     ], 2, 1));
               },
               child: Stack(
@@ -219,7 +219,7 @@ class MapAndCalenderState extends State<MapAndCalender> {
                     child: Opacity(
                       opacity: 0.34,
                       child: Text(
-                        '25-26第一学期',
+                        '26-27第一学期',
                         style: TextUtil.base.NotoSansSC
                             .infoText(context)
                             .w900
@@ -263,7 +263,7 @@ class MapAndCalenderState extends State<MapAndCalender> {
                     child: Opacity(
                       opacity: 0.34,
                       child: Text(
-                        '25-26第二学期',
+                        '26-27第二学期',
                         style: TextUtil.base.NotoSansSC
                             .infoText(context)
                             .w900

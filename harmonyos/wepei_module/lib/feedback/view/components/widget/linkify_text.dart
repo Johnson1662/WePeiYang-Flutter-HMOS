@@ -1,13 +1,12 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:linkfy_text/linkfy_text.dart';
-import 'package:wepei_module/commons/widgets/webview_page.dart';
-import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
-import 'package:wepei_module/commons/util/dialog_provider.dart';
 import 'package:wepei_module/commons/util/router_manager.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
+import 'package:wepei_module/commons/widgets/webview_page.dart';
 import 'package:wepei_module/feedback/network/feedback_service.dart';
+import 'package:wepei_module/feedback/view/components/widget/post_rich_text.dart';
 
 class LinkText extends StatefulWidget {
   final TextStyle style;
@@ -21,33 +20,82 @@ class LinkText extends StatefulWidget {
 }
 
 class _LinkTextState extends State<LinkText> {
-  static final _postRefPattern = RegExp(r'^#MP-?\d+$', caseSensitive: false);
-  static final _httpUrlPattern = RegExp(r'^https?://', caseSensitive: false);
+  final List<TapGestureRecognizer> _recognizers = [];
 
   bool checkBili(String url) {
     return url.contains('b23.tv') || url.contains('bilibili.com');
   }
 
   @override
-  Widget build(BuildContext context) {
-    return LinkifyText(
-      widget.text,
-      maxLines: widget.maxLine,
-      linkTypes: [LinkType.url, LinkType.hashTag],
-      overflow: TextOverflow.ellipsis,
-      textStyle: widget.style.PingFangSC.w400.sp(16),
-      linkStyle: widget.style.link(context).w500.sp(16),
-      onTap: (link) async {
-        final value = link.value?.trim() ?? '';
-        if (_postRefPattern.hasMatch(value)) {
-          checkPostId(value.substring(3));
-        } else if (link.type == LinkType.url) {
-          checkUrl(_normalizeUrl(value));
+  void initState() {
+    super.initState();
+    if (widget.text.contains('@uid:'))
+      MentionNames.instance.addListener(_onMentionNames);
+  }
+
+  @override
+  void didUpdateWidget(covariant LinkText old) {
+    super.didUpdateWidget(old);
+    if (old.text != widget.text) {
+      final had = old.text.contains('@uid:');
+      final has = widget.text.contains('@uid:');
+      if (had != has) {
+        if (has) {
+          MentionNames.instance.addListener(_onMentionNames);
         } else {
-          ToastProvider.error('无效的帖子编号！');
+          MentionNames.instance.removeListener(_onMentionNames);
         }
-      },
+      }
+    }
+  }
+
+  void _onMentionNames() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    MentionNames.instance.removeListener(_onMentionNames);
+    for (final r in _recognizers) r.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    for (final r in _recognizers) r.dispose();
+    _recognizers.clear();
+
+    final textStyle = widget.style.NotoSansSC.w400.sp(16);
+    final linkStyle = widget.style.link(context).w500.sp(16);
+    final mentionStyle = textStyle.copyWith(
+        color: WpyTheme.of(context).primary ?? linkStyle.color,
+        fontWeight: FontWeight.w600);
+
+    final res = PostRichText.build(context, widget.text,
+        baseStyle: textStyle,
+        linkStyle: linkStyle,
+        mentionStyle: mentionStyle,
+        recognizers: _recognizers,
+        onLink: _onTap,
+        onMention: (uid) => PostRichText.openPerson(context, uid));
+
+    return RichText(
+      text: TextSpan(style: textStyle, children: res.spans),
+      maxLines: widget.maxLine,
+      overflow: TextOverflow.ellipsis,
     );
+  }
+
+  void _onTap(String value) {
+    if (PostRichText.isPostRef(value)) {
+      checkPostId(PostRichText.postRefId(value));
+    } else if (value.startsWith('http')) {
+      checkUrl(value);
+    } else if (value.startsWith('#')) {
+      PostRichText.openTagSearch(context, value);
+    } else {
+      ToastProvider.error('无效的帖子编号！');
+    }
   }
 
   checkPostId(String id) {
@@ -65,11 +113,6 @@ class _LinkTextState extends State<LinkText> {
         return;
       },
     );
-  }
-
-  String _normalizeUrl(String value) {
-    final url = value.trim();
-    return _httpUrlPattern.hasMatch(url) ? url : 'https://$url';
   }
 
   checkUrl(String url) async {

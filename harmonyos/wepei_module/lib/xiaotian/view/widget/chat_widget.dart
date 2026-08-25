@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wepei_module/commons/speech_to_text/API/aliyun_isi_protocol.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,6 +11,7 @@ import '../../model/xiaotian_state.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../commons/widgets/w_button.dart';
+import '../../../commons/widgets/dialog/dialog_button.dart';
 import '../../../commons/themes/wpy_theme.dart';
 import '../../../commons/themes/template/wpy_theme_data.dart';
 import '../../model/xiaotian_model.dart';
@@ -17,29 +21,28 @@ import '../../../commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'back_dialog.dart';
 
-
 class openNewSession extends StatelessWidget {
   const openNewSession({super.key});
 
   @override
   Widget build(BuildContext context) {
     return WButton(
-      onPressed: () async {
-        context.read<xiaotianChatState>().openNewSession();
-        final sessions = await AiService().getAllSessions(CommonPreferences.userNumber.value);
-        Provider.of<xiaotianChatState>(context, listen: false)
-            .setHistorySession(sessions);
-      },
-      child: SvgPicture.asset(
-        'assets/svg_pics/ai_icons/new.svg',
-        width: 28.r,
-        height: 28.r,
-        colorFilter: ColorFilter.mode(
-          WpyTheme.of(context).primary??Colors.blue,
-          BlendMode.srcIn,
-        ),
-      )
-    );
+        onPressed: () async {
+          context.read<xiaotianChatState>().openNewSession();
+          final sessions = await AiService()
+              .getAllSessions(CommonPreferences.userNumber.value);
+          Provider.of<xiaotianChatState>(context, listen: false)
+              .setHistorySession(sessions);
+        },
+        child: SvgPicture.asset(
+          'assets/svg_pics/ai_icons/new.svg',
+          width: 28.r,
+          height: 28.r,
+          colorFilter: ColorFilter.mode(
+            WpyTheme.of(context).primary ?? Colors.blue,
+            BlendMode.srcIn,
+          ),
+        ));
   }
 }
 
@@ -55,16 +58,22 @@ class Suggestion extends StatelessWidget {
             title: '发送反馈',
             hint: '请输入你的意见',
           );
-          if(result == null) return;
-          final fb = FeedBack(traceId: context.read<xiaotianChatState>().traceID, likeCount: '2',feedbackInformation: result,state: '');
+          if (result == null) return;
+          final fb = FeedBack(
+              traceId: context.read<xiaotianChatState>().traceID,
+              likeCount: '2',
+              feedbackInformation: result,
+              state: '');
           feedBackPost(fb);
           ToastProvider.success('反馈成功');
         },
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 5.w,vertical: 5.h),
+          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10.r),
-            color: WpyTheme.of(context).get(WpyColorKey.oldSwitchBarColor).withOpacity(0.9),
+            color: WpyTheme.of(context)
+                .get(WpyColorKey.oldSwitchBarColor)
+                .withOpacity(0.9),
           ),
           child: Column(
             children: [
@@ -73,17 +82,18 @@ class Suggestion extends StatelessWidget {
                 width: 24.r,
                 height: 24.r,
               ),
-              SizedBox(height: 5.h,),
-              Text('意\n见\n反\n馈',style: TextUtil.base.normal.PingFangSC.bold.textButtonPrimary(context).sp(15)),
+              SizedBox(
+                height: 5.h,
+              ),
+              Text('意\n见\n反\n馈',
+                  style: TextUtil.base.normal.PingFangSC.bold
+                      .textButtonPrimary(context)
+                      .sp(15)),
             ],
           ),
-        )
-    );
+        ));
   }
 }
-
-
-
 
 //开启新页面的占位贴图和热门话题
 class NewChatTile extends StatefulWidget {
@@ -92,6 +102,7 @@ class NewChatTile extends StatefulWidget {
   @override
   State<NewChatTile> createState() => _NewChatTileState();
 }
+
 class _NewChatTileState extends State<NewChatTile> {
   List<HotTopic> _hotTopics = [];
   bool _isLoading = true;
@@ -102,16 +113,13 @@ class _NewChatTileState extends State<NewChatTile> {
     _fetchHotTopics();
   }
 
-
   void _fetchHotTopics() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-
       final topics = await AiService().getHotTopics();
-
 
       if (mounted) {
         setState(() {
@@ -120,7 +128,6 @@ class _NewChatTileState extends State<NewChatTile> {
         });
       }
     } catch (e) {
-
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -139,7 +146,7 @@ class _NewChatTileState extends State<NewChatTile> {
     if (_hotTopics.isEmpty) {
       return const Text(
         "暂时没有热门话题哦~",
-        style:TextStyle(color: Colors.grey),
+        style: TextStyle(color: Colors.grey),
       );
     }
 
@@ -150,12 +157,17 @@ class _NewChatTileState extends State<NewChatTile> {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 1.0),
           child: ActionChip(
-            label: Text(
-              hotTopic.topic,
-              style: TextUtil.base.normal.PingFangSC.textButtonPrimary(context).sp(14)
-            ),
-            backgroundColor: WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
-            side: BorderSide(color:  WpyTheme.of(context).get(WpyColorKey.beanDarkColor).withOpacity(0.8), width: 1),
+            label: Text(hotTopic.topic,
+                style: TextUtil.base.normal.PingFangSC
+                    .textButtonPrimary(context)
+                    .sp(14)),
+            backgroundColor:
+                WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
+            side: BorderSide(
+                color: WpyTheme.of(context)
+                    .get(WpyColorKey.beanDarkColor)
+                    .withOpacity(0.8),
+                width: 1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10.0),
             ),
@@ -173,40 +185,58 @@ class _NewChatTileState extends State<NewChatTile> {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-      child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Text('Hi，同学你好！\n 我是你们24小时不下线的“小天老师”\n很高兴见到你~',textAlign:TextAlign.center,
-                    style: TextUtil.base.label(context).w400.PingFangSC.bold.sp(21)
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Text('Hi，同学你好！\n 我是你们24小时不下线的“小天老师”\n很高兴见到你~',
+                  textAlign: TextAlign.center,
+                  style:
+                      TextUtil.base.label(context).w400.PingFangSC.bold.sp(21)),
+            ),
+            SizedBox(
+              height: 40.h,
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 25.w),
+              child: Text('我努力为你提供精准、智能、高效的\n校内信息咨询服务',
+                  textAlign: TextAlign.center,
+                  style: TextUtil.base
+                      .label(context)
+                      .w400
+                      .PingFangSC
+                      .normal
+                      .sp(15)
+                      .h(1.4)),
+            ),
+            SizedBox(height: 10.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 25.w),
+              child: Text(
+                  '因为我也刚刚和大家见面,我的回答仅供参考\n有误的地方请你批评指正哦～\n快来和我一起开启这段超棒的问答旅程吧～',
+                  textAlign: TextAlign.center,
+                  style: TextUtil.base
+                      .label(context)
+                      .w400
+                      .PingFangSC
+                      .normal
+                      .sp(15)
+                      .h(1.4)),
+            ),
+            SizedBox(
+              height: 60.h,
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 25.w),
+              child: Align(
+                alignment: Alignment.centerLeft, // 让chips靠左
+                child: _buildTopicChips(),
               ),
-              SizedBox(height: 40.h,),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 25.w),
-                child: Text('我努力为你提供精准、智能、高效的\n校内信息咨询服务',textAlign:TextAlign.center,
-                    style: TextUtil.base.label(context).w400.PingFangSC.normal.sp(15).h(1.4)
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 25.w),
-                child: Text('因为我也刚刚和大家见面,我的回答仅供参考\n有误的地方请你批评指正哦～\n快来和我一起开启这段超棒的问答旅程吧～',textAlign:TextAlign.center,
-                    style: TextUtil.base.label(context).w400.PingFangSC.normal.sp(15).h(1.4)
-                ),
-              ),
-              SizedBox(height: 60.h,),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 25.w),
-                child: Align(
-                  alignment: Alignment.centerLeft,   // 让chips靠左
-                  child: _buildTopicChips(),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -220,7 +250,6 @@ class ChatTile extends StatefulWidget {
 }
 
 class _ChatTileState extends State<ChatTile> {
-
   // @override
   // void initState() {
   //   super.initState();
@@ -240,40 +269,38 @@ class _ChatTileState extends State<ChatTile> {
   Widget build(BuildContext context) {
     return Consumer2<xiaotianChatState, xiaotianInputState>(
         builder: (context, chatState, inputState, _) {
-          return ListView.builder(
-              controller: inputState.scrollController,
-              itemCount: chatState.messages.length,
-              itemBuilder: (context, index) {
-                final msg = chatState.messages[index];
-                final key = ValueKey(msg.id);
+      return ListView.builder(
+          controller: inputState.scrollController,
+          itemCount: chatState.messages.length,
+          itemBuilder: (context, index) {
+            final msg = chatState.messages[index];
+            final key = ValueKey(msg.id);
 
-                if (msg is UserMessage) {
-                  return bubbleFromUser(key:key,text: msg.content);
-                }
-                else if (msg is AiMessage) {
-                  return bubbleFromAi(
-                    key: key,
-                    messageId: msg.id,
-                    index: index,
-                    onFinished: (text) {
-                      msg.setText(text);
-                    },
-                    prompt: msg.prompt,
-                    searchTime: msg.searchTime,
-                    searchType: msg.searchType,
-                    sessionId: msg.sessionId,
-                    headers: msg.headers,
-                    text: msg.text, // 历史消息直接显示
-                  );
-                }
-                else {
-                  return const SizedBox.shrink();
-                }
-              });
-        });
+            if (msg is UserMessage) {
+              return bubbleFromUser(key: key, text: msg.content);
+            } else if (msg is AiMessage) {
+              return bubbleFromAi(
+                key: key,
+                messageId: msg.id,
+                index: index,
+                onFinished: (text) {
+                  msg.setText(text);
+                },
+                prompt: msg.prompt,
+                searchTime: msg.searchTime,
+                searchType: msg.searchType,
+                sessionId: msg.sessionId,
+                headers: msg.headers,
+                text: msg.text, // 历史消息直接显示
+                likeCount: msg.likeCount,
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          });
+    });
   }
 }
-
 
 //输入框
 class inputBox extends StatefulWidget {
@@ -316,7 +343,8 @@ class _inputBoxState extends State<inputBox> {
     final inputState = Provider.of<xiaotianInputState>(context, listen: false);
 
     // 只有在有结果时才更新
-    if (_recordController.state == RecordState.success &&_recordController.resultText.isNotEmpty) {
+    if (_recordController.state == RecordState.success &&
+        _recordController.resultText.isNotEmpty) {
       // 策略：将语音内容追加到光标处，或者直接覆盖
       // 获取当前的语音结果
       final voiceResult = _recordController.resultText;
@@ -330,16 +358,65 @@ class _inputBoxState extends State<inputBox> {
         // 保持光标在语音文字的后面，方便用户继续输入
         selection: TextSelection.collapsed(offset: newCursorIndex),
       );
-    }
-    else if(_recordController.state == RecordState.error){
+    } else if (_recordController.state == RecordState.error) {
       ToastProvider.error(_recordController.errorMessage);
     }
   }
 
   // 开始/停止录音的包装方法
-  void _toggleRecording() {
+  Future<void> _toggleRecording() async {
     final inputState = Provider.of<xiaotianInputState>(context, listen: false);
     if (!_recordController.isRecording) {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final status = await Permission.microphone.status;
+        if (status.isPermanentlyDenied) {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor:
+                  WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r)),
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.mic_off, size: 30),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        "小天老师需要麦克风权限\n请前往系统设置开启",
+                        style: TextUtil.base.normal,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    WbyDialogStandardTwoButton(
+                      firstText: "取消",
+                      secondText: "打开设置",
+                      first: () => Navigator.pop(context),
+                      second: () {
+                        Navigator.pop(context);
+                        openAppSettings();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+          return;
+        }
+      }
       final controller = inputState.textController;
       final text = controller.text;
       final selection = controller.selection;
@@ -364,21 +441,23 @@ class _inputBoxState extends State<inputBox> {
   int i2 = 0;
   @override
   Widget build(BuildContext context) {
-    return Consumer2<xiaotianInputState,xiaotianChatState>
-      (builder: (context,inputState,chatState,_) {
+    return Consumer2<xiaotianInputState, xiaotianChatState>(
+        builder: (context, inputState, chatState, _) {
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 15.h),
         width: 360.w,
         height: 100.h,
-        padding: EdgeInsets.only(left:15.w,right: 15.w,top: 15.h,bottom: 5.h),
+        padding:
+            EdgeInsets.only(left: 15.w, right: 15.w, top: 15.h, bottom: 5.h),
         decoration: BoxDecoration(
           color: WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
           boxShadow: [
             BoxShadow(
-                color: WpyTheme.of(context).get(WpyColorKey.beanDarkColor).withOpacity(0.6),
+                color: WpyTheme.of(context)
+                    .get(WpyColorKey.beanDarkColor)
+                    .withOpacity(0.6),
                 blurRadius: 8.r,
-                offset: Offset(0,0)
-            )
+                offset: Offset(0, 0))
           ],
           borderRadius: BorderRadius.circular(15.r),
         ),
@@ -390,7 +469,8 @@ class _inputBoxState extends State<inputBox> {
                 focusNode: inputState.node,
                 keyboardType: TextInputType.multiline,
                 maxLines: null,
-                style: TextUtil.base.label(context).w500.PingFangSC.medium.sp(14),
+                style:
+                    TextUtil.base.label(context).w500.PingFangSC.medium.sp(14),
                 strutStyle: StrutStyle(
                   fontSize: 14.sp,
                   height: 1.2.h,
@@ -400,8 +480,14 @@ class _inputBoxState extends State<inputBox> {
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   border: InputBorder.none,
-                  hintText:chatState.isStreamCompleted ? '给小天老师发消息' : '正在生成答案，请耐心等待',
-                  hintStyle:TextUtil.base.labelWithOp(context).w500.PingFangSC.medium.sp(13),
+                  hintText:
+                      chatState.isStreamCompleted ? '给小天老师发消息' : '正在生成答案，请耐心等待',
+                  hintStyle: TextUtil.base
+                      .labelWithOp(context)
+                      .w500
+                      .PingFangSC
+                      .medium
+                      .sp(13),
                 ),
               ),
             ),
@@ -425,59 +511,72 @@ class _inputBoxState extends State<inputBox> {
                       ListenableBuilder(
                         listenable: _recordController,
                         builder: (context, child) {
-                          bool isProcessing = _recordController.state == RecordState.processing;
+                          bool isProcessing =
+                              _recordController.state == RecordState.processing;
                           bool isRecording = _recordController.isRecording;
                           return WButton(
                             onPressed: isProcessing ? null : _toggleRecording,
                             child: isProcessing
                                 ? SizedBox(
-                              width: 24.r,
-                              height: 24.r,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: WpyTheme.of(context).get(WpyColorKey.primaryActionColor)),
-                            )
+                                    width: 24.r,
+                                    height: 24.r,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: WpyTheme.of(context).get(
+                                            WpyColorKey.primaryActionColor)),
+                                  )
                                 : Icon(
-                              isRecording ? Icons.mic_rounded : Icons.mic_none, // todo 这里可以换成的 SVG 图片
-                              size: 24.r,
-                              // 录音时变色
-                              color: isRecording
-                                  ? Colors.red
-                                  : WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-                              shadows: isRecording?[
-                                Shadow(
-                                  color: Colors.red.withOpacity(0.5),
-                                  blurRadius: 3,
-                                  offset: Offset(2,2),
-                                )
-                              ]:null,
-                            ),
+                                    isRecording
+                                        ? Icons.mic_rounded
+                                        : Icons.mic_none, // todo 这里可以换成的 SVG 图片
+                                    size: 24.r,
+                                    // 录音时变色
+                                    color: isRecording
+                                        ? Colors.red
+                                        : WpyTheme.of(context)
+                                            .get(WpyColorKey.labelTextColor),
+                                    shadows: isRecording
+                                        ? [
+                                            Shadow(
+                                              color:
+                                                  Colors.red.withOpacity(0.5),
+                                              blurRadius: 3,
+                                              offset: Offset(2, 2),
+                                            )
+                                          ]
+                                        : null,
+                                  ),
                           );
                         },
                       ),
                       SizedBox(width: 12.w),
-                      chatState.isStreamCompleted ? WButton(
-                        onPressed: () => sendAMessage(inputState.textController.text,context),
-                        child:  SvgPicture.asset(
-                          'assets/svg_pics/ai_icons/send.svg',
-                          width: 24.r,
-                          height: 24.r,
-                          colorFilter: ColorFilter.mode(
-                            WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ) : WButton(
-                        onPressed: (){},
-                        child:  SvgPicture.asset(
-                          'assets/svg_pics/ai_icons/stop.svg',
-                          width: 28.r,
-                          height: 28.r,
-                          colorFilter: ColorFilter.mode(
-                            WpyTheme.of(context).primary ?? Colors.blue,
-
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
+                      chatState.isStreamCompleted
+                          ? WButton(
+                              onPressed: () => sendAMessage(
+                                  inputState.textController.text, context),
+                              child: SvgPicture.asset(
+                                'assets/svg_pics/ai_icons/send.svg',
+                                width: 24.r,
+                                height: 24.r,
+                                colorFilter: ColorFilter.mode(
+                                  WpyTheme.of(context)
+                                      .get(WpyColorKey.labelTextColor),
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            )
+                          : WButton(
+                              onPressed: () {},
+                              child: SvgPicture.asset(
+                                'assets/svg_pics/ai_icons/stop.svg',
+                                width: 28.r,
+                                height: 28.r,
+                                colorFilter: ColorFilter.mode(
+                                  WpyTheme.of(context).primary ?? Colors.blue,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
                     ],
                   ),
                 ],
@@ -486,12 +585,9 @@ class _inputBoxState extends State<inputBox> {
           ],
         ),
       );
-    }
-    );
+    });
   }
 }
-
-
 
 class SearchT {
   static const timeCh = ['不限', '一周内', '一月内', '一年内'];
@@ -504,44 +600,142 @@ class SearchT {
 class WebSearch extends StatelessWidget {
   const WebSearch({super.key});
 
+  Future<void> _showOptionSheet({
+    required BuildContext context,
+    required String title,
+    required List<String> options,
+    required int currentIndex,
+    required ValueChanged<int> onSelected,
+  }) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor:
+          WpyTheme.of(context).get(WpyColorKey.secondaryBackgroundColor),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(18.w, 12.h, 18.w, 18.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: WpyTheme.of(context)
+                          .get(WpyColorKey.secondaryInfoTextColor),
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 18.h),
+                Text(
+                  title,
+                  style: TextUtil.base.PingFangSC.bold.label(context).sp(16),
+                ),
+                SizedBox(height: 8.h),
+                for (int i = 0; i < options.length; i++)
+                  WButton(
+                    onPressed: () {
+                      onSelected(i);
+                      Navigator.pop(sheetContext);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 14.h),
+                      margin: EdgeInsets.only(top: 8.h),
+                      decoration: BoxDecoration(
+                        color: WpyTheme.of(context)
+                            .get(WpyColorKey.primaryBackgroundColor),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: i == currentIndex
+                              ? WpyTheme.of(context)
+                                  .get(WpyColorKey.primaryActionColor)
+                              : WpyTheme.of(context)
+                                  .get(WpyColorKey.primaryBackgroundColor),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              options[i],
+                              style: TextUtil.base.PingFangSC.normal
+                                  .label(context)
+                                  .sp(15),
+                            ),
+                          ),
+                          if (i == currentIndex)
+                            Icon(
+                              Icons.check,
+                              size: 20.r,
+                              color: WpyTheme.of(context)
+                                  .get(WpyColorKey.primaryActionColor),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _optionButton(BuildContext context, String text) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.r),
+        color: WpyTheme.of(context).get(WpyColorKey.oldSwitchBarColor),
+      ),
+      child: Text(
+        text,
+        style: TextUtil.base.PingFangSC.normal.label(context).sp(12),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final inputState = context.read<xiaotianInputState>();
     return Row(
       children: [
         WButton(
-          onPressed: () => inputState.changeOpenSearch(),
-          child:  SvgPicture.asset(
-            'assets/svg_pics/ai_icons/global.svg',
-            width: 24.r,
-            height: 24.r,
-            color: inputState.openSearch ? WpyTheme.of(context).get(WpyColorKey.primaryActionColor) : WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-          ),
+          onPressed: () {
+            _showOptionSheet(
+              context: context,
+              title: '搜索范围',
+              options: SearchT.typeCh,
+              currentIndex: inputState.typeIndex,
+              onSelected: inputState.changeType,
+            );
+          },
+          child: _optionButton(context, SearchT.typeCh[inputState.typeIndex]),
         ),
-        if (inputState.openSearch)
-          Row(
-            children: [
-              SizedBox(width: 12.w),
-              WButton(
-                onPressed: () {
-                  final next = SearchT.nextTime(inputState.timeIndex);
-                  inputState.changeTime(next);
-                },
-                child: Text(SearchT.timeCh[inputState.timeIndex],style: TextUtil.base.PingFangSC.normal.label(context).sp(13),),
-              ),
-              SizedBox(width: 12.w),
-              WButton(
-                onPressed: () {
-                  final next = SearchT.nextType(inputState.typeIndex);
-                  inputState.changeType(next);
-                },
-                child: Text(SearchT.typeCh[inputState.typeIndex],style: TextUtil.base.PingFangSC.normal.label(context).sp(13),),
-              ),
-            ],
-          ),
+        SizedBox(width: 8.w),
+        WButton(
+          onPressed: () {
+            _showOptionSheet(
+              context: context,
+              title: '时间范围',
+              options: SearchT.timeCh,
+              currentIndex: inputState.timeIndex,
+              onSelected: inputState.changeTime,
+            );
+          },
+          child: _optionButton(context, SearchT.timeCh[inputState.timeIndex]),
+        ),
       ],
     );
   }
 }
-
-

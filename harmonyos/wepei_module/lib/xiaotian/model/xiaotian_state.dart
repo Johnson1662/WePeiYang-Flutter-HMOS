@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'xiaotian_model.dart';
 
-
 class xiaotianInputState extends ChangeNotifier {
   List<String> files = [];
 
-  final _time = ['noLimit','oneWeek','oneMonth','oneYear'];
-  final _type = ['precise','no','all'];
+  final _time = ['noLimit', 'oneWeek', 'oneMonth', 'oneYear'];
+  final _type = ['precise', 'no', 'all'];
 
   bool openSearch = false;
   int timeIndex = 0;
   int typeIndex = 0;
 
-  String searchTime = 'noLimit';         //搜索时间范围
-  String searchType = 'no';         //搜索类型
+  String searchTime = 'noLimit'; //搜索时间范围
+  String searchType = 'no'; //搜索类型
 
   void changeTime(int i) {
     timeIndex = i;
@@ -31,8 +30,7 @@ class xiaotianInputState extends ChangeNotifier {
     openSearch = !openSearch;
     if (openSearch == false) {
       resetSearch();
-    }
-    else {
+    } else {
       onSearch();
     }
     notifyListeners();
@@ -52,11 +50,9 @@ class xiaotianInputState extends ChangeNotifier {
     searchType = 'no';
   }
 
-
   final FocusNode node = FocusNode();
   final TextEditingController textController = TextEditingController();
   final ScrollController scrollController = ScrollController();
-
 
   //发送完之后清除输入状态
   void clear() {
@@ -73,8 +69,7 @@ class xiaotianInputState extends ChangeNotifier {
     node.unfocus();
   }
 
-  void scrollToEnd()
-  {
+  void scrollToEnd() {
     if (scrollController.hasClients) {
       scrollController.animateTo(
         scrollController.position.maxScrollExtent,
@@ -86,8 +81,8 @@ class xiaotianInputState extends ChangeNotifier {
 
   //返回一个message
   UserMessage makeMessage() {
-
-    final user_message = UserMessage(content: textController.text.trim(),files: files);
+    final user_message =
+        UserMessage(content: textController.text.trim(), files: files);
     return user_message;
   }
 
@@ -97,17 +92,12 @@ class xiaotianInputState extends ChangeNotifier {
     node.requestFocus();
   }
 
-
   xiaotianInputState();
-
 }
 
-
-
 class xiaotianChatState extends ChangeNotifier {
-
   static final xiaotianChatState _instance = xiaotianChatState._internal();
-  factory xiaotianChatState()=>_instance;
+  factory xiaotianChatState() => _instance;
   xiaotianChatState._internal();
 
   bool _isStreamCompleted = true;
@@ -117,7 +107,6 @@ class xiaotianChatState extends ChangeNotifier {
     _isStreamCompleted = b;
     notifyListeners();
   }
-
 
   //储存的会话
   final Map<String, List<ChatMessage>> _sessions = {};
@@ -203,20 +192,29 @@ class xiaotianChatState extends ChangeNotifier {
     }
   }
 
+  void setLikeCount(String messageId, int like) {
+    for (var session in _sessions.values) {
+      try {
+        final message = session.firstWhere(
+          (m) => m.id == messageId && m is AiMessage,
+        ) as AiMessage;
+        message.likeCount = like;
+        notifyListeners();
+        return;
+      } catch (e) {}
+    }
+  }
+
   //检查已完成的流，缓存为text，防止重复监听流
   void completeMessageStream(String messageId, String finalText) {
     for (var session in _sessions.values) {
       try {
         final message = session.firstWhere(
-              (m) => m.id == messageId && m is AiMessage,
+          (m) => m.id == messageId && m is AiMessage,
         ) as AiMessage;
         message.text = finalText;
         return;
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   }
-
-
-
 }

@@ -1084,7 +1084,8 @@ class _ImagesGridViewState extends State<ImagesGridView> {
       for (int i = 0; i < uris.length; i++) {
         try {
           File file = File(uris[i]);
-          debugPrint('[loadAssets] file ${uris[i]}: exists=${file.existsSync()}, size=${file.lengthSync()}');
+          debugPrint(
+              '[loadAssets] file ${uris[i]}: exists=${file.existsSync()}, size=${file.lengthSync()}');
           if (!file.existsSync()) {
             debugPrint('[loadAssets] file ${uris[i]} not found, skipping');
             continue;
@@ -1092,7 +1093,8 @@ class _ImagesGridViewState extends State<ImagesGridView> {
           // Compress if >2MB (skip on OHOS - flutter_native_image may not work)
           for (int j = 0; file.lengthSync() > 2000 * 1024 && j < 10; j++) {
             try {
-              file = await FlutterNativeImage.compressImage(file.path, quality: 80);
+              file = await FlutterNativeImage.compressImage(file.path,
+                  quality: 80);
             } catch (e) {
               debugPrint('[loadAssets] compress skipped: $e');
               break;
@@ -1108,7 +1110,8 @@ class _ImagesGridViewState extends State<ImagesGridView> {
           debugPrint('[loadAssets] error processing ${uris[i]}: $e');
         }
       }
-      debugPrint('[loadAssets] done, images count=${Provider.of<NewPostProvider>(context, listen: false).images.length}');
+      debugPrint(
+          '[loadAssets] done, images count=${Provider.of<NewPostProvider>(context, listen: false).images.length}');
       if (!mounted) return;
       setState(() {});
       return;

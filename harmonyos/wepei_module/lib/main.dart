@@ -57,10 +57,13 @@ void main() async {
   await CommonPreferences.init();
   WpyTheme.init();
   _loadLoginState();
-  debugPrint('[FONT_DEBUG] Platform.isAndroid=${Platform.isAndroid} Platform.isIOS=${Platform.isIOS} Platform.OS=${Platform.operatingSystem}');
-  debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily BEFORE loadFontFromList=${TextUtil.base.fontFamily}');
+  debugPrint(
+      '[FONT_DEBUG] Platform.isAndroid=${Platform.isAndroid} Platform.isIOS=${Platform.isIOS} Platform.OS=${Platform.operatingSystem}');
+  debugPrint(
+      '[FONT_DEBUG] TextUtil.base.fontFamily BEFORE loadFontFromList=${TextUtil.base.fontFamily}');
   await _loadHarmonyOSFonts();
-  debugPrint('[FONT_DEBUG] TextUtil.base.fontFamily AFTER loadFontFromList=${TextUtil.base.fontFamily}');
+  debugPrint(
+      '[FONT_DEBUG] TextUtil.base.fontFamily AFTER loadFontFromList=${TextUtil.base.fontFamily}');
   // Initial sync of course data for OHOS service widget
   WidgetDataSync.syncCourseDataToFile();
   final now = DateTime.now().toLocal();
@@ -69,9 +72,7 @@ void main() async {
     DateTime(now.year, 12, 13),
   ];
   final isSpecialDate = importantDates.any((date) =>
-      date.year == now.year &&
-      date.month == now.month &&
-      date.day == now.day);
+      date.year == now.year && date.month == now.month && date.day == now.day);
 
   if (isSpecialDate) {
     runApp(
@@ -88,13 +89,15 @@ void main() async {
 Future<void> _loadHarmonyOSFonts() async {
   // Fonts registered via pubspec.yaml 'fonts:' section (FontManifest.json) are already loaded by the Flutter framework.
   // No need for loadFontFromList — the OHOS engine reads FontManifest.json on startup.
-  debugPrint('[FONT_DEBUG] Fonts declared in pubspec fonts: section are loaded via FontManifest.json');
+  debugPrint(
+      '[FONT_DEBUG] Fonts declared in pubspec fonts: section are loaded via FontManifest.json');
 }
 
 void _loadLoginState() {
   try {
     if (!_stateFile.existsSync()) return;
-    final data = jsonDecode(_stateFile.readAsStringSync()) as Map<String, dynamic>;
+    final data =
+        jsonDecode(_stateFile.readAsStringSync()) as Map<String, dynamic>;
     CommonPreferences.token.value = data['token'] as String? ?? '';
     CommonPreferences.account.value = data['account'] as String? ?? '';
     CommonPreferences.password.value = data['password'] as String? ?? '';
@@ -107,9 +110,7 @@ void _loadLoginState() {
     CommonPreferences.tjuuname.value = data['tjuuname'] as String? ?? '';
     CommonPreferences.tjupasswd.value = data['tjupasswd'] as String? ?? '';
     CommonPreferences.isLogin.value = true;
-    if ((data['tjuuname'] as String? ?? '').isNotEmpty) {
-      CommonPreferences.isBindTju.value = true;
-    }
+    CommonPreferences.syncTjuBindingState();
   } catch (_) {}
 }
 
@@ -127,7 +128,8 @@ class WePeiYangApp extends StatefulWidget {
 
 final _appState = WePeiYangAppState._();
 
-class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver {
+class WePeiYangAppState extends State<WePeiYangApp>
+    with WidgetsBindingObserver {
   WePeiYangAppState._();
   @override
   void initState() {
@@ -156,6 +158,7 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
     if (!mounted) return;
     WpyTheme.updateAutoDarkTheme(context);
   }
+
   void checkEventList() {}
   @override
   void didChangeDependencies() {
@@ -182,7 +185,8 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
             ChangeNotifierProvider(
               lazy: false,
               create: (_) {
-                final messageProvider = MessageProvider()..refreshFeedbackCount();
+                final messageProvider = MessageProvider()
+                  ..refreshFeedbackCount();
                 _pushChannel.setMethodCallHandler((call) async {
                   switch (call.method) {
                     case 'refreshFeedbackMessageCount':
@@ -192,8 +196,8 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
                       final arguments = call.arguments;
                       if (arguments is Map && arguments['data'] is String) {
                         final content = arguments['data'] as String;
-                        final dialogContext =
-                            RouterManager.navigatorKey.currentState?.overlay?.context;
+                        final dialogContext = RouterManager
+                            .navigatorKey.currentState?.overlay?.context;
                         if (dialogContext != null && content.isNotEmpty) {
                           await showMessageDialog(dialogContext, content);
                         }
@@ -221,22 +225,26 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
             builder: (context, _) => WpyTheme(
               themeData: globalTheme.value,
               child: MaterialApp(
-              navigatorKey: RouterManager.navigatorKey,
-              debugShowCheckedModeBanner: false,
-              title: 'WePeiYang',
-              theme: ThemeData.light().copyWith(
-                platform: TargetPlatform.android,
-              ),
-              home: const AppEntryPage(),
-              navigatorObservers: [AppRouteAnalysis()],
-              builder: FlutterSmartDialog.init(
-                toastBuilder: (String msg) => Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
-                  child: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                navigatorKey: RouterManager.navigatorKey,
+                debugShowCheckedModeBanner: false,
+                title: 'WePeiYang',
+                theme: ThemeData.light().copyWith(
+                  platform: TargetPlatform.android,
                 ),
-              ),
-              onGenerateRoute: RouterManager.create,
+                home: const AppEntryPage(),
+                navigatorObservers: [AppRouteAnalysis()],
+                builder: FlutterSmartDialog.init(
+                  toastBuilder: (String msg) => Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: Text(msg,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14)),
+                  ),
+                ),
+                onGenerateRoute: RouterManager.create,
               ),
             ),
           ),
@@ -244,6 +252,7 @@ class WePeiYangAppState extends State<WePeiYangApp> with WidgetsBindingObserver 
       },
     );
   }
+
   bool _navInited = false;
 }
 
@@ -340,6 +349,7 @@ class _InsecureHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
   }
 }

@@ -38,8 +38,10 @@ class CoursePage extends StatefulWidget {
 class _CoursePageState extends State<CoursePage> {
   /// 进入课程表页面后重设选中周并自动刷新自定义课程
   _CoursePageState() {
-    var provider =
-        WePeiYangApp.navigatorState.context!.read<CourseProvider>();
+    var provider = WePeiYangApp.navigatorState.context!.read<CourseProvider>();
+    if (provider.schoolCourses.isEmpty) {
+      provider.readPref();
+    }
     provider.quietResetWeek();
     provider.refreshCustomCourse();
   }
@@ -61,7 +63,7 @@ class _CoursePageState extends State<CoursePage> {
       }
 
       // 绑定
-      if (!CommonPreferences.isBindTju.value) {
+      if (!CommonPreferences.hasTjuCredentials) {
         Navigator.pushNamed(context, AuthRouter.tjuBind);
       }
     });
@@ -103,7 +105,9 @@ class _CoursePageState extends State<CoursePage> {
         ],
       ))
           .then((value) async {
-        await ImageSave.saveImageFromBytes(value, 'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png', album: true);
+        await ImageSave.saveImageFromBytes(value,
+            'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png',
+            album: true);
         ToastProvider.success("图片保存成功");
       });
     });
@@ -176,7 +180,7 @@ class _CourseAppBar extends StatelessWidget implements PreferredSizeWidget {
     var actions = [
       WButton(
         onPressed: () {
-          if (CommonPreferences.tjuuname.value == '') {
+          if (!CommonPreferences.hasTjuCredentials) {
             Navigator.pushNamed(context, AuthRouter.tjuBind);
           } else {
             context.read<CourseProvider>().refreshCourseByBackend(context);
@@ -360,5 +364,3 @@ class CustomImagePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) =>
       this != oldDelegate;
 }
-
-

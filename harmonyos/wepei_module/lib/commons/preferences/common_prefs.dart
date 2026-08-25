@@ -21,7 +21,8 @@ class CommonPreferences {
   static Future<void> init() async {
     // On HarmonyOS (or any platform without native SharedPreferences), use MockSharedPreferences
     if (!Platform.isAndroid && !Platform.isIOS) {
-      debugPrint('[CommonPreferences] Using MockSharedPreferences for HarmonyOS');
+      debugPrint(
+          '[CommonPreferences] Using MockSharedPreferences for HarmonyOS');
       mockPref = await MockSharedPreferences.getInstance();
       // Initialize real SharedPreferences with mock values to prevent MissingPluginException
       SharedPreferences.setMockInitialValues({});
@@ -35,8 +36,10 @@ class CommonPreferences {
       sharedPref = await SharedPreferences.getInstance()
           .timeout(const Duration(seconds: 3));
     }
+    syncTjuBindingState();
     showXiaotianTabNotifier.value = showXiaotianTab.value;
   }
+
   /// 天外天账号系统
   static final isLogin = PrefsBean<bool>('login');
   static final token = PrefsBean<String>('token');
@@ -90,6 +93,13 @@ class CommonPreferences {
   static final tjuuname = PrefsBean<String>('tjuuname');
   static final tjupasswd = PrefsBean<String>('tjupasswd');
 
+  static bool get hasTjuCredentials =>
+      tjuuname.value.trim().isNotEmpty && tjupasswd.value.isNotEmpty;
+
+  static void syncTjuBindingState() {
+    isBindTju.value = hasTjuCredentials;
+  }
+
   /// 自定义课表
   static final customCourseToken = PrefsBean<String>('customCourseToken');
   static final courseAppBarShrink = PrefsBean<bool>('courseAppBarShrink');
@@ -139,6 +149,7 @@ class CommonPreferences {
 
   /// 深色模式跟随系统
   static final autoDarkTheme = PrefsBean<bool>('notFollowSys', true);
+
   /// 应用图标跟随主题
   static final autoAppWithTheme = PrefsBean<bool>('notFollowTheme', true);
 
@@ -187,7 +198,7 @@ class CommonPreferences {
   static final firstClassesDialog = PrefsBean<bool>('firstClassesDialog', true);
 
   ///屏蔽词设置
-  static final shieldComment = PrefsBean<List<String>>('shieldComment',[]);
+  static final shieldComment = PrefsBean<List<String>>('shieldComment', []);
 
   //存储Image Expires
   static final mapExpires = PrefsBean<int>('mapExpires');
@@ -245,7 +256,8 @@ mixin PreferencesUtil<T> {
   static SharedPreferences get pref => CommonPreferences.sharedPref;
   static MockSharedPreferences? get mockPref => CommonPreferences.mockPref;
 
-  bool get _useHmos => !Platform.isAndroid && !Platform.isIOS && mockPref != null;
+  bool get _useHmos =>
+      !Platform.isAndroid && !Platform.isIOS && mockPref != null;
 
   dynamic _getValue(String key) {
     if (_useHmos) {
@@ -259,11 +271,17 @@ mixin PreferencesUtil<T> {
 
   Future<void> _setValue(T value, String key) async {
     if (_useHmos) {
-      if (value is List<String>) { await mockPref!.setStringList(key, value); }
-      else if (value is String) { await mockPref!.setString(key, value); }
-      else if (value is bool) { await mockPref!.setBool(key, value); }
-      else if (value is int) { await mockPref!.setInt(key, value); }
-      else if (value is double) { await mockPref!.setDouble(key, value); }
+      if (value is List<String>) {
+        await mockPref!.setStringList(key, value);
+      } else if (value is String) {
+        await mockPref!.setString(key, value);
+      } else if (value is bool) {
+        await mockPref!.setBool(key, value);
+      } else if (value is int) {
+        await mockPref!.setInt(key, value);
+      } else if (value is double) {
+        await mockPref!.setDouble(key, value);
+      }
       return;
     }
     if (value is List<String>) {

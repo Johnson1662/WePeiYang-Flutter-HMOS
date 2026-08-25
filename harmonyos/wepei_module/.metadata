@@ -4,7 +4,7 @@
 # This file should be version controlled and should not be manually edited.
 
 version:
-  revision: "50e8dd668fbc8a752eb904e9c1b4f3a995498d13"
+  revision: "dadef6e189c57e956205bfa8e5ab184929a66aa8"
   channel: "[user-branch]"
 
 project_type: module

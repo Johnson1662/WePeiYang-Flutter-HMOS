@@ -40,7 +40,7 @@ class _GPAPageState extends State<GPAPage> {
       }
 
       // 绑定办公网判断
-      if (!CommonPreferences.isBindTju.value) {
+      if (!CommonPreferences.hasTjuCredentials) {
         Navigator.pushNamed(context, AuthRouter.tjuBind);
       }
     });
@@ -141,7 +141,7 @@ class GPAAppBar extends StatelessWidget implements PreferredSizeWidget {
             height: 28.h,
           ),
           onPressed: () {
-            if (CommonPreferences.tjuuname.value == '') {
+            if (!CommonPreferences.hasTjuCredentials) {
               Navigator.pushNamed(context, AuthRouter.tjuBind);
             } else {
               context.read<GPANotifier>().refreshGPABackend(context);

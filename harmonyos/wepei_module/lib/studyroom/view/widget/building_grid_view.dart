@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
-import 'package:wepei_module/studyroom/model/sr_debug.dart';
 import 'package:wepei_module/commons/widgets/colored_icon.dart';
 import 'package:wepei_module/commons/widgets/loading.dart';
 import 'package:wepei_module/commons/widgets/scroll_synchronizer.dart';
@@ -22,18 +21,17 @@ class BuildingGridViewWidget extends StatelessWidget {
     return Consumer<CampusProvider>(builder: (_, data, __) {
       return AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: Builder(
-            builder: (context) {
-              if (!data.buildingLoaded) return const Loading();
-              if (data.buildings.isEmpty) {
-                return Center(
-                  child: Text('暂无数据',
-                      style: TextUtil.base.PingFangSC.label(context).sp(14)),
-                );
-              }
+        child: Builder(builder: (context) {
+          if (!data.buildingLoaded) return const Loading();
+          if (data.buildings.isEmpty) {
+            return Center(
+              child: Text('暂无数据',
+                  style: TextUtil.base.PingFangSC.label(context).sp(14)),
+            );
+          }
 
-              return BuildingGrid(data.buildings);
-            }),
+          return BuildingGrid(data.buildings);
+        }),
         transitionBuilder: (child, animation) {
           return FadeTransition(opacity: animation, child: child);
         },

@@ -110,7 +110,7 @@ class UserMessage extends ChatMessage {
 
 class AiMessage extends ChatMessage {
   String? text;
-  final int likeCount;
+  int likeCount;
   final String? traceId;
 
   final Stream<ChatEvent>? stream;
@@ -138,7 +138,7 @@ class AiMessage extends ChatMessage {
       this.userId})
       : super('ai');
 
-  void setText(String text){
+  void setText(String text) {
     this.text = text;
   }
 }

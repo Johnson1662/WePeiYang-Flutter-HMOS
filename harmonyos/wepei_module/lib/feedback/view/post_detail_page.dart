@@ -332,7 +332,9 @@ class _PostDetailPageState extends State<PostDetailPage>
       ],
     ))
         .then((value) async {
-      await ImageSave.saveImageFromBytes(value, 'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png', album: true);
+      await ImageSave.saveImageFromBytes(
+          value, 'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png',
+          album: true);
       ToastProvider.success("图片保存成功");
     });
   }
@@ -719,7 +721,9 @@ class _PostDetailPageState extends State<PostDetailPage>
                 child: CupertinoActionSheet(
                   actions: [
                     // 拉黑按钮
-                    if ((Platform.isIOS || (!Platform.isAndroid && !Platform.isIOS)) && _showBlockButton)
+                    if ((Platform.isIOS ||
+                            (!Platform.isAndroid && !Platform.isIOS)) &&
+                        _showBlockButton)
                       // 分享按钮
                       CupertinoActionSheetAction(
                         onPressed: () {
@@ -878,7 +882,8 @@ class _PostDetailPageState extends State<PostDetailPage>
               order.value = 1;
             } else {
               order.value = 0;
-            };
+            }
+            ;
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -949,7 +954,8 @@ class _PostDetailPageState extends State<PostDetailPage>
     final inputState = launchKey.currentState;
 
     // 只有在有结果时才更新
-    if (_recordController.state == RecordState.success &&_recordController.resultText.isNotEmpty) {
+    if (_recordController.state == RecordState.success &&
+        _recordController.resultText.isNotEmpty) {
       // 策略：将语音内容追加到光标处，或者直接覆盖
       // 获取当前的语音结果
       final voiceResult = _recordController.resultText;
@@ -968,8 +974,7 @@ class _PostDetailPageState extends State<PostDetailPage>
       inputState?.setState(() {
         inputState.commentLengthIndicator = '${newText.length}/200';
       });
-    }
-    else if(_recordController.state == RecordState.error){
+    } else if (_recordController.state == RecordState.error) {
       ToastProvider.error(_recordController.errorMessage);
     }
   }
@@ -1111,31 +1116,52 @@ class _PostDetailPageState extends State<PostDetailPage>
                                         ListenableBuilder(
                                           listenable: _recordController,
                                           builder: (context, child) {
-                                            bool isProcessing = _recordController.state == RecordState.processing;
-                                            bool isRecording = _recordController.isRecording;
+                                            bool isProcessing =
+                                                _recordController.state ==
+                                                    RecordState.processing;
+                                            bool isRecording =
+                                                _recordController.isRecording;
                                             return WButton(
-                                              onPressed: isProcessing ? null : _toggleRecording,
+                                              onPressed: isProcessing
+                                                  ? null
+                                                  : _toggleRecording,
                                               child: isProcessing
                                                   ? SizedBox(
-                                                width: 24.r,
-                                                height: 24.r,
-                                                child: CircularProgressIndicator(strokeWidth: 2, color: WpyTheme.of(context).get(WpyColorKey.primaryActionColor)),
-                                              )
+                                                      width: 24.r,
+                                                      height: 24.r,
+                                                      child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: WpyTheme.of(
+                                                                  context)
+                                                              .get(WpyColorKey
+                                                                  .primaryActionColor)),
+                                                    )
                                                   : Icon(
-                                                isRecording ? Icons.mic_rounded : Icons.mic_none, // todo 这里可以换成的 SVG 图片
-                                                size: 24.r,
-                                                // 录音时变色
-                                                color: isRecording
-                                                    ? Colors.red
-                                                    : WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-                                                shadows: isRecording?[
-                                                  Shadow(
-                                                    color: Colors.red.withOpacity(0.5),
-                                                    blurRadius: 3,
-                                                    offset: Offset(2,2),
-                                                  )
-                                                ]:null,
-                                              ),
+                                                      isRecording
+                                                          ? Icons.mic_rounded
+                                                          : Icons
+                                                              .mic_none, // todo 这里可以换成的 SVG 图片
+                                                      size: 24.r,
+                                                      // 录音时变色
+                                                      color: isRecording
+                                                          ? Colors.red
+                                                          : WpyTheme.of(context)
+                                                              .get(WpyColorKey
+                                                                  .labelTextColor),
+                                                      shadows: isRecording
+                                                          ? [
+                                                              Shadow(
+                                                                color: Colors
+                                                                    .red
+                                                                    .withOpacity(
+                                                                        0.5),
+                                                                blurRadius: 3,
+                                                                offset: Offset(
+                                                                    2, 2),
+                                                              )
+                                                            ]
+                                                          : null,
+                                                    ),
                                             );
                                           },
                                         ),
@@ -1264,8 +1290,11 @@ class _PostDetailPageState extends State<PostDetailPage>
               cancelText: "取消",
               confirmTextStyle:
                   TextUtil.base.normal.bright(context).ProductSans.sp(16).w400,
-              cancelTextStyle:
-                  TextUtil.base.normal.infoText(context).ProductSans.sp(16).w600,
+              cancelTextStyle: TextUtil.base.normal
+                  .infoText(context)
+                  .ProductSans
+                  .sp(16)
+                  .w600,
               confirmText: "确认",
               gradient: LinearGradient(
                   colors: [
@@ -1467,7 +1496,12 @@ class ImageSelectAndViewState extends State<ImageSelectAndView> {
     // OHOS: use system camera via @kit.CameraKit cameraPicker
     final path = await ImageSave.takePhoto();
     if (path == null || path.isEmpty) return;
-    Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
+    final file = File(path);
+    if (!file.existsSync() || file.lengthSync() == 0) {
+      ToastProvider.error('拍照失败，请重新尝试');
+      return;
+    }
+    Provider.of<NewFloorProvider>(context, listen: false).images.add(file);
     if (!mounted) return;
     setState(() {});
   }
@@ -1477,7 +1511,9 @@ class ImageSelectAndViewState extends State<ImageSelectAndView> {
     final paths = await ImageSave.pickImagesFromGallery();
     if (paths.isEmpty) return;
     for (final path in paths) {
-      Provider.of<NewFloorProvider>(context, listen: false).images.add(File(path));
+      Provider.of<NewFloorProvider>(context, listen: false)
+          .images
+          .add(File(path));
     }
     if (!mounted) return;
     setState(() {});

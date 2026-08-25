@@ -30,7 +30,8 @@ class ImageSave {
         final saved = result?['saved'] == true;
         final toAlbum = result?['album'] == true;
         if (saved) {
-          debugPrint('[ImageSave] save ${toAlbum ? "album" : "filesDir"} success');
+          debugPrint(
+              '[ImageSave] save ${toAlbum ? "album" : "filesDir"} success');
           return tempFile.absolute.path;
         }
       } catch (e) {
@@ -60,7 +61,9 @@ class ImageSave {
   static Future<String?> takePhoto() async {
     debugPrint('[ImageSave] takePhoto called');
     try {
-      final result = await _channel.invokeMethod<String>('takePhoto');
+      final result = await _channel
+          .invokeMethod<String>('takePhoto')
+          .timeout(const Duration(minutes: 2));
       debugPrint('[ImageSave] takePhoto result: $result');
       return result;
     } catch (e) {
@@ -72,9 +75,11 @@ class ImageSave {
   /// Pick images from gallery via OHOS PhotoViewPicker (harmonyos only).
   /// Returns list of content URIs, or empty list on failure.
   static Future<List<String>> pickImagesFromGallery() async {
-    debugPrint('[ImageSave] pickImagesFromGallery called, channel: com.twt.service/saveImg');
+    debugPrint(
+        '[ImageSave] pickImagesFromGallery called, channel: com.twt.service/saveImg');
     try {
-      final result = await _pickerChannel.invokeMethod<List<dynamic>>('pickImages');
+      final result =
+          await _pickerChannel.invokeMethod<List<dynamic>>('pickImages');
       debugPrint('[ImageSave] pickImagesFromGallery result: $result');
       if (result == null) return [];
       return result.cast<String>();

@@ -8,8 +8,8 @@ import {
   MethodCall,
 } from '@ohos/flutter_ohos';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
-import { cameraPicker } from '@kit.CameraKit';
-import { fileIo } from '@kit.CoreFileKit';
+import { camera, cameraPicker } from '@kit.CameraKit';
+import { fileIo, fileUri } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
 import { common, Want, AbilityConstant, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
 import pasteboard from '@ohos.pasteboard';
@@ -99,8 +99,24 @@ class SaveImgHandler implements MethodCallHandler {
   private async takePhoto(result: MethodResult) {
     console.info(TAG, 'takePhoto entered');
     try {
-      const profile = new cameraPicker.PickerProfile();
-      profile.cameraPosition = 1; // REAR camera
+      if (!canIUse('SystemCapability.Multimedia.Camera.Core')) {
+        console.warn(TAG, 'takePhoto: camera capability is unavailable');
+        result.success(null);
+        return;
+      }
+
+      const cacheDir = this.context.cacheDir + '/picker_temp';
+      try {
+        await fileIo.mkdir(cacheDir, true);
+      } catch (e) {
+        // The cache directory may already exist after the first capture.
+      }
+      const capturePath = cacheDir + '/camera_' + Date.now() + '.jpg';
+      fileIo.createRandomAccessFileSync(capturePath, fileIo.OpenMode.CREATE);
+      const profile: cameraPicker.PickerProfile = {
+        cameraPosition: camera.CameraPosition.CAMERA_POSITION_BACK,
+        saveUri: fileUri.getUriFromPath(capturePath),
+      };
       const resultData = await cameraPicker.pick(
         this.context,
         [cameraPicker.PickerMediaType.PHOTO],
@@ -108,20 +124,9 @@ class SaveImgHandler implements MethodCallHandler {
       );
       console.info(TAG, 'takePhoto: resultUri=' + resultData.resultUri + ' resultCode=' + resultData.resultCode);
 
-      if (resultData.resultUri && resultData.resultUri.length > 0) {
-        // Copy to cache dir
-        const cacheDir = this.context.cacheDir + '/picker_temp';
-        try { fs.mkdirSync(cacheDir); } catch (e) {}
-        const srcUri = resultData.resultUri;
-        const ext = srcUri.split('.').pop() || 'jpg';
-        const destPath = cacheDir + '/camera_' + Date.now() + '.' + ext;
-        const srcFile = fs.openSync(srcUri);
-        const destFile = fs.openSync(destPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
-        fs.copyFileSync(srcFile.fd, destFile.fd);
-        fs.closeSync(srcFile);
-        fs.closeSync(destFile);
-        console.info(TAG, 'takePhoto: copied to ' + destPath);
-        result.success(destPath);
+      if (resultData.resultCode === 0 && resultData.resultUri) {
+        console.info(TAG, 'takePhoto: saved to ' + capturePath);
+        result.success(capturePath);
       } else {
         console.warn(TAG, 'takePhoto: user cancelled or no result');
         result.success(null);

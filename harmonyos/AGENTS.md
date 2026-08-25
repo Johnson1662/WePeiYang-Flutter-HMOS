@@ -96,6 +96,10 @@ hdc shell "hilog -x | grep -E 'EntryAbility|ImageSave'"
 cd harmonyos\wepei_module
 flutter build har --debug
 
+# Restore tracked native EntryAbility/resources into regenerated .ohos host
+cd ..\..
+python scripts\sync_ohos_native.py
+
 # Resolve Dart dependencies
 cd harmonyos\wepei_module
 flutter pub get
@@ -456,7 +460,9 @@ devecocli run --skip-build             # 部署 release HAP
 | `AppScope/app.json5` | bundleName → `com.weipeiyang.cn`、icon → `$media:app_icon` |
 | `AppScope/resources/base/element/string.json` | app_name → "微北洋" |
 | `AppScope/resources/base/media/app_icon.png` | 从 `assets/app_icon.png` 复制 |
-| `entry/src/main/module.json5` | icon/startWindowIcon → `$media:app_icon` |
+| `entry/src/main/module.json5` | icon → `$media:app_icon`、startWindowIcon → `$media:start_window_brand`、startWindow → `$profile:start_window` |
+| `entry/src/main/resources/base/media/splash_screen.png` | 复制 Android `android/app/src/main/res/drawable/splash_screen.png` |
+| `entry/src/main/resources/base/media/start_window_brand.png` | 启动页品牌图 |
 | `flutter_module/src/main/ets/plugins/GeneratedPluginRegistrant.ets` | 去掉 `image_picker_ohos`（只用 `photo_manager`） |
 | `entry/src/main/ets/entryability/EntryAbility.ets` | 从 `harmonyos/entry/...` 同步 |
 | `hvigor/hvigor-config.json5` | execution 优化配置 |

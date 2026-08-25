@@ -31,51 +31,61 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
     FocusScope.of(context).requestFocus(FocusNode());
     if (_usePwLogin) {
       if (account == "" || password == "") {
-        showDialog(context: context, builder: (_) => AlertDialog(content: Text('账号或密码为空')));
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(content: Text('账号或密码为空')));
         return;
       }
       ToastProvider.running("登录中...");
       debugPrint('calling pwLogin');
       try {
-        await AuthService.pwLogin(account, password,
-          onResult: (result) {
-            ToastProvider.cancelCurrent();
-            if (result['telephone'] == null || result['email'] == null) {
-              Navigator.pushNamed(context, AuthRouter.addInfo);
-            } else {
-              LakeTokenManager().refreshToken();
-              Navigator.pushNamedAndRemoveUntil(context, HomeRouter.home, (route) => false);
-            }
-          },
-          onFailure: (e) {
-            ToastProvider.cancelCurrent();
-            showDialog(context: context, builder: (_) => AlertDialog(content: Text('失败: ${e.error}'))); 
-          });
+        await AuthService.pwLogin(account, password, onResult: (result) {
+          ToastProvider.cancelCurrent();
+          if (result['telephone'] == null || result['email'] == null) {
+            Navigator.pushNamed(context, AuthRouter.addInfo);
+          } else {
+            LakeTokenManager().refreshToken();
+            Navigator.pushNamedAndRemoveUntil(
+                context, HomeRouter.home, (route) => false);
+          }
+        }, onFailure: (e) {
+          ToastProvider.cancelCurrent();
+          showDialog(
+              context: context,
+              builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
+        });
       } catch (e) {
         ToastProvider.cancelCurrent();
-        showDialog(context: context, builder: (_) => AlertDialog(content: Text('网络异常: $e')));
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(content: Text('网络异常: $e')));
       }
     } else {
       if (account == "") {
-        showDialog(context: context, builder: (_) => AlertDialog(content: Text('手机号为空')));
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(content: Text('手机号为空')));
       } else if (code == "") {
-        showDialog(context: context, builder: (_) => AlertDialog(content: Text('验证码为空')));
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(content: Text('验证码为空')));
       } else {
         ToastProvider.running("登录中...");
-        AuthService.codeLogin(account, code,
-          onResult: (result) {
-            ToastProvider.cancelCurrent();
-            if (result['telephone'] == null || result['email'] == null) {
-              Navigator.pushNamed(context, AuthRouter.addInfo);
-            } else {
-              LakeTokenManager().refreshToken();
-              Navigator.pushNamedAndRemoveUntil(context, HomeRouter.home, (route) => false);
-            }
-          },
-          onFailure: (e) {
-            ToastProvider.cancelCurrent();
-            showDialog(context: context, builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
-          });
+        AuthService.codeLogin(account, code, onResult: (result) {
+          ToastProvider.cancelCurrent();
+          if (result['telephone'] == null || result['email'] == null) {
+            Navigator.pushNamed(context, AuthRouter.addInfo);
+          } else {
+            LakeTokenManager().refreshToken();
+            Navigator.pushNamedAndRemoveUntil(
+                context, HomeRouter.home, (route) => false);
+          }
+        }, onFailure: (e) {
+          ToastProvider.cancelCurrent();
+          showDialog(
+              context: context,
+              builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
+        });
       }
     }
   }
@@ -355,18 +365,22 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
                 receiveTimeout: const Duration(seconds: 10),
                 headers: AuthDio().headers ?? {},
               ));
-              (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+              (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient =
+                  () {
                 final client = HttpClient();
                 client.badCertificateCallback = (cert, host, port) => true;
                 return client;
               };
-              final rsp = await dio.post('auth/common',
+              final rsp = await dio.post(
+                'auth/common',
                 data: {'account': account, 'password': password},
-                options: Options(contentType: Headers.formUrlEncodedContentType),
+                options:
+                    Options(contentType: Headers.formUrlEncodedContentType),
               );
               final ec = rsp.data['error_code'];
               if (ec != null && ec != 0) {
-                final msg = rsp.data['msg'] ?? rsp.data['message'] ?? '错误码: $ec';
+                final msg =
+                    rsp.data['msg'] ?? rsp.data['message'] ?? '错误码: $ec';
                 ToastProvider.cancelCurrent();
                 ToastProvider.error(msg);
                 return;
@@ -388,8 +402,16 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
               CommonPreferences.isLogin.value = true;
               // Persist login state
               try {
-                final f = File('${Directory.systemTemp.path}/wepeiyang_state.json');
-                f.writeAsStringSync(jsonEncode({
+                final f =
+                    File('${Directory.systemTemp.path}/wepeiyang_state.json');
+                final state = <String, dynamic>{};
+                if (f.existsSync()) {
+                  final existing = jsonDecode(f.readAsStringSync());
+                  if (existing is Map) {
+                    state.addAll(Map<String, dynamic>.from(existing));
+                  }
+                }
+                state.addAll({
                   'token': data['token'] ?? '',
                   'account': account,
                   'password': password,
@@ -399,13 +421,18 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
                   'phone': data['telephone'] ?? '',
                   'email': data['email'] ?? '',
                   'realName': data['realname'] ?? '',
-                }));
+                });
+                f.writeAsStringSync(jsonEncode(state));
               } catch (_) {}
               ToastProvider.cancelCurrent();
-              Navigator.pushNamedAndRemoveUntil(ctx, HomeRouter.home, (route) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                  ctx, HomeRouter.home, (route) => false);
             } on DioException catch (e) {
               ToastProvider.cancelCurrent();
-              showDialog(context: context, builder: (_) => AlertDialog(content: Text('错误: ${e.type} ${e.message}')));
+              showDialog(
+                  context: context,
+                  builder: (_) =>
+                      AlertDialog(content: Text('错误: ${e.type} ${e.message}')));
             } catch (e) {
               ToastProvider.cancelCurrent();
             }
@@ -414,8 +441,8 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
             width: width - 60,
             height: 48,
             decoration: BoxDecoration(
-              color: WpyTheme.of(context)
-                  .get(WpyColorKey.primaryBackgroundColor),
+              color:
+                  WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Center(
@@ -578,42 +605,52 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
         SizedBox(height: 11),
         WButton(
           onPressed: () async {
-              debugPrint('sms login');
-              if (account.isEmpty) {
-                showDialog(context: context, builder: (_) => AlertDialog(content: const Text('请输入手机号')));
-              } else if (code.isEmpty) {
-                showDialog(context: context, builder: (_) => AlertDialog(content: const Text('请输入验证码')));
-              } else {
-                ToastProvider.running("登录中...");
-                AuthService.codeLogin(account, code,
-                  onResult: (_) {
-                    ToastProvider.cancelCurrent();
-                    Navigator.pushNamedAndRemoveUntil(context, HomeRouter.home, (route) => false);
-                  },
-                  onFailure: (e) {
-                    ToastProvider.cancelCurrent();
-                    showDialog(context: context, builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
-                  },
-                );
-              }
-            },
-            child: Container(
-              width: width - 60,
-              height: 48,
-              decoration: BoxDecoration(
-                color: WpyTheme.of(context)
-                    .get(WpyColorKey.primaryBackgroundColor),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Center(
-                child: Text.rich(TextSpan(
-                    text: "登录",
-                    style: TextUtil.base.normal.NotoSansSC.w400
-                        .sp(16)
-                        .primaryAction(context))),
-              ),
+            debugPrint('sms login');
+            if (account.isEmpty) {
+              showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(content: const Text('请输入手机号')));
+            } else if (code.isEmpty) {
+              showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(content: const Text('请输入验证码')));
+            } else {
+              ToastProvider.running("登录中...");
+              AuthService.codeLogin(
+                account,
+                code,
+                onResult: (_) {
+                  ToastProvider.cancelCurrent();
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, HomeRouter.home, (route) => false);
+                },
+                onFailure: (e) {
+                  ToastProvider.cancelCurrent();
+                  showDialog(
+                      context: context,
+                      builder: (_) =>
+                          AlertDialog(content: Text('失败: ${e.error}')));
+                },
+              );
+            }
+          },
+          child: Container(
+            width: width - 60,
+            height: 48,
+            decoration: BoxDecoration(
+              color:
+                  WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Center(
+              child: Text.rich(TextSpan(
+                  text: "登录",
+                  style: TextUtil.base.normal.NotoSansSC.w400
+                      .sp(16)
+                      .primaryAction(context))),
             ),
           ),
+        ),
         const SizedBox(height: 9),
         Row(
           children: [

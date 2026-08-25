@@ -107,7 +107,6 @@ struct PickerDialog {
 struct Index {
   private context = getContext(this) as common.UIAbilityContext
   @LocalStorageLink('viewId') viewId: string = "";
-  @State private showLaunchOverlay: boolean = true;
 
   private pickerDialog: CustomDialogController = new CustomDialogController({
     builder: PickerDialog(),
@@ -126,10 +125,6 @@ struct Index {
   aboutToAppear(): void {
     // Polling for signals every 300ms
     setInterval(() => {
-      if (this.showLaunchOverlay && AppStorage.Get<boolean>('flutterFirstFrame') === true) {
-        this.showLaunchOverlay = false;
-      }
-
       // Check picker signal
       const pickerSignal = AppStorage.Get<number>('navToPicker');
       if (pickerSignal != null) {
@@ -153,25 +148,14 @@ struct Index {
         this.webViewDialog.open();
       }
     }, 300);
-    setTimeout(() => {
-      this.showLaunchOverlay = false;
-    }, 3000);
   }
 
   build() {
-    Stack() {
-      Column() { FlutterPage({ viewId: this.viewId }) }
-        .width('100%').height('100%')
-      if (this.showLaunchOverlay) {
-        Image($r('app.media.splash_screen'))
-          .width('100%')
-          .height('100%')
-          .objectFit(ImageFit.Contain)
-          .backgroundColor('#ffffff')
-          .zIndex(1)
-      }
+    Column() {
+      FlutterPage({ viewId: this.viewId })
     }
-    .width('100%').height('100%')
+    .width('100%')
+    .height('100%')
   }
 
   onBackPress(): boolean {
