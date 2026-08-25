@@ -312,6 +312,7 @@ class SliverCardsWidget extends StatelessWidget {
     '课程表',
     '入校码',
     '新闻网',
+    '课评网',
     '地图·校历',
     '成绩',
     // '小游戏'
@@ -439,6 +440,26 @@ class CardBean {
   String route;
 
   CardBean(this.path, this.width, this.label, this.eng, this.route);
+
+  /// 将工具转换为普通数据（缓存无法直接保存工具
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'width': width,
+        'label': label,
+        'eng': eng,
+        'route': route,
+      };
+
+  /// 普通数据还原为工具
+  factory CardBean.fromJson(Map<String, dynamic> json) {
+    return CardBean(
+      json['path'] as String,
+      (json['width'] as num?)?.toDouble(),
+      json['label'] as String,
+      json['eng'] as String,
+      json['route'] as String,
+    );
+  }
 }
 
 class WPYScrollBehavior extends ScrollBehavior {

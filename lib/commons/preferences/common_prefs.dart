@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,14 +12,15 @@ import '../../schedule/schedule_router.dart';
 class CommonPreferences {
   CommonPreferences._();
 
-  static late SharedPreferencesWithCache sharedPref;
+  static late SharedPreferences sharedPref;
 
   /// 初始化sharedPrefs，在运行app前被调用
   static Future<void> init() async {
-    sharedPref = await SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(),
-    );
+    // 使用 legacy SharedPreferences（写旧 XML），
+    // 以便原生侧 getSharedPreferences("FlutterSharedPreferences") 能读到。
+    sharedPref = await SharedPreferences.getInstance();
     showXiaotianTabNotifier.value = showXiaotianTab.value;
+    predictiveBackNotifier.value = predictiveBack.value;
   }
 
   /// 天外天账号系统
@@ -55,6 +58,10 @@ class CommonPreferences {
   static final feedbackLastLostAndFoundWeCo =
       PrefsBean<String>('feedbackLastWeKo');
   static final avatarBoxMyUrl = PrefsBean<String>('avatarBoxMyUrl');
+
+  /// 已折叠置顶帖的分区 id 集合（跨会话记忆）
+  static final collapsedTopTabs =
+      PrefsBean<List<String>>('collapsedTopTabs', []);
 
   /// 求实论坛--等级系统
   static final levelPoint = PrefsBean<int>('levelPoint');
@@ -110,6 +117,8 @@ class CommonPreferences {
   static final showMap = PrefsBean<bool>('showMap', false); // 首页不显示考表
   static final showXiaotianTab = PrefsBean<bool>('showXiaotianTab', true);
   static final showXiaotianTabNotifier = ValueNotifier<bool>(true);
+  static final predictiveBack = PrefsBean<bool>('predictiveBack', false);
+  static final predictiveBackNotifier = ValueNotifier<bool>(false);
   static final nightMode = PrefsBean<bool>('nightMode', true); // 开启夜猫子模式
   static final useClassesBackend =
       PrefsBean<bool>('useClassesBackend', false); // 用后端爬虫代替前端爬虫（课表、考表、GPA）
@@ -130,14 +139,27 @@ class CommonPreferences {
   static final happenSpring = PrefsBean<bool>('happenSpring', false);
 
   /// 首页工具栏的东西
-  static const defaultDisplayOrder = "0,1,2,3,4,5";
+  static const defaultDisplayOrder = "0,1,2,3,4,5,6";
+
+  /// 课评网加入前的旧默认顺序。旧用户未自定义过时本地存的是这个值，
+  /// 首次识别到后一次性迁移到新的默认顺序（补上新增索引）。
+  static const _legacyDefaultDisplayOrder = "0,1,2,3,4,5";
+
   static final displayOrder =
       PrefsBean<String>('displayOrder', defaultDisplayOrder);
-  static final displayedTool = PrefsBean<List<CardBean>>('displayedTool', [
+
+  /// 是否已完成课评网加入后的工具栏默认顺序迁移。
+  /// 置位后即使 displayOrder 被用户改回旧默认值也不会再次迁移。
+  static final toolbarOrderMigrated =
+      PrefsBean<bool>('toolbarOrderMigrated', false);
+
+  static final displayedTool = CardBeanListPrefs('displayedTool', [
     CardBean("assets/svg_pics/lake_butt_icons/daily.png", 21.w, '课程表',
         'Schedule', ScheduleRouter.course),
     CardBean('assets/svg_pics/lake_butt_icons/QR.png', 24.w, '入校码', 'Entry QR',
         HomeRouter.casQR),
+    CardBean('assets/images/account/comment.png', 24.w, '课评网', 'Course\nReview',
+        HomeRouter.courseReview),
     CardBean("assets/svg_pics/lake_butt_icons/news.png", 24.w, '新闻网', 'News',
         HomeRouter.news),
     CardBean('assets/images/schedule/add.png', 24.w, '地图·校历', 'Map-\nCalendar',
@@ -151,7 +173,7 @@ class CommonPreferences {
     // CardBean('assets/svg_pics/lake_butt_icons/game.png', 33.w, '小游戏', 'Game',
     //     HomeRouter.game)
   ]);
-  static final userTool = PrefsBean<List<CardBean>>('userTool', [
+  static final userTool = CardBeanListPrefs('userTool', [
     CardBean('assets/svg_pics/lake_butt_icons/sample1.png', 24.w, '图书馆',
         'Library', 'https://ic.lib.tju.edu.cn/'),
     CardBean('assets/svg_pics/lake_butt_icons/sample2.png', 24.w, '教务系统',
@@ -161,9 +183,18 @@ class CommonPreferences {
   static List<int> sanitizedDisplayOrder({int minCount = 2}) {
     final toolsLength = displayedTool.value.length;
     final rawOrder = displayOrder.value;
+
+    // 旧用户未自定义时本地存的是旧默认顺序（不含新增索引），
+    // 首次识别到后一次性迁移到新的默认顺序并置位标记，
+    // 避免之后用户主动改回旧默认顺序时被再次迁移。
+    final effectiveOrder =
+        (!toolbarOrderMigrated.value && rawOrder == _legacyDefaultDisplayOrder)
+            ? defaultDisplayOrder
+            : rawOrder;
+
     final order = <int>[];
 
-    for (final item in rawOrder.split(',')) {
+    for (final item in effectiveOrder.split(',')) {
       final index = int.tryParse(item.trim());
       if (index == null || index < 0 || index >= toolsLength) continue;
       if (!order.contains(index)) order.add(index);
@@ -183,6 +214,7 @@ class CommonPreferences {
 
     final sanitizedOrder = order.join(',');
     if (sanitizedOrder != rawOrder) displayOrder.value = sanitizedOrder;
+    if (effectiveOrder != rawOrder) toolbarOrderMigrated.value = true;
     return order;
   }
 
@@ -261,8 +293,43 @@ class PrefsBean<T> with PreferencesUtil<T> {
   void clear() => _clearValue(_key);
 }
 
+/// SharedPreferences不能直接保存List<CardBean>
+/// CardBean转成JSON，以String形式存储
+class CardBeanListPrefs {
+  CardBeanListPrefs(this._key, List<CardBean> defaultValue)
+      : _defaultValue = List<CardBean>.unmodifiable(defaultValue);
+
+  final String _key;
+  final List<CardBean> _defaultValue;
+  List<CardBean>? _cachedValue;
+
+  List<CardBean> get value => _cachedValue ??= _read();
+
+  Future<void> save() async {
+    await CommonPreferences.sharedPref.setString(
+      _key,
+      jsonEncode(value.map((tool) => tool.toJson()).toList()),
+    );
+  }
+
+  List<CardBean> _read() {
+    final rawValue = CommonPreferences.sharedPref.getString(_key);
+    if (rawValue == null) return List<CardBean>.from(_defaultValue);
+
+    try {
+      final decoded = jsonDecode(rawValue) as List<dynamic>;
+      return decoded
+          .map((item) => CardBean.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    } catch (_) {
+      // 缓存损坏时回退到默认工具，避免启动应用失败。
+      return List<CardBean>.from(_defaultValue);
+    }
+  }
+}
+
 mixin PreferencesUtil<T> {
-  static SharedPreferencesWithCache get pref => CommonPreferences.sharedPref;
+  static SharedPreferences get pref => CommonPreferences.sharedPref;
 
   dynamic _getValue(String key) {
     if (T == List<String>) {

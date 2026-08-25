@@ -8,6 +8,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:miui_long_screenshot/miui_long_screenshot.dart';
 import 'package:we_pei_yang_flutter/commons/preferences/common_prefs.dart';
 import 'package:we_pei_yang_flutter/commons/token/lake_token_manager.dart';
 import 'package:we_pei_yang_flutter/commons/util/text_util.dart';
@@ -16,6 +17,7 @@ import 'package:we_pei_yang_flutter/commons/widgets/wpy_pic.dart';
 import 'package:we_pei_yang_flutter/feedback/view/components/post_card.dart';
 import 'package:we_pei_yang_flutter/feedback/view/components/widget/activity_card.dart';
 import 'package:we_pei_yang_flutter/feedback/view/components/widget/hot_rank_card.dart';
+import 'package:we_pei_yang_flutter/feedback/view/components/widget/round_taggings.dart';
 import 'package:we_pei_yang_flutter/feedback/view/lake_home_page/home_page.dart';
 import 'package:we_pei_yang_flutter/feedback/view/lake_home_page/lake_notifier.dart';
 import 'package:we_pei_yang_flutter/main.dart';
@@ -108,6 +110,9 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     //            - 刷新结束但动画还没开始（网太快了）
     //            - 取消动画 （不播放了）-  结束刷新
 
+    // 记录松手进入刷新的时刻，保证"正在刷新"指示至少展示 450ms
+    final refreshStart = DateTime.now();
+
     Timer? task;
     if (!_sortRefreshRequested) {
       task = Timer(Duration(milliseconds: 250), () {
@@ -116,7 +121,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
           _scrollController.jumpTo(0);
         }
         setState(() {
-          _fullRefreshSkeleton = true;
+          _postRefreshSkeleton = true;
         });
       });
     }
@@ -125,7 +130,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
       _initializeHotTagsIfNeeded();
       _initializeProviders();
       getRecTag();
-      await _refreshPostList();
+      await _refreshPostList(refreshStart);
       _initializeLakeArea();
     } catch (e) {
       await _handleRefreshError();
@@ -134,21 +139,13 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     // 如果还没执行就不执行了
     if (task?.isActive ?? false) task!.cancel();
     if (!mounted) return;
-    final wasFullSkeleton = _fullRefreshSkeleton;
     setState(() {
       // 不再改 ListView 的 key —— 数据通过 postHolder 的 ListenableBuilder 流入并
       // 由 Flutter 增量 diff，换 key 会整树销毁重建（卡顿）并丢失滚动位置（跳回顶部）。
       _listVersion++;
-      _fullRefreshSkeleton = false;
       _postRefreshSkeleton = false;
       _sortRefreshRequested = false;
     });
-    if (wasFullSkeleton) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scrollController.hasClients) return;
-        _scrollController.jumpTo(0);
-      });
-    }
   }
 
   void _initializeHotTagsIfNeeded() {
@@ -157,9 +154,16 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     }
   }
 
-  Future<void> _refreshPostList() async {
+  Future<void> _refreshPostList(DateTime refreshStart) async {
     await LakeUtil.initPostList(index, forced: true)
         .catchError((e) => _handlePostListFailure(e));
+    // 保证"正在刷新"指示至少展示 450ms（自松手进入刷新起算），
+    // 不足则补齐再调用 refreshCompleted，避免网络过快时一闪而过
+    final elapsed = DateTime.now().difference(refreshStart);
+    const minRefreshDuration = Duration(milliseconds: 450);
+    if (elapsed < minRefreshDuration) {
+      await Future.delayed(minRefreshDuration - elapsed);
+    }
     _refreshController.refreshCompleted();
   }
 
@@ -242,7 +246,6 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  bool _fullRefreshSkeleton = false;
   bool _postRefreshSkeleton = false;
   bool _sortRefreshRequested = false;
 
@@ -260,6 +263,8 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
   }
 
   Row _buildSortSelection() {
+    final hasTop = pageController.postHolder.postsList
+        .any((p) => p.eTag == 'top');
     return Row(mainAxisAlignment: MainAxisAlignment.start, children: [
       WButton(
         onPressed: () => _changeSortAndRefresh(1),
@@ -290,6 +295,27 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
               }),
         ),
       ),
+      if (hasTop) ...[
+        Spacer(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(5.w, 14.h, 12.w, 6.h),
+          child: ValueListenableBuilder(
+            valueListenable: LakeUtil.collapsedTopTabs,
+            builder: (context, collapsed, _) {
+              final isCollapsed = collapsed.contains('$index');
+              // 折叠后隐藏开关，仅保留横栏的展开入口
+              if (isCollapsed) return SizedBox.shrink();
+              return WButton(
+                onPressed: () => LakeUtil.toggleCollapsedTop(index),
+                child: Text(
+                  '折叠置顶帖',
+                  style: TextUtil.base.label(context).w400.sp(14),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     ]);
   }
 
@@ -313,7 +339,16 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     if (_postRefreshSkeleton) return PostSkeleton();
 
     // Post
-    final post = pageController.postHolder.postsList[ind];
+    final postsList = pageController.postHolder.postsList;
+    final post = postsList[ind];
+    final isTop = post.eTag == 'top';
+    final collapsed = isTop &&
+        LakeUtil.collapsedTopTabs.value.contains('$index');
+    if (collapsed) {
+      // 置顶帖连续排前：仅首个置顶帖位置渲染"展开置顶帖"栏，其余置顶帖留空
+      final isFirstTop = postsList.take(ind).every((p) => p.eTag != 'top');
+      return isFirstTop ? _buildCollapsedTopBar(index) : const SizedBox.shrink();
+    }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 260),
       switchInCurve: Curves.easeOutCubic,
@@ -347,6 +382,45 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
+  /// 折叠置顶帖后的统一"展开置顶帖"栏（不显示任何标题，极简）
+  Widget _buildCollapsedTopBar(int tabId) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 4),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        alignment: Alignment.topCenter,
+        child: InkWell(
+          onTap: () => LakeUtil.toggleCollapsedTop(tabId),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                    color: WpyTheme.of(context)
+                        .get(WpyColorKey.lightBorderColor),
+                    width: 1.h),
+              ),
+            ),
+            child: Row(
+              children: [
+                ETagWidget(entry: 'top', full: false),
+                SizedBox(width: 8),
+                Text('展开置顶帖',
+                    style: TextUtil.base.NotoSansSC.w400.sp(14).primary(context)),
+                Spacer(),
+                Icon(Icons.keyboard_arrow_down,
+                    size: 22,
+                    color: WpyTheme.of(context)
+                        .get(WpyColorKey.secondaryTextColor)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -371,7 +445,9 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                     _onScrollNotification(scrollInfo),
                 child: ListenableBuilder(
                   // 这里是Post的Listview, 需要监听Post刷新
-                  listenable: pageController.postHolder,
+                  // 同时监听折叠状态，切换折叠时重建列表
+                  listenable: Listenable.merge(
+                      [pageController.postHolder, LakeUtil.collapsedTopTabs]),
                   builder: (context, oldChild) {
                     final refresher = SmartRefresher(
                       physics: BouncingScrollPhysics(),
@@ -398,9 +474,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                       ),
                       enablePullUp: true,
                       onLoading: _onLoading,
-                      child: _fullRefreshSkeleton
-                          ? RefreshSkeleton(initialScrollOffset: false)
-                          : ListView.builder(
+                      child: ListView.builder(
                               // 根据要求， Listview必须紧挨着SmartRefresher，不能包装任何东西
                               key: PageStorageKey("$index"),
                               shrinkWrap: true,
@@ -415,7 +489,11 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                               itemBuilder: _buildPostList,
                             ),
                     );
-                    return refresher;
+                    return MiuiLongScreenshot(
+                      key: ValueKey('lake-miui-long-screenshot-$index'),
+                      controller: _scrollController,
+                      child: refresher,
+                    );
                   },
                 ),
               );

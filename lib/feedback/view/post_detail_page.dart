@@ -10,6 +10,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:miui_long_screenshot/miui_long_screenshot.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:screenshot/screenshot.dart';
@@ -165,7 +166,14 @@ class _PostDetailPageState extends State<PostDetailPage>
 
   _onLoading() {
     currentPage++;
-    _getComments(onSuccess: (comments) {
+    final int loadingPage = currentPage;
+    _getComments(
+      onSuccess: (comments) {
+      // 如果 currentPage 已被重置，则丢弃旧结果
+      // 偶发竞态只可能在这里发生
+      if (loadingPage != currentPage) {
+        return;
+      }
       if (comments.length == 0) {
         _refreshController.loadNoData();
         currentPage--;
@@ -488,7 +496,7 @@ class _PostDetailPageState extends State<PostDetailPage>
           : 5,
     );
 
-    return NotificationListener<ScrollNotification>(
+    final listener = NotificationListener<ScrollNotification>(
       child: SmartRefresher(
         physics: BouncingScrollPhysics(),
         controller: _refreshController,
@@ -521,6 +529,11 @@ class _PostDetailPageState extends State<PostDetailPage>
       ),
       onNotification: (ScrollNotification scrollInfo) =>
           _onScrollNotification(scrollInfo),
+    );
+
+    return MiuiLongScreenshot(
+      controller: _controller,
+      child: listener,
     );
   }
 
