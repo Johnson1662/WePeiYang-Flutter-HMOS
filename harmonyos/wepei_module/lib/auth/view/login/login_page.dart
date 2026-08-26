@@ -22,7 +22,6 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
     super.initState();
     if (CommonPreferences.firstPrivacy.value == true) {
       rootBundle.loadString('privacy/privacy_content.md').then((str) {
-        if (!mounted) return;
         setState(() {
           md = str;
         });
@@ -33,18 +32,18 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
     ///修改为拒绝后再次打开APP仍弹出隐私协议
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       if (CommonPreferences.firstPrivacy.value == true) {
-        if (md.isEmpty) {
-          md = await rootBundle.loadString('privacy/privacy_content.md');
-        }
+        // 如果已经同意了隐私协议， init, 否则弹窗等待， 如果没同意的话就会直接退出APP, 不会运行到这里
         await showDialog(
             context: context,
             barrierDismissible: false,
             builder: (BuildContext context) {
-              return PrivacyDialog(md, check: ValueNotifier<bool>(true));
+              return PrivacyDialog(md);
             });
         CommonPreferences.firstPrivacy.value = false;
       }
-      UmengCommonSdk.initCommon().catchError((_) {});
+      if (CommonPreferences.firstPrivacy.value == false) {
+        UmengCommonSdk.initCommon();
+      }
     });
   }
 
@@ -73,7 +72,7 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
                 child: Text.rich(TextSpan(children: [
                   TextSpan(
                       text: "Welcome\n\n",
-                      style: TextUtil.base.normal.NotoSansSC
+                      style: TextUtil.base.normal.ProductSans
                           .sp(40)
                           .w700
                           .bright(context)),
@@ -104,21 +103,21 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
                               .w400
                               .primaryAction(context))),
                       style: ButtonStyle(
-                        elevation: MaterialStateProperty.all(0),
+                        elevation: WidgetStateProperty.all(0),
                         //水波纹颜色暂时没确定
                         overlayColor:
-                            MaterialStateProperty.resolveWith<Color>((states) {
-                          if (states.contains(MaterialState.pressed))
+                            WidgetStateProperty.resolveWith<Color>((states) {
+                          if (states.contains(WidgetState.pressed))
                             return WpyTheme.of(context)
                                 .get(WpyColorKey.oldActionRippleColor);
                           return WpyTheme.of(context)
                               .get(WpyColorKey.oldThirdActionColor);
                         }),
                         //暂时把Mycolors.deepblue改成默认白色
-                        backgroundColor: MaterialStateProperty.all(
+                        backgroundColor: WidgetStateProperty.all(
                             WpyTheme.of(context)
                                 .get(WpyColorKey.primaryBackgroundColor)),
-                        shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                        shape: WidgetStateProperty.all(RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24))),
                       ),
                     ),
@@ -137,19 +136,19 @@ class _LoginHomeWidgetState extends State<LoginHomeWidget> {
                               .w400
                               .primaryAction(context))),
                       style: ButtonStyle(
-                        elevation: MaterialStateProperty.all(0),
+                        elevation: WidgetStateProperty.all(0),
                         overlayColor:
-                            MaterialStateProperty.resolveWith<Color>((states) {
-                          if (states.contains(MaterialState.pressed))
+                            WidgetStateProperty.resolveWith<Color>((states) {
+                          if (states.contains(WidgetState.pressed))
                             return WpyTheme.of(context)
                                 .get(WpyColorKey.oldActionRippleColor);
                           return WpyTheme.of(context)
                               .get(WpyColorKey.oldThirdActionColor);
                         }),
-                        backgroundColor: MaterialStateProperty.all(
+                        backgroundColor: WidgetStateProperty.all(
                             WpyTheme.of(context)
                                 .get(WpyColorKey.primaryBackgroundColor)),
-                        shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                        shape: WidgetStateProperty.all(RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30))),
                       ),
                     ),

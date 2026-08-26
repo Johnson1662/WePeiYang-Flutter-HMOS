@@ -9,6 +9,10 @@
       "value": "用于保存和读取帖子中的图片"
     },
     {
+      "name": "reason_read_pasteboard",
+      "value": "用于读取微北洋分享口令并打开对应帖子"
+    },
+    {
       "name": "reason_write_imagevideo",
       "value": "用于将图片保存到系统相册"
     },
@@ -19,6 +23,10 @@
     {
       "name": "form_name_schedule",
       "value": "课表"
+    },
+    {
+      "name": "form_name_entry_qr",
+      "value": "入校码"
     }
   ]
 }

@@ -68,7 +68,6 @@ dependencies:
   table_calendar: any
   url_launcher: any
   uuid: any
-  webview_flutter: any
   wechat_picker_library: any
   wechat_assets_picker: any
   window_manager: any

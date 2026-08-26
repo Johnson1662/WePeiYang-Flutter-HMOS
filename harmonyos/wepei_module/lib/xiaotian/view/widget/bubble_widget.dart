@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
+import 'package:gallery_saver_plus/files.dart';
 import 'package:provider/provider.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/widgets/loading.dart';
@@ -382,7 +382,7 @@ class _CollapsibleSourceListState extends State<CollapsibleSourceList> {
           border: Border.all(
             color: WpyTheme.of(context)
                 .get(WpyColorKey.primaryActionColor)
-                .withOpacity(0.4),
+                .withValues(alpha: 0.4),
             width: 1.r,
           ),
           boxShadow: [
@@ -391,7 +391,7 @@ class _CollapsibleSourceListState extends State<CollapsibleSourceList> {
                 blurRadius: 10.r,
                 color: WpyTheme.of(context)
                     .get(WpyColorKey.reverseBackgroundColor)
-                    .withOpacity(0.05))
+                    .withValues(alpha: 0.05))
           ]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,12 +464,10 @@ class _CollapsibleSourceListState extends State<CollapsibleSourceList> {
                                       final link = src.link;
                                       if (link.isEmpty) return;
                                       final Uri uri = Uri.parse(link);
-                                      if (await canLaunchUrl(uri)
-                                          .catchError((_) => false)) {
+                                      if (await canLaunchUrl(uri)) {
                                         await launchUrl(uri,
-                                                mode: LaunchMode
-                                                    .externalApplication)
-                                            .catchError((_) {});
+                                            mode:
+                                                LaunchMode.externalApplication);
                                       } else {
                                         debugPrint('无法打开链接: $link');
                                       }
@@ -518,7 +516,7 @@ Widget followUp(BuildContext context, String title, VoidCallback onTap) {
                   blurRadius: 10.r,
                   color: WpyTheme.of(context)
                       .get(WpyColorKey.reverseBackgroundColor)
-                      .withOpacity(0.05))
+                      .withValues(alpha: 0.05))
             ]),
         child: RichText(
           text: TextSpan(
@@ -550,7 +548,7 @@ Widget aiDeclaration(BuildContext context) {
     padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 10.w),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(8.r),
-      // color: WpyTheme.of(context).get(WpyColorKey.elegantPostTagColor).withOpacity(0.7),
+      // color: WpyTheme.of(context).get(WpyColorKey.elegantPostTagColor).withValues(alpha: 0.7),
       color: Colors.transparent,
       border: Border.all(
         // color: WpyTheme.of(context).get(WpyColorKey.elegantLongPostTagColor),
@@ -566,14 +564,13 @@ Widget aiDeclaration(BuildContext context) {
 }
 
 class buttonForAI extends StatelessWidget {
-  const buttonForAI({
-    super.key,
-    required this.text,
-    required this.index,
-    required this.trace,
-    required this.messageId,
-    this.likeCount = 0,
-  });
+  const buttonForAI(
+      {super.key,
+      required this.text,
+      required this.index,
+      required this.trace,
+      required this.messageId,
+      this.likeCount = 0});
   final text;
   final index;
   final trace;

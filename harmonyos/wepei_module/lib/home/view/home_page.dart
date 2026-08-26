@@ -17,8 +17,6 @@ import 'package:wepei_module/home/view/wpy_page.dart';
 import 'package:wepei_module/main.dart';
 import 'package:wepei_module/studyroom/model/studyroom_provider.dart';
 import 'package:wepei_module/xiaotian/view/page/xiaotian_page.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-
 
 import '../../auth/view/user/account_upgrade_dialog.dart';
 import '../../commons/themes/wpy_theme.dart';
@@ -52,6 +50,7 @@ class _HomeTabItem {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+  /// bottomNavigationBar对应的分页
   late List<_HomeTabItem> _tabs;
   int _currentIndex = 0;
   DateTime? _lastPressedAt;

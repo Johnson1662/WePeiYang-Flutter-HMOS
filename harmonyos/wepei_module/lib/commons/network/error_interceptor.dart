@@ -12,14 +12,9 @@ class ErrorInterceptor extends InterceptorsWrapper {
       errStr = "发送请求超时";
     else if (e.type == DioExceptionType.receiveTimeout)
       errStr = "响应超时";
-    else if (e.type == DioExceptionType.connectionError)
-      errStr = "网络连接失败";
-    else if (e.type == DioExceptionType.badCertificate)
-      errStr = "安全连接失败";
 
     /// 除了以上列出的错误之外，其他的所有错误给一个统一的名称，防止让用户看到奇奇怪怪的错误代码
-    else
-      errStr = EnvConfig.isTest ? "请求失败" : "发生未知错误，请联系开发人员解决";
+    else if (!EnvConfig.isTest) errStr = "发生未知错误，请联系开发人员解决";
 
     return handler.reject(DioException(
         requestOptions: e.requestOptions,

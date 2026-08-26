@@ -1,0 +1,20 @@
+{
+  "forms": [
+    {
+      "name": "EntryQrForm",
+      "displayName": "$string:form_name_entry_qr",
+      "description": "入校码桌面卡片",
+      "src": "./ets/widget/pages/EntryQrFormCard.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 320,
+        "autoDesignWidth": true
+      },
+      "isDefault": true,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": ["2*4", "2*2"]
+    }
+  ]
+}

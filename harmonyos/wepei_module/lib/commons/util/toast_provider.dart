@@ -15,8 +15,11 @@ class ToastProvider {
   static OverlayEntry? _currentEntry;
 
   static void unFocusAllAndHideKeyboard(BuildContext context) {
+    // 获取当前的FocusScope节点
     final currentFocus = FocusScope.of(context);
+    // 如果当前有焦点，则取消焦点并关闭键盘
     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+      // 这将关闭键盘并取消焦点
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
@@ -32,6 +35,7 @@ class ToastProvider {
 
     final nav = _nav;
     if (nav == null || nav.overlay == null) return;
+    unFocusAllAndHideKeyboard(nav.context);
 
     OverlayEntry? entry;
     entry = OverlayEntry(builder: (context) {
@@ -87,9 +91,10 @@ class ToastProvider {
     });
 
     _currentEntry = entry;
-    nav.overlay!.insert(entry!);
+    nav.overlay!.insert(entry);
   }
 
+  /// 新版本的 error 调整了报错的底部弹窗的位置，还加入了图标
   static void error(String? msg) {
     final normalized = msg?.trim();
     final text = normalized == null || normalized.isEmpty || normalized == 'null'
@@ -127,11 +132,13 @@ class ToastProvider {
     );
   }
 
+  /// 取消当前正在显示的 Toast
   static void cancelCurrent() {
     _currentEntry?.remove();
     _currentEntry = null;
   }
 
+  /// 取消队列中所有的 Toast，一般来说用这个比较好
   static void cancelAll() {
     _currentEntry?.remove();
     _currentEntry = null;

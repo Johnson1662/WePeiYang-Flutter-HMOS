@@ -16,11 +16,13 @@ export 'package:wepei_module/gpa/gpa_router.dart';
 export 'package:wepei_module/home/home_router.dart';
 export 'package:wepei_module/schedule/schedule_router.dart';
 
+/// WePeiYangApp Route统一管理
 class RouterManager {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static final Map<String, Widget Function(dynamic arguments)> _routers = {};
 
   static Route<dynamic> create(RouteSettings settings) {
+    /// 这里添加其他模块的routers
     if (_routers.isEmpty) {
       _routers.addAll(AuthRouter.routers);
       _routers.addAll(FeedbackRouter.routers);

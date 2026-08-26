@@ -36,7 +36,7 @@ class UpdateFailureDialog extends StatelessWidget {
 
     void goToWeb() {
       launchUrlString("https://mobile.twt.edu.cn/wpy/index.html",
-          mode: LaunchMode.externalNonBrowserApplication).catchError((_) {});
+          mode: LaunchMode.externalNonBrowserApplication);
     }
 
     Widget buttons;

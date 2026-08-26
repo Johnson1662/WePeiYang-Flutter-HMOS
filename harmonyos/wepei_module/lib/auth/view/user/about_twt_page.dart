@@ -1,35 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
-import 'package:wepei_module/commons/util/text_util.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
-import '../../../commons/themes/wpy_theme.dart';
-import '../../../commons/widgets/w_button.dart';
+import 'package:wepei_module/commons/widgets/webview_page.dart';
 
 class AboutTwtPage extends StatelessWidget {
-  static const URL = "https://www.twt.edu.cn/";
+  static const URL = 'https://www.twt.edu.cn/';
+
+  const AboutTwtPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
-      appBar: AppBar(
-          title: Text('关于天外天', style: TextUtil.base.bold.sp(16).label(context)),
-          elevation: 0,
-          centerTitle: true,
-          backgroundColor:
-              WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 15),
-            child: WButton(
-                child: Icon(Icons.arrow_back,
-                    color: WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-                    size: 32),
-                onPressed: () => Navigator.pop(context)),
-          )),
-      body:
-          WebView(initialUrl: URL, javascriptMode: JavascriptMode.unrestricted),
+    return const WebViewPage(
+      url: URL,
+      title: '关于天外天',
     );
   }
 }

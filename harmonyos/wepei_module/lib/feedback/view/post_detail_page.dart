@@ -24,6 +24,7 @@ import 'package:wepei_module/feedback/network/feedback_service.dart';
 import 'package:wepei_module/feedback/network/post.dart';
 import 'package:wepei_module/feedback/util/splitscreen_util.dart';
 import 'package:wepei_module/feedback/view/components/normal_comment_card.dart';
+import 'package:wepei_module/feedback/view/components/widget/masked_rich_text.dart';
 import 'package:wepei_module/feedback/view/image_view/local_image_view_page.dart';
 import 'package:wepei_module/feedback/view/lake_home_page/normal_sub_page.dart';
 import 'package:wepei_module/feedback/view/report_question_page.dart';
@@ -185,6 +186,18 @@ class _PostDetailPageState extends State<PostDetailPage>
     }, onFail: () {
       _refreshController.loadFailed();
       currentPage--;
+    });
+  }
+
+  void _refreshAfterCommentSent() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _refreshController.isRefresh ||
+          _refreshController.isLoading) {
+        return;
+      }
+      _refreshController.requestRefresh();
     });
   }
 
@@ -1067,7 +1080,10 @@ class _PostDetailPageState extends State<PostDetailPage>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     CommentInputField(
-                                        postId: widget.post.id, key: launchKey),
+                                      postId: widget.post.id,
+                                      onCommentSent: _refreshAfterCommentSent,
+                                      key: launchKey,
+                                    ),
                                     ImageSelectAndView(key: imageSelectionKey),
                                     SizedBox(height: SplitUtil.h * 4),
                                     Row(
@@ -1318,15 +1334,20 @@ class _PostDetailPageState extends State<PostDetailPage>
 
 class CommentInputField extends StatefulWidget {
   final int postId;
+  final VoidCallback? onCommentSent;
 
-  const CommentInputField({Key? key, required this.postId}) : super(key: key);
+  const CommentInputField({
+    Key? key,
+    required this.postId,
+    this.onCommentSent,
+  }) : super(key: key);
 
   @override
   CommentInputFieldState createState() => CommentInputFieldState();
 }
 
 class CommentInputFieldState extends State<CommentInputField> {
-  var textEditingController = TextEditingController();
+  var textEditingController = MaskTextEditingController();
   FocusNode _commentFocus = FocusNode();
   String commentLengthIndicator = '0/200';
 
@@ -1334,6 +1355,19 @@ class CommentInputFieldState extends State<CommentInputField> {
   void dispose() {
     textEditingController.dispose();
     super.dispose();
+  }
+
+  void _wrapWithMask() {
+    final sel = textEditingController.selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+    final text = textEditingController.text;
+    final wrapped = '$kMaskOpenTag${sel.textInside(text)}$kMaskCloseTag';
+    final newText = text.replaceRange(sel.start, sel.end, wrapped);
+    textEditingController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: sel.start + wrapped.length),
+    );
+    setState(() => commentLengthIndicator = '${newText.characters.length}/200');
   }
 
   void send(bool isOfficial) {
@@ -1405,6 +1439,27 @@ class CommentInputFieldState extends State<CommentInputField> {
         },
         minLines: 1,
         maxLines: 10,
+        contextMenuBuilder: (context, editableState) {
+          final items = List<ContextMenuButtonItem>.of(
+              editableState.contextMenuButtonItems);
+          final sel = textEditingController.selection;
+          if (sel.isValid && !sel.isCollapsed) {
+            items.insert(
+              0,
+              ContextMenuButtonItem(
+                label: '马赛克',
+                onPressed: () {
+                  ContextMenuController.removeAny();
+                  _wrapWithMask();
+                },
+              ),
+            );
+          }
+          return AdaptiveTextSelectionToolbar.buttonItems(
+            anchors: editableState.contextMenuAnchors,
+            buttonItems: items,
+          );
+        },
       );
     });
 
@@ -1437,6 +1492,7 @@ class CommentInputFieldState extends State<CommentInputField> {
         FocusManager.instance.primaryFocus?.unfocus();
         context.read<NewFloorProvider>().clearAndClose();
         textEditingController.text = '';
+        widget.onCommentSent?.call();
         currentRefresher.value?.requestRefresh();
         ToastProvider.success("评论成功 (❁´◡`❁)");
       },
@@ -1458,6 +1514,7 @@ class CommentInputFieldState extends State<CommentInputField> {
           FocusManager.instance.primaryFocus?.unfocus();
           context.read<NewFloorProvider>().clearAndClose();
           textEditingController.text = '';
+          widget.onCommentSent?.call();
           ToastProvider.success("回复成功 (❁´3`❁)");
         },
         onFailure: (e) => ToastProvider.error(
@@ -1474,6 +1531,7 @@ class CommentInputFieldState extends State<CommentInputField> {
           FocusManager.instance.primaryFocus?.unfocus();
           context.read<NewFloorProvider>().clearAndClose();
           textEditingController.text = '';
+          widget.onCommentSent?.call();
           ToastProvider.success("回复成功 (❁´3`❁)");
         },
         onFailure: (e) => ToastProvider.error(

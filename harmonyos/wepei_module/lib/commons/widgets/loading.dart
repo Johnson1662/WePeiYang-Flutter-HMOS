@@ -78,33 +78,56 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        _dotWidget(animation_1, dotOneColor),
-        _dotWidget(animation_2, dotTwoColor),
-        _dotWidget(animation_3, dotThreeColor),
+        Opacity(
+          opacity: (animation_1.value <= 0.4
+              ? 2.5 * animation_1.value
+              : (animation_1.value > 0.40 && animation_1.value <= 0.60)
+                  ? 1.0
+                  : 2.5 - (2.5 * animation_1.value)),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Dot(
+              radius: 10.0,
+              color: dotOneColor,
+              type: widget.dotType,
+              icon: widget.dotIcon,
+            ),
+          ),
+        ),
+        Opacity(
+          opacity: (animation_2.value <= 0.4
+              ? 2.5 * animation_2.value
+              : (animation_2.value > 0.40 && animation_2.value <= 0.60)
+                  ? 1.0
+                  : 2.5 - (2.5 * animation_2.value)),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Dot(
+              radius: 10.0,
+              color: dotTwoColor,
+              type: widget.dotType,
+              icon: widget.dotIcon,
+            ),
+          ),
+        ),
+        Opacity(
+          opacity: (animation_3.value <= 0.4
+              ? 2.5 * animation_3.value
+              : (animation_3.value > 0.40 && animation_3.value <= 0.60)
+                  ? 1.0
+                  : 2.5 - (2.5 * animation_3.value)),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: Dot(
+              radius: 10.0,
+              color: dotThreeColor,
+              type: widget.dotType,
+              icon: widget.dotIcon,
+            ),
+          ),
+        ),
       ],
     );
-  }
-
-  Widget _dotWidget(Animation<double> anim, Color color) {
-    final opacity = anim.value <= 0.4
-        ? 2.5 * anim.value
-        : (anim.value > 0.40 && anim.value <= 0.60)
-            ? 1.0
-            : 2.5 - (2.5 * anim.value);
-
-    final dot = Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Dot(
-        radius: 10.0,
-        color: color,
-        type: widget.dotType,
-        icon: widget.dotIcon,
-      ),
-    );
-
-    // Skip Opacity widget when fully opaque to avoid saveLayer()
-    if (opacity >= 1.0) return dot;
-    return Opacity(opacity: opacity, child: dot);
   }
 
   @override

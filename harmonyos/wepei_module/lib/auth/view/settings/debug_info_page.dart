@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:screenshot/screenshot.dart';
@@ -9,7 +12,24 @@ import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
-import 'package:wepei_module/schedule/page/course_page.dart';
+
+class _EndpointDef {
+  final String label;
+  final String url;
+
+  const _EndpointDef(this.label, this.url);
+}
+
+const _endpointDefs = [
+  _EndpointDef('微北洋 API', 'https://api.twt.edu.cn/api/semester'),
+  _EndpointDef(
+      '教务网', 'https://classes.tju.edu.cn/eams/courseTableForStd!index.action'),
+  _EndpointDef('自习室', 'https://selfstudy.twt.edu.cn/campus'),
+  _EndpointDef('青年湖底', 'https://qnhd.twt.edu.cn/api/v1/f/banners'),
+  _EndpointDef('图片 CDN', 'https://qnhdpic.twt.edu.cn/download/'),
+  _EndpointDef('海棠活动', 'https://haitang.twt.edu.cn/api/v1/banner'),
+  _EndpointDef('升级服务', 'https://upgrade.twt.edu.cn/androidupdate/check/1'),
+];
 
 class DebugInfoPage extends StatefulWidget {
   const DebugInfoPage({super.key});
@@ -19,10 +39,14 @@ class DebugInfoPage extends StatefulWidget {
 }
 
 class _DebugInfoPageState extends State<DebugInfoPage> {
+  static const _deviceChannel = MethodChannel('com.twt.service/device_info');
+
   PackageInfo? _appInfo = null;
   String _osVersion = 'Unknown';
   String _deviceModel = 'Unknown';
-  String osType = "OS";
+  String osType = 'HarmonyOS';
+  String _connectivity = '检测中…';
+  final Map<String, String> _endpointStatus = {};
   // AndroidDeviceInfo? _androidDeviceInfo;
   // IosDeviceInfo? _iosDeviceInfo;
 
@@ -59,7 +83,61 @@ class _DebugInfoPageState extends State<DebugInfoPage> {
   @override
   void initState() {
     super.initState();
-    // _initDeviceInfo();
+    _initDeviceInfo();
+  }
+
+  Future<void> _initDeviceInfo() async {
+    try {
+      if (mounted) {
+        setState(() {
+          for (final endpoint in _endpointDefs) {
+            _endpointStatus[endpoint.label] = '检测中…';
+          }
+        });
+      }
+      final appInfo = await PackageInfo.fromPlatform();
+      final connectivity = await Connectivity().checkConnectivity();
+      Map<dynamic, dynamic>? nativeInfo;
+      try {
+        nativeInfo = await _deviceChannel
+            .invokeMethod<Map>('getDeviceInfo')
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {
+        nativeInfo = null;
+      }
+      await Future.wait(_endpointDefs.map((endpoint) async {
+        final status = await _checkEndpoint(endpoint);
+        if (mounted) _endpointStatus[endpoint.label] = status;
+      }));
+      if (!mounted) return;
+      setState(() {
+        _appInfo = appInfo;
+        _connectivity = connectivity.name;
+        _osVersion = nativeInfo?['osVersion']?.toString() ??
+            Platform.operatingSystemVersion;
+        _deviceModel = nativeInfo?['model']?.toString() ?? 'Unknown';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _osVersion = Platform.operatingSystemVersion;
+        _connectivity = '读取失败';
+      });
+    }
+  }
+
+  Future<String> _checkEndpoint(_EndpointDef endpoint) async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+    try {
+      final request = await client.getUrl(Uri.parse(endpoint.url));
+      final response =
+          await request.close().timeout(const Duration(seconds: 3));
+      return '${response.statusCode}';
+    } catch (_) {
+      return '不可达';
+    } finally {
+      client.close(force: true);
+    }
   }
 
   @override
@@ -85,7 +163,7 @@ class _DebugInfoPageState extends State<DebugInfoPage> {
         actions: [
           IconButton(
             onPressed: () {
-              // _initDeviceInfo();
+              _initDeviceInfo();
             },
             icon: Icon(
               Icons.refresh,
@@ -104,10 +182,13 @@ class _DebugInfoPageState extends State<DebugInfoPage> {
                   ToastProvider.error("图片保存失败");
                   return;
                 }
-                final bytes = (await value.toByteData(format: ImageByteFormat.png))!
-                    .buffer
-                    .asUint8List();
-                await ImageSave.saveImageFromBytes(bytes, 'wpy_debug_${DateTime.now().millisecondsSinceEpoch}.png', album: true);
+                final bytes =
+                    (await value.toByteData(format: ImageByteFormat.png))!
+                        .buffer
+                        .asUint8List();
+                await ImageSave.saveImageFromBytes(bytes,
+                    'wpy_debug_${DateTime.now().millisecondsSinceEpoch}.png',
+                    album: true);
                 ToastProvider.success("图片保存成功");
               }).onError((error, stackTrace) {
                 ToastProvider.error("图片保存失败");
@@ -214,6 +295,22 @@ class _DebugInfoPageState extends State<DebugInfoPage> {
                 ListTile(
                   title: Text('Device Model'),
                   subtitle: Text(_deviceModel),
+                ),
+                ListTile(
+                  title: Text('Network'),
+                  subtitle: Text(_connectivity),
+                ),
+                ExpansionTile(
+                  title: Text('Endpoint Reachability'),
+                  children: [
+                    for (final endpoint in _endpointDefs)
+                      ListTile(
+                        dense: true,
+                        title: Text(endpoint.label),
+                        subtitle:
+                            Text(_endpointStatus[endpoint.label] ?? '检测中…'),
+                      ),
+                  ],
                 ),
                 // ListTile(
                 //   title: Text('Device ID'),

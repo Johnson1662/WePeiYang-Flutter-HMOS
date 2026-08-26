@@ -66,7 +66,7 @@ class _HotCardState extends State<HotCard> {
                     data.hotTagCardState == 1
                         ? Text(
                             '     loading...',
-                            style: TextUtil.base.w400.PingFangSC
+                            style: TextUtil.base.w400.NotoSansSC
                                 .sp(18)
                                 .infoText(context),
                           )
@@ -103,7 +103,7 @@ class _HotCardState extends State<HotCard> {
                                                       data.hotTagsList[index]
                                                           .name,
                                                       style: TextUtil
-                                                          .base.w400.PingFangSC
+                                                          .base.w400.NotoSansSC
                                                           .sp(16)
                                                           .label(context),
                                                       overflow:
@@ -120,7 +120,7 @@ class _HotCardState extends State<HotCard> {
                                                         .point
                                                         .toString(),
                                                     style: TextUtil
-                                                        .base.w400.PingFangSC
+                                                        .base.w400.NotoSansSC
                                                         .sp(14)
                                                         .label(context),
                                                   ),
@@ -131,7 +131,7 @@ class _HotCardState extends State<HotCard> {
                                         )))
                             : Text(
                                 '     加载失败',
-                                style: TextUtil.base.w400.PingFangSC
+                                style: TextUtil.base.w400.NotoSansSC
                                     .sp(18)
                                     .roomOccupied(context),
                               ),

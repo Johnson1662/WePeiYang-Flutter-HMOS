@@ -67,13 +67,13 @@ class _SearchTagCardState extends State<SearchTagCard>
                 Expanded(
                     child: Text(
                   tagUtil[total].name,
-                  style: TextUtil.base.w500.PingFangSC.sp(16).infoText(context),
+                  style: TextUtil.base.w500.NotoSansSC.sp(16).infoText(context),
                   overflow: TextOverflow.ellipsis,
                 )),
                 SizedBox(width: 4),
                 Text(
                   "",
-                  style: TextUtil.base.w500.PingFangSC.sp(16).infoText(context),
+                  style: TextUtil.base.w500.NotoSansSC.sp(16).infoText(context),
                 )
               ],
             ),
@@ -124,7 +124,7 @@ class _SearchTagCardState extends State<SearchTagCard>
                         width: ScreenUtil().setWidth(230),
                         child: Text(
                           "添加“${_controller.text}”话题",
-                          style: TextUtil.base.w400.PingFangSC
+                          style: TextUtil.base.w400.NotoSansSC
                               .sp(16)
                               .label(context),
                           overflow: TextOverflow.ellipsis,
@@ -185,9 +185,9 @@ class _SearchTagCardState extends State<SearchTagCard>
                   : WpyTheme.of(context).get(WpyColorKey.defaultActionColor),
               BlendMode.srcIn),
         ),
-        labelStyle: TextUtil.base.label(context).PingFangSC.w400.sp(16),
+        labelStyle: TextUtil.base.label(context).NotoSansSC.w400.sp(16),
         fillColor: WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
-        hintStyle: TextUtil.base.secondaryInfo(context).PingFangSC.w400.sp(16),
+        hintStyle: TextUtil.base.secondaryInfo(context).NotoSansSC.w400.sp(16),
         hintText: '试着添加话题吧',
         contentPadding: const EdgeInsets.all(0),
         border: OutlineInputBorder(
@@ -209,7 +209,7 @@ class _SearchTagCardState extends State<SearchTagCard>
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '使用此tag:',
-                style: TextUtil.base.w600.PingFangSC.sp(12).unlabeled(context),
+                style: TextUtil.base.w600.NotoSansSC.sp(12).unlabeled(context),
               ),
             ),
           searchBar,

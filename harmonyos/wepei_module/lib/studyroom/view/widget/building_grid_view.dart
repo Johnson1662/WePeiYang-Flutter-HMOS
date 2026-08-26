@@ -21,17 +21,20 @@ class BuildingGridViewWidget extends StatelessWidget {
     return Consumer<CampusProvider>(builder: (_, data, __) {
       return AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: Builder(builder: (context) {
-          if (!data.buildingLoaded) return const Loading();
-          if (data.buildings.isEmpty) {
-            return Center(
-              child: Text('暂无数据',
-                  style: TextUtil.base.PingFangSC.label(context).sp(14)),
-            );
-          }
+        child: Builder(
+            key: UniqueKey(),
+            builder: (context) {
+              if (!data.buildingLoaded) return Loading();
 
-          return BuildingGrid(data.buildings);
-        }),
+              if (data.buildings.isEmpty) {
+                return Center(
+                  child: Text('暂无数据',
+                      style: TextUtil.base.PingFangSC.label(context).sp(14)),
+                );
+              }
+
+              return BuildingGrid(data.buildings);
+            }),
         transitionBuilder: (child, animation) {
           return FadeTransition(opacity: animation, child: child);
         },

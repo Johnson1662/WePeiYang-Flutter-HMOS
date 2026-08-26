@@ -7,7 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wepei_module/auth/model/nacid_info.dart';
+import 'package:wepei_module/auth/model/banner_pic.dart';
 import 'package:wepei_module/auth/network/auth_service.dart';
+import 'package:wepei_module/auth/network/splash_service.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
@@ -48,11 +50,12 @@ class WPYPageState extends State<WPYPage> with SingleTickerProviderStateMixin {
   Future<NAcidInfo> acidInfo = AuthService.checkNuclearAcid();
   bool hasShow = false;
 
-  void showActivityDialog() {
-    showDialog(
+  Future<void> showActivityDialog(List<BannerPic> banners) async {
+    if (!mounted || banners.isEmpty) return;
+    await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ActivityDialog(),
+      builder: (context) => ActivityDialog(banners: banners),
     );
   }
 
@@ -95,6 +98,7 @@ class WPYPageState extends State<WPYPage> with SingleTickerProviderStateMixin {
       //   CommonPreferences.firstPrivacy.value = false;
       // }
       var info = await acidInfo;
+      if (!mounted) return;
       if (info.id != -1 &&
           hasShow == false &&
           info.endTime != null &&
@@ -104,9 +108,7 @@ class WPYPageState extends State<WPYPage> with SingleTickerProviderStateMixin {
       }
 
       var _show = () {
-        showActivityDialog();
-        CommonPreferences.lastActivityDialogShownDate.value =
-            DateTime.now().toString();
+        unawaited(_loadAndShowActivityDialog());
       };
 
       try {
@@ -117,6 +119,20 @@ class WPYPageState extends State<WPYPage> with SingleTickerProviderStateMixin {
         _show();
       }
     });
+  }
+
+  Future<void> _loadAndShowActivityDialog() async {
+    try {
+      final banners =
+          await SplashService.getBanner().timeout(const Duration(seconds: 3));
+      if (!mounted || banners.isEmpty) return;
+      await showActivityDialog(banners);
+      if (!mounted) return;
+      CommonPreferences.lastActivityDialogShownDate.value =
+          DateTime.now().toString();
+    } catch (_) {
+      // 活动接口失败时保持首页正常展示。
+    }
   }
 
   @override
@@ -293,8 +309,8 @@ class SliverCardsWidget extends StatelessWidget {
   // Used on non-OHOS platforms: open URL via system browser
   void _openExternalUrl(String url) async {
     if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-      await launchUrl(Uri.parse(url),
-          mode: LaunchMode.externalApplication).catchError((_) {});
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)
+          .catchError((_) {});
     } else {
       ToastProvider.error('请检查网络状态');
     }
@@ -304,14 +320,15 @@ class SliverCardsWidget extends StatelessWidget {
     '课程表',
     '入校码',
     '新闻网',
+    '课评网',
     '地图·校历',
     '成绩',
     // '小游戏'
     // '失物招领'
   ];
 
-  SliverCardsWidget(this.cards) :
-    order = CommonPreferences.displayOrder.value.split(',').map((e) => int.parse(e)).toList();
+  SliverCardsWidget(this.cards)
+      : order = CommonPreferences.sanitizedDisplayOrder();
 
   @override
   Widget build(BuildContext context) {
@@ -326,8 +343,7 @@ class SliverCardsWidget extends StatelessWidget {
       itemCount: order.length,
       itemBuilder: (context, i) {
         final cardBean = CommonPreferences.displayedTool.value[order[i]];
-        if (!peiyangLabel
-            .contains(cardBean.label)) {
+        if (!peiyangLabel.contains(cardBean.label)) {
           return WButton(
             key: ValueKey(cardBean.route),
             onPressed: () {
@@ -335,7 +351,8 @@ class SliverCardsWidget extends StatelessWidget {
                 // OHOS: use in-app WebView instead of url_launcher
                 final route = cardBean.route;
                 if (route.contains('wiki.tjubot.cn')) {
-                  openUrlInApp(context, 'https://wiki.tjubot.cn/', title: '北洋维基');
+                  openUrlInApp(context, 'https://wiki.tjubot.cn/',
+                      title: '北洋维基');
                 } else {
                   openUrlInApp(context, route);
                 }
@@ -343,18 +360,15 @@ class SliverCardsWidget extends StatelessWidget {
                 _openExternalUrl(cardBean.route);
               }
             },
-            child:
-                generateCard(context, cardBean),
+            child: generateCard(context, cardBean),
           );
         } else {
           return WButton(
             key: ValueKey(cardBean.route),
             onPressed: () {
-              Navigator.pushNamed(
-                  context, cardBean.route);
+              Navigator.pushNamed(context, cardBean.route);
             },
-            child:
-                generateCard(context, cardBean),
+            child: generateCard(context, cardBean),
           );
         }
       },
@@ -366,7 +380,6 @@ class SliverCardsWidget extends StatelessWidget {
         order.insert(newIndex, movedIndex);
 
         CommonPreferences.displayOrder.value = order.join(',');
-
       },
     );
 
@@ -444,6 +457,24 @@ class CardBean {
   String route;
 
   CardBean(this.path, this.width, this.label, this.eng, this.route);
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'width': width,
+        'label': label,
+        'eng': eng,
+        'route': route,
+      };
+
+  factory CardBean.fromJson(Map<String, dynamic> json) {
+    return CardBean(
+      json['path'] as String,
+      (json['width'] as num?)?.toDouble(),
+      json['label'] as String,
+      json['eng'] as String,
+      json['route'] as String,
+    );
+  }
 }
 
 class WPYScrollBehavior extends ScrollBehavior {

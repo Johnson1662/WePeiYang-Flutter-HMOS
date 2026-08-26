@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:simple_html_css/simple_html_css.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/feedback/view/components/widget/linkify_text.dart';
+import 'package:wepei_module/feedback/view/components/widget/masked_rich_text.dart';
 
 import '../../../../commons/widgets/w_button.dart';
 
@@ -45,42 +46,43 @@ class _ExpandableTextState extends State<ExpandableText> {
 
   @override
   Widget build(BuildContext context) {
+    // mask 标签不参与排版，测量和字数统计时去掉
+    final plainText = stripMaskTags(text);
     return LayoutBuilder(builder: (context, size) {
-      final span = TextSpan(text: text, style: style);
+      final span = TextSpan(text: plainText, style: style);
       final tp = TextPainter(
           text: span, maxLines: maxLines, textDirection: TextDirection.ltr);
       tp.layout(maxWidth: size.maxWidth);
       if (tp.didExceedMaxLines) {
+        final Widget content = expand
+            ? (widget.isHTML
+                ? RichText(
+                    text: HTML.toTextSpan(context, text, defaultTextStyle: style),
+                    textAlign: TextAlign.justify,
+                  )
+                : hasMask(text)
+                    ? MaskedRichText(text: text, style: style)
+                    : LinkText(style: style, text: text))
+            : (widget.isHTML
+                ? RichText(
+                    overflow: TextOverflow.clip,
+                    maxLines: maxLines,
+                    text: HTML.toTextSpan(context, text, defaultTextStyle: style),
+                    textAlign: TextAlign.justify,
+                  )
+                : hasMask(text)
+                    ? MaskedRichText(text: text, style: style, maxLine: maxLines)
+                    : LinkText(style: style, text: text, maxLine: maxLines));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            if (expand) ...[
-              if (widget.isHTML)
-                RichText(
-                  text: HTML.toTextSpan(
-                    context,
-                    text,
-                    defaultTextStyle: style,
-                  ),
-                  textAlign: TextAlign.justify,
-                )
-              else
-                LinkText(style: style, text: text)
-            ] else ...[
-              if (widget.isHTML)
-                RichText(
-                  overflow: TextOverflow.clip,
-                  maxLines: maxLines,
-                  text: HTML.toTextSpan(
-                    context,
-                    text,
-                    defaultTextStyle: style,
-                  ),
-                  textAlign: TextAlign.justify,
-                )
-              else
-                LinkText(style: style, text: text, maxLine: maxLines)
-            ],
+            // 展开/收起时让高度平滑过渡，而不是瞬间跳变
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: content,
+            ),
             if (buttonIsShown)
               WButton(
                 onPressed: () {
@@ -97,15 +99,15 @@ class _ExpandableTextState extends State<ExpandableText> {
                           style: TextUtil.base
                               .textButtonPrimary(context)
                               .w400
-                              .PingFangSC
+                              .NotoSansSC
                               .sp(16)),
                       SizedBox(width: 6),
                       if (!expand)
-                        Text('共${text.length}字',
+                        Text('共${plainText.length}字',
                             style: TextUtil.base
                                 .infoText(context)
                                 .w400
-                                .PingFangSC
+                                .NotoSansSC
                                 .sp(15))
                     ],
                   ),
@@ -114,7 +116,9 @@ class _ExpandableTextState extends State<ExpandableText> {
           ],
         );
       } else {
-        return LinkText(style: style, text: text);
+        return hasMask(text)
+            ? MaskedRichText(text: text, style: style)
+            : LinkText(style: style, text: text);
       }
     });
   }

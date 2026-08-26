@@ -109,6 +109,22 @@ class LakeUtil {
   static final ValueNotifier<bool> showSearch = ValueNotifier(true);
   static final ValueNotifier<int> sortSeq = ValueNotifier(1);
 
+  /// 已折叠置顶帖的分区 id 集合（分区级，折叠后整组置顶帖隐藏）
+  static final ValueNotifier<Set<String>> collapsedTopTabs = ValueNotifier({});
+
+  static void toggleCollapsedTop(int tabId) {
+    final key = '$tabId';
+    final collapsed = Set<String>.from(collapsedTopTabs.value);
+    collapsed.contains(key) ? collapsed.remove(key) : collapsed.add(key);
+    collapsedTopTabs.value = collapsed;
+    CommonPreferences.collapsedTopTabs.value = collapsed.toList();
+  }
+
+  static void loadCollapsedTopTabs() {
+    collapsedTopTabs.value =
+        Set<String>.from(CommonPreferences.collapsedTopTabs.value);
+  }
+
   static final Map<int, LakePageController> lakePageControllers = {};
 
   static int get currentTabId => tabList[currentTab.value].id;
@@ -133,6 +149,7 @@ class LakeUtil {
       lakePageControllers[list[i].id] =
           LakePageController.empty(tabIndex, list[i].id);
     }
+    loadCollapsedTopTabs();
   }
 
   static Future<void> initPostList(int index, {forced = false}) async {
@@ -189,29 +206,46 @@ class LakeUtil {
   static void _fetchPostById(BuildContext context, String id) {
     FeedbackService.getPostById(
       id: int.parse(id),
-      onResult: (post) => _showWeKoDialog(context, post, id),
-      onFailure: (e) {
-        // Handle error if necessary
+      onResult: (post) {
+        _showWeKoDialog(context, post, id);
       },
+      onFailure: (e) {},
     );
   }
 
   static Future<void> getClipboardWeKoContents(BuildContext context) async {
     final clipboardData = await _getValidClipboardData();
-    if (clipboardData == null) return;
+    if (clipboardData == null) {
+      return;
+    }
 
     final id = _extractIdFromText(clipboardData);
-    if (id.isEmpty || !_shouldFetchPost(id)) return;
+    if (id.isEmpty) return;
+    if (CommonPreferences.feedbackLastWeCo.value == id) {
+      return;
+    }
+
+    // On a fresh install the forum token may still be refreshing while this
+    // page checks the clipboard. Wait for the same token path used by the
+    // forum requests instead of dropping a valid share code.
+    try {
+      await LakeTokenManager().token;
+    } catch (_) {
+      return;
+    }
+    if (!_shouldFetchPost(id)) return;
 
     _fetchPostById(context, id);
   }
 
   static Future<String?> _getValidClipboardData() async {
-    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-    if (clipboardData?.text?.trim().isNotEmpty ?? false) {
-      return clipboardData!.text!.trim();
+    try {
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = clipboardData?.text?.trim();
+      return text?.isNotEmpty == true ? text : null;
+    } catch (_) {
+      return null;
     }
-    return null;
   }
 
   static String _extractIdFromText(String text) {
@@ -229,6 +263,7 @@ class LakeUtil {
     currentTab.value = 1;
     showSearch.value = true;
     sortSeq.value = 1;
+    collapsedTopTabs.value = {};
   }
 }
 

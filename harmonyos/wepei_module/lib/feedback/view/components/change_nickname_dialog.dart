@@ -29,7 +29,7 @@ class ChangeNicknameDialogState extends State<ChangeNicknameDialog> {
     return LakeDialogWidget(
       title: '修改你的昵称',
       titleTextStyle:
-          TextUtil.base.w700.PingFangSC.sp(20).h(1.4).primary(context),
+          TextUtil.base.w700.NotoSansSC.sp(20).h(1.4).primary(context),
       confirmButtonColor:
           WpyTheme.of(context).get(WpyColorKey.primaryActionColor),
       confirmFun: () {
@@ -54,13 +54,13 @@ class ChangeNicknameDialogState extends State<ChangeNicknameDialog> {
             nickName: _textEditingController.text);
       },
       confirmTextStyle:
-          TextUtil.base.w700.PingFangSC.sp(16).h(1.4).reverse(context),
+          TextUtil.base.w700.NotoSansSC.sp(16).h(1.4).reverse(context),
       confirmText: '确定',
       cancelText: '取消',
       content: Column(
         children: [
           TextField(
-            style: TextUtil.base.w400.PingFangSC.sp(16).h(1.4).primary(context),
+            style: TextUtil.base.w400.NotoSansSC.sp(16).h(1.4).primary(context),
             controller: _textEditingController,
             focusNode: _focus,
             maxLength: 20,
@@ -76,7 +76,7 @@ class ChangeNicknameDialogState extends State<ChangeNicknameDialog> {
               suffix: Text(
                 _commentLengthIndicator,
                 style:
-                    TextUtil.base.w400.PingFangSC.sp(12).replySuffix(context),
+                    TextUtil.base.w400.NotoSansSC.sp(12).replySuffix(context),
               ),
               border: OutlineInputBorder(
                 borderSide: BorderSide.none,
@@ -96,7 +96,7 @@ class ChangeNicknameDialogState extends State<ChangeNicknameDialog> {
           ),
           SizedBox(height: 10),
           Text('（仅在求实论坛非实名区生效）',
-              style: TextUtil.base.w400.PingFangSC
+              style: TextUtil.base.w400.NotoSansSC
                   .sp(12)
                   .h(1.4)
                   .unlabeled(context)),
@@ -104,7 +104,7 @@ class ChangeNicknameDialogState extends State<ChangeNicknameDialog> {
       ),
       cancelFun: () => Navigator.pop(context),
       cancelTextStyle:
-          TextUtil.base.w400.PingFangSC.sp(16).h(1.4).unlabeled(context),
+          TextUtil.base.w400.NotoSansSC.sp(16).h(1.4).unlabeled(context),
     );
   }
 }

@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
@@ -18,7 +17,6 @@ import 'package:wepei_module/feedback/view/image_view/image_view_page.dart';
 import 'package:wepei_module/feedback/view/post_detail_page.dart';
 import 'package:wepei_module/feedback/view/report_question_page.dart';
 import 'package:wepei_module/home/view/lost_and_found_home_page.dart';
-import 'package:wepei_module/lost_and_found/lost_and_found_router.dart';
 import 'package:wepei_module/lost_and_found/network/lost_and_found_post.dart';
 import 'package:wepei_module/lost_and_found/network/lost_and_found_service.dart';
 import 'package:wepei_module/main.dart';
@@ -194,14 +192,12 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
     //判断是否是自己的帖子，暂时只能用这个来判断了
     ///author暂时改为uid用于测试，后端接口没有author
     if (CommonPreferences.account.value.toString() == post.uid) {
-      model?.isMine = true;
+      model.isMine = true;
     }
 
     ///判断逻辑要修改
 
     void _showConfirmationDialog() {
-      var now = DateTime.now();
-      var formatter = DateFormat('yyyyMMdd');
       DateTime today = DateTime.now();
       String todayStr = "${today.year}-${today.month}-${today.day}";
 
@@ -237,7 +233,8 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                 CommonPreferences.lafGetNum.value.length >= 3 &&
                                         !CommonPreferences.lafGetNumId.value
                                             .contains("${widget.postId}") &&
-                                        today == CommonPreferences.lafGetDate
+                                        todayStr ==
+                                            CommonPreferences.lafGetDate.value
                                     ? '今日已达上限了哦，明天再来吧'
                                     : (model.phoneNum != '')
                                         ? "联系方式为：" + "${model.phoneNum}" + '\n'
@@ -333,7 +330,9 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                         }
                                         model.isLoading = false;
                                       },
-                                      onFailure: (e) {},
+                                      onFailure: (e) {
+                                        model.isLoading = false;
+                                      },
                                     );
                                   }
                                 }
@@ -370,7 +369,6 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
 
     // 删除弹窗
     void _showDeleteDialog() {
-      bool _isloading = false;
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -533,7 +531,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                             padding: EdgeInsets.only(bottom: 5.h),
                             child: InkWell(
                               onTap: () {
-                                if (model!.isMine) {
+                                if (model.isMine) {
                                   _showDeleteDialog();
                                 } else {
                                   Navigator.pushNamed(
@@ -546,7 +544,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                 height: 30.h,
                                 alignment: Alignment.center,
                                 child: Text(
-                                  model!.isMine ? '删除' : '举报',
+                                  model.isMine ? '删除' : '举报',
                                   style: TextStyle(
                                     fontSize: 15.h,
                                     fontWeight: FontWeight.bold,
@@ -837,7 +835,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                             height: 40.h,
                             margin: EdgeInsets.only(left: 30.w),
                             decoration: BoxDecoration(
-                              color: model!.polished
+                              color: model.polished
                                   ? Colors.grey[200]
                                   : WpyTheme.of(context)
                                       .get(WpyColorKey.primaryBackgroundColor),

@@ -16,6 +16,8 @@ import pasteboard from '@ohos.pasteboard';
 import { BusinessError } from '@ohos.base';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { formBindingData, formProvider } from '@kit.FormKit';
+import { EntryQrData, loadEntryQrData } from '../widget/EntryQrService';
+import deviceInfo from '@ohos.deviceInfo';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -73,6 +75,12 @@ class SaveImgHandler implements MethodCallHandler {
         }
         break;
       }
+      case 'triggerEntryQrFormUpdate':
+        this.triggerEntryQrFormUpdate(result);
+        break;
+      case 'getDeviceInfo':
+        this.getDeviceInfo(result);
+        break;
       case 'syncWidgetCourseData': {
         // Argument is a JSON string from Flutter (see WidgetDataSync)
         const jsonStr: string = (call.argument as Object) as string;
@@ -80,7 +88,8 @@ class SaveImgHandler implements MethodCallHandler {
           const parsed: Record<string, Object> = JSON.parse(jsonStr);
           const courseData: string = (parsed['courseData'] as string) || '';
           const currentWeek: number = (parsed['currentWeek'] as number) || 1;
-          this.syncWidgetCourseData(courseData, currentWeek, result);
+          const userNumber: string = (parsed['userNumber'] as string) || '';
+          this.syncWidgetCourseData(courseData, currentWeek, userNumber, result);
         } catch (e) {
           console.warn(TAG, 'syncWidgetCourseData parse error: ' + JSON.stringify(e));
           result.success(false);
@@ -349,6 +358,55 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
+  private triggerEntryQrFormUpdate(result: MethodResult): void {
+    try {
+      const formIdPath: string = this.context.cacheDir + '/entry_qr_form_id.txt';
+      const formId: string = fs.readTextSync(formIdPath).trim();
+      if (formId.length === 0) {
+        result.success(false);
+        return;
+      }
+      loadEntryQrData([
+        this.context.cacheDir,
+        this.context.getApplicationContext().cacheDir
+      ]).then((data: EntryQrData) => {
+        const formData: formBindingData.FormBindingData =
+          formBindingData.createFormBindingData({
+            qrContent: data.qrContent,
+            status: data.status,
+            lastUpdate: data.lastUpdate
+          });
+        formProvider.updateForm(formId, formData).then(() => {
+          result.success(true);
+        }).catch((error: Error) => {
+          console.warn(TAG, 'update entry QR form failed: ' + JSON.stringify(error));
+          result.success(false);
+        });
+      }).catch((error: Error) => {
+        console.warn(TAG, 'load entry QR data failed: ' + JSON.stringify(error));
+        result.success(false);
+      });
+    } catch (e) {
+      console.warn(TAG, 'trigger entry QR form failed: ' + JSON.stringify(e));
+      result.success(false);
+    }
+  }
+
+  private getDeviceInfo(result: MethodResult): void {
+    result.success({
+      deviceType: deviceInfo.deviceType,
+      manufacturer: deviceInfo.manufacture,
+      brand: deviceInfo.brand,
+      model: deviceInfo.productModel,
+      series: deviceInfo.productSeries,
+      osVersion: deviceInfo.osFullName,
+      sdkVersion: deviceInfo.sdkApiVersion,
+      buildType: deviceInfo.buildType,
+      incrementalVersion: deviceInfo.incrementalVersion,
+      versionId: deviceInfo.versionId
+    });
+  }
+
   private async openWebView(url: string, result: MethodResult): Promise<void> {
     try {
       if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -367,11 +425,12 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
-  private syncWidgetCourseData(courseData: string, currentWeek: number, result: MethodResult): void {
+  private syncWidgetCourseData(courseData: string, currentWeek: number, userNumber: string, result: MethodResult): void {
     try {
       const jsonStr = JSON.stringify({
         courseData: courseData,
         currentWeek: currentWeek,
+        userNumber: userNumber,
         lastUpdate: Date.now()
       });
       

@@ -193,68 +193,6 @@ class MailPage extends StatelessWidget {
   }
 }
 
-// class _HtmlMailContent extends StatefulWidget {
-//   final UserMail data;
-//
-//   const _HtmlMailContent({Key key, this.data}) : super(key: key);
-//
-//   @override
-//   _HtmlMailContentState createState() => _HtmlMailContentState();
-// }
-//
-// class _HtmlMailContentState extends State<_HtmlMailContent> {
-//   double opacity = 0.0;
-//   bool loadSuccess = true;
-//   bool showLoading = false;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     Widget result;
-//     if (loadSuccess) {
-//       result = Stack(
-//         alignment: Alignment.center,
-//         children: [
-//           Visibility(visible: showLoading, child: Loading()),
-//           Opacity(
-//             opacity: opacity,
-//             child: WebView(
-//               initialUrl: widget.data.url,
-//               javascriptMode: JavascriptMode.unrestricted,
-//               onPageFinished: (_) {
-//                 setState(() {
-//                   showLoading = false;
-//                   opacity = 1.0;
-//                 });
-//               },
-//               onProgress: (_) {
-//                 setState(() {
-//                   showLoading = true;
-//                 });
-//               },
-//               onWebResourceError: (WebResourceError error) {
-//                 ToastProvider.error('加载遇到了错误');
-//                 setState(() {
-//                   showLoading = false;
-//                   loadSuccess = false;
-//                 });
-//               },
-//             ),
-//           ),
-//         ],
-//       );
-//     } else {
-//       result = _TextMailContent(data: widget.data);
-//     }
-//     return result;
-//   }
-// }
-
 class _TextMailContent extends StatelessWidget {
   final UserMail data;
 

@@ -135,7 +135,7 @@ class _WeekDisplayWidget extends StatelessWidget {
       children: nextSevenDays.map((date) {
         final backgroundColor = WpyTheme.of(context)
             .get(WpyColorKey.brightTextColor)
-            .withOpacity(now.isSameDay(date) ? 1 : 0.2);
+            .withValues(alpha: now.isSameDay(date) ? 1 : 0.2);
 
         final textColor = WpyTheme.of(context).get(
           now.isSameDay(date)
@@ -255,7 +255,6 @@ class _CourseDisplayWidget extends StatelessWidget {
       var index = 1;
 
       final dayPlan = plan[date];
-      print(date.toString());
       d++;
       if (dayPlan == null) continue;
       // dayPlan.removeAt(4);
@@ -284,7 +283,7 @@ class _CourseDisplayWidget extends StatelessWidget {
               shape: BoxShape.rectangle,
               color: WpyTheme.of(context)
                   .get(WpyColorKey.brightTextColor)
-                  .withOpacity(0.2),
+                  .withValues(alpha: 0.2),
             ),
             alignment: Alignment.center,
             padding: EdgeInsets.symmetric(horizontal: 9.w),
@@ -324,7 +323,7 @@ class _CourseDisplayWidget extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10.r),
             ),
             margin: EdgeInsets.symmetric(vertical: 5.h),
@@ -341,7 +340,7 @@ class _CourseDisplayWidget extends StatelessWidget {
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10.r),
           ),
           margin: EdgeInsets.symmetric(vertical: 5.h),

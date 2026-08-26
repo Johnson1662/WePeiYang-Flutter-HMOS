@@ -38,11 +38,10 @@ class TimeProvider with ChangeNotifier {
 
 class CampusProvider with ChangeNotifier {
   List<Campus> _campusList = [];
-  Map<Campus, bool> _buildingLoaded = {};
+  Map<int, bool> _buildingLoaded = {};
 
-  Map<Campus, List<Building>> _buildingMaps = {};
+  Map<int, List<Building>> _buildingMaps = {};
 
-  CampusProvider() { init(); }
   bool loadedCampus = false;
 
   void init() async {
@@ -51,8 +50,8 @@ class CampusProvider with ChangeNotifier {
     notifyListeners();
     _campusList.forEach((campus) async {
       final buildings = await StudyroomService.getBuildingList(campus.id);
-      _buildingMaps[campus] = buildings;
-      _buildingLoaded[campus] = true;
+      _buildingMaps[campus.id] = buildings;
+      _buildingLoaded[campus.id] = true;
       notifyListeners();
     });
   }
@@ -61,7 +60,7 @@ class CampusProvider with ChangeNotifier {
     return buildings.firstWhere((element) => element.id == id);
   }
 
-  List<Building> get buildings => _buildingMaps[_campusList[_current]] ?? [];
+  List<Building> get buildings => _campusList.isEmpty ? [] : _buildingMaps[_campusList[_current].id] ?? [];
 
   int _current = CommonPreferences.lastChoseCampus.value;
 
@@ -74,7 +73,7 @@ class CampusProvider with ChangeNotifier {
 
   bool get buildingLoaded => _campusList.isEmpty
       ? false
-      : _buildingLoaded[_campusList[_current]] ?? false;
+      : _buildingLoaded[_campusList[_current].id] ?? false;
 
   int get id => _campusList.isNotEmpty ? _campusList[_current].id : -1;
 

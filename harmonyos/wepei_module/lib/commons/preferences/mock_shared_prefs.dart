@@ -30,7 +30,9 @@ class MockSharedPreferences {
         if (contents.isNotEmpty) {
           final decoded = jsonDecode(contents);
           if (decoded is Map) {
-            decoded.forEach((k, v) { _store[k.toString()] = v; });
+            decoded.forEach((k, v) {
+              _store[k.toString()] = v;
+            });
           }
         }
       }
@@ -52,34 +54,46 @@ class MockSharedPreferences {
   bool? getBool(String key) => _store[key] as bool?;
   int? getInt(String key) => _store[key] as int?;
   double? getDouble(String key) => _store[key] as double?;
-  List<String>? getStringList(String key) => _store[key] as List<String>?;
+  List<String>? getStringList(String key) {
+    final value = _store[key];
+    return value is List
+        ? value.whereType<String>().toList(growable: false)
+        : null;
+  }
+
   Object? get(String key) => _store[key];
 
   Future<void> setString(String key, String value) async {
     _store[key] = value;
     _save();
   }
+
   Future<void> setBool(String key, bool value) async {
     _store[key] = value;
     _save();
   }
+
   Future<void> setInt(String key, int value) async {
     _store[key] = value;
     _save();
   }
+
   Future<void> setDouble(String key, double value) async {
     _store[key] = value;
     _save();
   }
+
   Future<void> setStringList(String key, List<String> value) async {
     _store[key] = value;
     _save();
   }
+
   Future<bool> remove(String key) async {
     _store.remove(key);
     _save();
     return true;
   }
+
   Future<bool> clear() async {
     _store.clear();
     _save();

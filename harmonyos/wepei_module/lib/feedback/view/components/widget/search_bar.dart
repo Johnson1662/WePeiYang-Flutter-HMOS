@@ -68,9 +68,7 @@ class _SearchBarState extends State<SearchBar>
             FeedbackRouter.searchResult,
             arguments: SearchResultPageArgs('', '${tagUtil[total].id}', '',
                 '搜索结果 #${tagUtil[total].name}', 0, 0),
-          ).then((_) {
-            Navigator.pop(context);
-          });
+          );
         },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 20, 4),
@@ -84,7 +82,7 @@ class _SearchBarState extends State<SearchBar>
               Expanded(
                   child: Text(
                 tagUtil[total].name,
-                style: TextUtil.base.w500.PingFangSC.sp(16).infoText(context),
+                style: TextUtil.base.w500.NotoSansSC.sp(16).infoText(context),
                 overflow: TextOverflow.ellipsis,
               )),
               SizedBox(width: 4),
@@ -139,11 +137,11 @@ class _SearchBarState extends State<SearchBar>
                   builder: (_, data, __) => TextField(
                     controller: _controller,
                     focusNode: _fNode,
-                    style: TextUtil.base.label(context).PingFangSC.w400.sp(15),
+                    style: TextUtil.base.label(context).NotoSansSC.w400.sp(15),
                     decoration: InputDecoration(
                       hintStyle: TextUtil.base
                           .infoText(context)
-                          .PingFangSC
+                          .NotoSansSC
                           .w400
                           .sp(15),
                       hintText: data.recTag == null
@@ -225,14 +223,14 @@ class _SearchBarState extends State<SearchBar>
                       });
                     },
                     style: ButtonStyle(
-                      padding: MaterialStateProperty.all(EdgeInsets.zero),
+                      padding: WidgetStateProperty.all(EdgeInsets.zero),
                       visualDensity: VisualDensity.compact,
-                      backgroundColor: MaterialStateProperty.all(
+                      backgroundColor: WidgetStateProperty.all(
                           WpyTheme.of(context)
                               .get(WpyColorKey.primaryBackgroundColor)),
-                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10))),
-                      elevation: MaterialStateProperty.all(2),
+                      elevation: WidgetStateProperty.all(2),
                     ),
                     child: _controller.text == ''
                         ? SvgPicture.asset(
@@ -327,7 +325,7 @@ class _SearchBarState extends State<SearchBar>
                                     _controller.text.length < 3
                                         ? '按照MP号跳转'
                                         : '跳转至：${_controller.text}',
-                                    style: TextUtil.base.w500.PingFangSC
+                                    style: TextUtil.base.w500.NotoSansSC
                                         .sp(16)
                                         .infoText(context),
                                     overflow: TextOverflow.ellipsis,

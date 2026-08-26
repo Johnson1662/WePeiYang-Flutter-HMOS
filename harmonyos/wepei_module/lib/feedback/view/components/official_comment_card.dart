@@ -126,7 +126,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(widget.tag,
-                            style: TextUtil.base.ProductSans
+                            style: TextUtil.base.NotoSansSC
                                 .label(context)
                                 .normal
                                 .w500
@@ -175,7 +175,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text('帖主',
-                            style: TextUtil.base.ProductSans
+                            style: TextUtil.base.NotoSansSC
                                 .label(context)
                                 .normal
                                 .w500
@@ -245,7 +245,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                       style: TextUtil.base
                           .label(context)
                           .regular
-                          .ProductSans
+                          .NotoSansSC
                           .sp(12),
                     ),
                   ),
@@ -258,7 +258,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                       style: TextUtil.base
                           .label(context)
                           .regular
-                          .ProductSans
+                          .NotoSansSC
                           .sp(12),
                     ),
                   ),
@@ -290,7 +290,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
         child: Row(children: [
           Text(
             '提问者评分:',
-            style: TextUtil.base.ProductSans.label(context).normal.w500.sp(14),
+            style: TextUtil.base.NotoSansSC.label(context).normal.w500.sp(14),
           ),
           RatingBar.builder(
             itemBuilder: (context, index) => Icon(
@@ -313,7 +313,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
       starWidget = Row(children: [
         Text(
           '提问者评分:',
-          style: TextUtil.base.ProductSans.label(context).normal.w500.sp(14),
+          style: TextUtil.base.NotoSansSC.label(context).normal.w500.sp(14),
         ),
         RatingBar.builder(
           itemBuilder: (context, index) => Icon(
@@ -376,7 +376,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
         var comment = ExpandableText(
           text: widget.comment.content,
           maxLines: 5,
-          style: TextUtil.base.w400.normal.label(context).ProductSans.sp(16),
+          style: TextUtil.base.w400.normal.label(context).NotoSansSC.sp(16),
           expand: false,
           buttonIsShown: true,
           isHTML: true,
@@ -401,7 +401,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
             context,
             widget.comment.content,
             defaultTextStyle:
-                TextUtil.base.w400.normal.label(context).ProductSans.sp(16),
+                TextUtil.base.w400.normal.label(context).NotoSansSC.sp(16),
           ),
         );
 
@@ -444,7 +444,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                 blurRadius: 5,
                 color: WpyTheme.of(context)
                     .get(WpyColorKey.basicTextColor)
-                    .withOpacity(0.1),
+                    .withValues(alpha: 0.1),
                 offset: Offset(0, 0),
                 spreadRadius: 3),
           ],
@@ -521,7 +521,7 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
                                 '」',
                             style: TextUtil.base.normal
                                 .primary(context)
-                                .ProductSans
+                                .NotoSansSC
                                 .sp(16)
                                 .w400);
                       }),
@@ -530,9 +530,9 @@ class _OfficialReplyCardState extends State<OfficialReplyCard> {
               ),
               cancelText: "取消",
               confirmTextStyle:
-                  TextUtil.base.normal.label(context).ProductSans.sp(14).w400,
+                  TextUtil.base.normal.label(context).NotoSansSC.sp(14).w400,
               cancelTextStyle:
-                  TextUtil.base.normal.label(context).ProductSans.sp(14).w400,
+                  TextUtil.base.normal.label(context).NotoSansSC.sp(14).w400,
               confirmText: "提交",
               cancelFun: () {
                 Navigator.pop(context);

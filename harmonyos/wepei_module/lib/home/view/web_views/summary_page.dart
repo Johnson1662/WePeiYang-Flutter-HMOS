@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
+import 'package:wepei_module/commons/channel/remote_config/config/webview.dart';
 import 'package:wepei_module/commons/webview/javascript_channels/img_save_channel.dart';
 import 'package:wepei_module/commons/webview/wby_webview.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class FeedbackSummaryPage extends WbyWebView {
   FeedbackSummaryPage({Key? key, required BuildContext context})
@@ -32,8 +32,8 @@ class _FeedbackSummaryPageState extends WbyWebViewState {
   }
 
   @override
-  List<JavascriptChannel>? getJsChannels() {
-    return [ImgSaveChannel("summary")];
+  List<WebViewChannelConfig> getJsChannels() {
+    return [ImgSaveChannel.config('summary')];
   }
 }
 

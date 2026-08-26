@@ -17,6 +17,7 @@ import 'package:wepei_module/commons/widgets/loading.dart';
 import 'package:wepei_module/feedback/model/feedback_notifier.dart';
 import 'package:wepei_module/feedback/network/feedback_service.dart';
 import 'package:wepei_module/feedback/network/post.dart';
+import 'package:wepei_module/feedback/view/components/widget/masked_rich_text.dart';
 import 'package:wepei_module/feedback/view/components/widget/tag_grid_view.dart';
 import 'package:wepei_module/main.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -1005,13 +1006,14 @@ class ContentInputField extends StatefulWidget {
 
 class _ContentInputFieldState extends State<ContentInputField> {
   late final ValueNotifier<String> contentCounter;
-  late final TextEditingController _contentController;
+  late final MaskTextEditingController _contentController;
 
   @override
   void initState() {
     super.initState();
     var dataModel = Provider.of<NewPostProvider>(context, listen: false);
-    _contentController = TextEditingController(text: dataModel.content);
+    _contentController =
+        MaskTextEditingController(text: dataModel.content, hideMasked: true);
     contentCounter =
         ValueNotifier('${dataModel.content.characters.length}/1000')
           ..addListener(() {
@@ -1025,15 +1027,30 @@ class _ContentInputFieldState extends State<ContentInputField> {
     super.dispose();
   }
 
+  void _wrapWithMask() {
+    final sel = _contentController.selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+    final text = _contentController.text;
+    final wrapped = '$kMaskOpenTag${sel.textInside(text)}$kMaskCloseTag';
+    final newText = text.replaceRange(sel.start, sel.end, wrapped);
+    _contentController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: sel.start + wrapped.length),
+    );
+    contentCounter.value = '${newText.characters.length}/1000';
+  }
+
   @override
   Widget build(BuildContext context) {
-    Widget inputField = TextField(
+    final contentStyle =
+        TextUtil.base.NotoSansSC.w400.sp(16).h(1.4).label(context);
+    final textField = TextField(
       controller: _contentController,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.newline,
       minLines: 1,
       maxLines: 100,
-      style: TextUtil.base.NotoSansSC.w400.sp(16).h(1.4).label(context),
+      style: contentStyle,
       decoration: InputDecoration.collapsed(
         hintStyle: TextUtil.base.NotoSansSC.w500.sp(16).infoText(context),
         hintText: '请添加正文',
@@ -1046,6 +1063,41 @@ class _ContentInputFieldState extends State<ContentInputField> {
         CustomizedLengthTextInputFormatter(1000),
       ],
       cursorColor: WpyTheme.of(context).get(WpyColorKey.profileBackgroundColor),
+      contextMenuBuilder: (context, editableState) {
+        final items =
+            List<ContextMenuButtonItem>.of(editableState.contextMenuButtonItems);
+        final sel = _contentController.selection;
+        if (sel.isValid && !sel.isCollapsed) {
+          items.insert(
+            0,
+            ContextMenuButtonItem(
+              label: '马赛克',
+              onPressed: () {
+                ContextMenuController.removeAny();
+                _wrapWithMask();
+              },
+            ),
+          );
+        }
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: editableState.contextMenuAnchors,
+          buttonItems: items,
+        );
+      },
+    );
+
+    final inputField = Stack(
+      children: [
+        textField,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: MaskInputParticles(
+              controller: _contentController,
+              style: contentStyle,
+            ),
+          ),
+        ),
+      ],
     );
 
     Widget bottomTextCounter = ValueListenableBuilder(

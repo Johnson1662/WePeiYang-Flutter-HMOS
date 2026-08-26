@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart' show Navigator;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:provider/provider.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:wepei_module/commons/font/font_loader.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/token/lake_token_manager.dart';
@@ -54,7 +55,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   EnvConfig.init();
   await StorageUtil.init();
+  await Logger.init();
   await CommonPreferences.init();
+  FlutterError.onError = (details) {
+    Logger.reportError(details.exception, details.stack);
+  };
   WpyTheme.init();
   _loadLoginState();
   debugPrint(
@@ -224,27 +229,36 @@ class WePeiYangAppState extends State<WePeiYangApp>
             listenable: globalTheme,
             builder: (context, _) => WpyTheme(
               themeData: globalTheme.value,
-              child: MaterialApp(
-                navigatorKey: RouterManager.navigatorKey,
-                debugShowCheckedModeBanner: false,
-                title: 'WePeiYang',
-                theme: ThemeData.light().copyWith(
-                  platform: TargetPlatform.android,
-                ),
-                home: const AppEntryPage(),
-                navigatorObservers: [AppRouteAnalysis()],
-                builder: FlutterSmartDialog.init(
-                  toastBuilder: (String msg) => Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Text(msg,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14)),
+              child: RefreshConfiguration(
+                springDescription: const SpringDescription(
+                    mass: 1.0, stiffness: 364.72, damping: 35.2),
+                child: MaterialApp(
+                  navigatorKey: RouterManager.navigatorKey,
+                  debugShowCheckedModeBanner: false,
+                  title: 'WePeiYang',
+                  theme: ThemeData.light().copyWith(
+                    platform: TargetPlatform.android,
+                    pageTransitionsTheme: const PageTransitionsTheme(
+                      builders: {
+                        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+                      },
+                    ),
                   ),
+                  home: const AppEntryPage(),
+                  navigatorObservers: [AppRouteAnalysis()],
+                  builder: FlutterSmartDialog.init(
+                    toastBuilder: (String msg) => Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Text(msg,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14)),
+                    ),
+                  ),
+                  onGenerateRoute: RouterManager.create,
                 ),
-                onGenerateRoute: RouterManager.create,
               ),
             ),
           ),

@@ -1,20 +1,22 @@
+import 'package:flutter/foundation.dart';
+
+/// Cookie model for internal use. Nothing to do with dependant projects
+@immutable
 class Cookie {
   final String name;
   final String value;
   final DateTime expires;
-  final String domain;
 
   const Cookie({
     required this.name,
     required this.value,
     required this.expires,
-    required this.domain,
   });
 
+  /// In our case name is only property we distinguish different cookies
   @override
-  int get hashCode => Object.hash(name, domain);
+  int get hashCode => name.hashCode;
 
   @override
-  bool operator ==(Object other) =>
-      other is Cookie && other.name == name && other.domain == domain;
+  bool operator ==(Object other) => other is Cookie && other.name == name;
 }

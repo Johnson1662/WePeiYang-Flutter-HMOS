@@ -1,11 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
+import 'package:wepei_module/commons/util/toast_provider.dart';
 
 import '../../../commons/widgets/w_button.dart';
 
@@ -14,13 +19,30 @@ class LocalImageViewPageArgs {
   final List<String> assetList;
   final int uriListLength;
   final int indexNow;
+  final bool canSave;
+  final List<String>? saveAssetList;
 
   LocalImageViewPageArgs(
-      this.uriList,
-      this.assetList,
-      this.uriListLength,
-      this.indexNow,
-      );
+    this.uriList,
+    this.assetList,
+    int countOrIndex, [
+    int? indexNow,
+  ])  : canSave = false,
+        saveAssetList = null,
+        uriListLength = countOrIndex,
+        indexNow = indexNow ?? countOrIndex;
+
+  LocalImageViewPageArgs.withSaving(
+    this.uriList,
+    this.assetList,
+    int countOrIndex, {
+    required this.saveAssetList,
+    int? indexNow,
+  })  : canSave = true,
+        uriListLength = countOrIndex,
+        indexNow = indexNow ?? countOrIndex;
+
+  int get imageCount => uriList.isNotEmpty ? uriList.length : assetList.length;
 }
 
 class LocalImageViewPage extends StatefulWidget {
@@ -34,6 +56,7 @@ class LocalImageViewPage extends StatefulWidget {
 
 class _LocalImageViewPageState extends State<LocalImageViewPage> {
   bool _loading = true;
+  bool _loadFailed = false;
   late int _index;
   late PageController _pageController;
   bool _didPrecache = false;
@@ -41,7 +64,7 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
   @override
   void initState() {
     super.initState();
-    _index = widget.args.indexNow;
+    _index = _clampIndex(widget.args.indexNow);
     _pageController = PageController(initialPage: _index);
   }
 
@@ -52,30 +75,73 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
     if (_didPrecache) return;
     _didPrecache = true;
 
-    _preloadImage(_index);
+    if (widget.args.imageCount == 0) {
+      _loading = false;
+      _loadFailed = true;
+      return;
+    }
+
+    unawaited(_preloadImage(_index));
+  }
+
+  int _clampIndex(int index) {
+    final imageCount = widget.args.imageCount;
+    if (imageCount <= 0 || index < 0) return 0;
+    if (index >= imageCount) return imageCount - 1;
+    return index;
+  }
+
+  ImageProvider _imageProviderAt(int index) {
+    final safeIndex = _clampIndex(index);
+    if (widget.args.uriList.isNotEmpty) {
+      return FileImage(widget.args.uriList[safeIndex]);
+    }
+    return AssetImage(widget.args.assetList[safeIndex]);
   }
 
   Future<void> _preloadImage(int index) async {
-    ImageProvider provider;
-
-    if (widget.args.uriList.isNotEmpty) {
-      provider = FileImage(widget.args.uriList[index]);
-    } else {
-      provider = AssetImage(widget.args.assetList[index]);
+    if (widget.args.imageCount == 0) return;
+    try {
+      await precacheImage(_imageProviderAt(index), context);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+      return;
     }
-
-    await precacheImage(provider, context);
 
     if (mounted) {
       setState(() {
         _loading = false;
+        _loadFailed = false;
       });
     }
   }
 
   void _onPageChanged(int index) {
-    _index = index;
-    _preloadImage(index);
+    _index = _clampIndex(index);
+    unawaited(_preloadImage(_index));
+  }
+
+  Future<void> _saveCurrentImage() async {
+    try {
+      ToastProvider.running('图片保存中');
+      final assetPath =
+          widget.args.saveAssetList?[_index] ?? widget.args.assetList[_index];
+      final data = await rootBundle.load(assetPath);
+      final fileName = assetPath.split('/').last;
+      await ImageSave.saveImageFromBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        fileName,
+        album: true,
+      );
+      if (mounted) ToastProvider.success('图片已保存至相册');
+    } catch (_) {
+      if (mounted) ToastProvider.error('图片保存失败');
+    }
   }
 
   @override
@@ -104,48 +170,83 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
       );
     }
 
-    return WButton(
-      onPressed: () => Navigator.pop(context),
-      child: PhotoViewGallery.builder(
-        pageController: _pageController,
-        itemCount: widget.args.uriListLength,
-        onPageChanged: _onPageChanged,
-        backgroundDecoration: BoxDecoration(
-          color: WpyTheme.of(context)
-              .get(WpyColorKey.reverseBackgroundColor),
+    if (_loadFailed) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Text(
+            '图片加载失败',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-        loadingBuilder: (context, event) {
-          final value = event == null ||
-              event.expectedTotalBytes == null
-              ? 0.0
-              : event.cumulativeBytesLoaded /
-              event.expectedTotalBytes!;
+      );
+    }
 
-          return Center(
-            child: SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(value: value),
+    return Stack(
+      children: [
+        WButton(
+          onPressed: () => Navigator.pop(context),
+          child: PhotoViewGallery.builder(
+            pageController: _pageController,
+            itemCount: widget.args.imageCount,
+            onPageChanged: _onPageChanged,
+            backgroundDecoration: BoxDecoration(
+              color:
+                  WpyTheme.of(context).get(WpyColorKey.reverseBackgroundColor),
             ),
-          );
-        },
-        builder: (BuildContext context, int index) {
-          ImageProvider image;
+            loadingBuilder: (context, event) {
+              final value = event == null || event.expectedTotalBytes == null
+                  ? 0.0
+                  : event.cumulativeBytesLoaded / event.expectedTotalBytes!;
 
-          if (widget.args.uriList.isNotEmpty) {
-            image = FileImage(widget.args.uriList[index]);
-          } else {
-            image = AssetImage(widget.args.assetList[index]);
-          }
-
-          return PhotoViewGalleryPageOptions(
-            imageProvider: image,
-            minScale: PhotoViewComputedScale.contained,
-            maxScale: PhotoViewComputedScale.contained * 5.0,
-            initialScale: PhotoViewComputedScale.contained,
-          );
-        },
-      ),
+              return Center(
+                child: SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(value: value),
+                ),
+              );
+            },
+            builder: (BuildContext context, int index) {
+              return PhotoViewGalleryPageOptions(
+                imageProvider: _imageProviderAt(index),
+                minScale: PhotoViewComputedScale.contained,
+                maxScale: PhotoViewComputedScale.contained * 5.0,
+                initialScale: PhotoViewComputedScale.contained,
+              );
+            },
+          ),
+        ),
+        if (widget.args.canSave && widget.args.uriList.isEmpty)
+          Positioned(
+            bottom: 10.w,
+            right: 10.w,
+            child: Container(
+              decoration: BoxDecoration(
+                color: WpyTheme.of(context)
+                    .get(WpyColorKey.labelTextColor)
+                    .withOpacity(0.7),
+                borderRadius: BorderRadius.all(Radius.circular(14.r)),
+              ),
+              padding: EdgeInsets.fromLTRB(14.w, 10.w, 14.w, 14.w),
+              child: WButton(
+                child: Icon(
+                  Icons.file_download_outlined,
+                  color: WpyTheme.of(context)
+                      .get(WpyColorKey.primaryBackgroundColor),
+                  size: 30.h,
+                ),
+                onPressed: _saveCurrentImage,
+              ),
+            ),
+          ),
+      ],
     );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 }

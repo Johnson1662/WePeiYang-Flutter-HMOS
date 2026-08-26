@@ -55,7 +55,7 @@ class GameCard extends StatelessWidget {
                     child: Text(
                       this.title,
                       style:
-                          TextUtil.base.w600.label(context).PingFangSC.sp(18),
+                          TextUtil.base.w600.label(context).NotoSansSC.sp(18),
                       maxLines: 3,
                     )),
                 Container(

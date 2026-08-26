@@ -53,7 +53,9 @@ class _ProfilePageState extends State<ProfilePage> {
   //刷新
   _onRefresh() {
     FeedbackService.getUserInfo(
-        onSuccess: () {},
+        onSuccess: () {
+          if (mounted) setState(() {});
+        },
         onFailure: (e) {
           ToastProvider.error(e.error.toString());
         });
@@ -93,7 +95,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    print(CommonPreferences.curLevelPoint.value.toDouble());
     var postLists = (List.generate(
       _postList.length,
       (index) {
@@ -426,7 +427,7 @@ class CustomCard extends StatelessWidget {
               blurRadius: 8,
               color: WpyTheme.of(context)
                   .get(WpyColorKey.basicTextColor)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
             ),
           ],
         ),

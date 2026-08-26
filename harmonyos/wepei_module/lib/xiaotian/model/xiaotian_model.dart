@@ -138,7 +138,7 @@ class AiMessage extends ChatMessage {
       this.userId})
       : super('ai');
 
-  void setText(String text) {
+  void setText(String text){
     this.text = text;
   }
 }

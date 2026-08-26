@@ -31,17 +31,17 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
   @override
   Widget build(BuildContext context) {
     final buttonStyle = ButtonStyle(
-      elevation: MaterialStateProperty.all(1),
-      overlayColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.pressed))
+      elevation: WidgetStateProperty.all(1),
+      overlayColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.pressed))
           return WpyTheme.of(context).get(WpyColorKey.oldActionRippleColor);
         return WpyTheme.of(context).get(WpyColorKey.oldActionColor);
       }),
-      backgroundColor: MaterialStateProperty.all(
+      backgroundColor: WidgetStateProperty.all(
           WpyTheme.of(context).get(WpyColorKey.oldActionColor)),
-      shape: MaterialStateProperty.all(
+      shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-      minimumSize: MaterialStateProperty.all(Size(80, 40)),
+      minimumSize: WidgetStateProperty.all(Size(80, 40)),
     );
     var appBar = AppBar(
       backgroundColor:
@@ -53,7 +53,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
       ),
       title: Text(
         '举报',
-        style: TextUtil.base.PingFangSC.medium.label(context).sp(18),
+        style: TextUtil.base.NotoSansSC.medium.label(context).sp(18),
       ),
       centerTitle: true,
       elevation: 0,
@@ -81,7 +81,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
                 });
           },
           child: Text('举报',
-              style: TextUtil.base.PingFangSC.reverse(context).w600.sp(18)),
+              style: TextUtil.base.NotoSansSC.reverse(context).w600.sp(18)),
           style: buttonStyle,
         ));
 
@@ -110,7 +110,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
                               "“#MP${widget.args.id.toString().padLeft(6, '0')}”",
                           style: TextUtil.base
                               .label(context)
-                              .PingFangSC
+                              .NotoSansSC
                               .medium
                               .sp(18),
                         )
@@ -119,7 +119,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
                               "“#FL${widget.args.id.toString().padLeft(6, '0')}”",
                           style: TextUtil.base
                               .label(context)
-                              .PingFangSC
+                              .NotoSansSC
                               .medium
                               .sp(18),
                         ),
@@ -149,7 +149,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
                 decoration: InputDecoration.collapsed(
                   hintText: '请填写举报理由，如“色情暴力”“政治敏感”等',
                   hintStyle:
-                      TextUtil.base.regular.PingFangSC.label(context).sp(16),
+                      TextUtil.base.regular.NotoSansSC.label(context).sp(16),
                 ),
                 onChanged: (text) {
                   textInput = text;
@@ -169,8 +169,8 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
               SizedBox(width: 25),
               TextButton(
                   style: ButtonStyle(
-                    minimumSize: MaterialStateProperty.all(Size(1, 1)),
-                    padding: MaterialStateProperty.all(EdgeInsets.zero),
+                    minimumSize: WidgetStateProperty.all(Size(1, 1)),
+                    padding: WidgetStateProperty.all(EdgeInsets.zero),
                   ),
                   onPressed: () {
                     showDialog(
@@ -180,7 +180,7 @@ class _ReportQuestionPageState extends State<ReportQuestionPage> {
                   },
                   child: Text(
                     '查看《求实论坛社区规范》',
-                    style: TextUtil.base.normal.PingFangSC
+                    style: TextUtil.base.normal.NotoSansSC
                         .sp(16)
                         .w400
                         .textButtonPrimary(context),

@@ -17,7 +17,7 @@
       },
       {
         "name": "ohos.permission.READ_PASTEBOARD",
-        "reason": "$string:reason_read_imagevideo",
+        "reason": "$string:reason_read_pasteboard",
         "usedScene": {
           "abilities": ["EntryAbility"],
           "when": "inuse"
@@ -36,6 +36,19 @@
           {
             "name": "ohos.extension.form",
             "resource": "$profile:form_widget_config"
+          }
+        ]
+      },
+      {
+        "name": "EntryQrFormAbility",
+        "srcEntry": "./ets/widget/EntryQrFormAbility.ets",
+        "label": "$string:form_name_entry_qr",
+        "description": "入校码桌面卡片",
+        "type": "form",
+        "metadata": [
+          {
+            "name": "ohos.extension.form",
+            "resource": "$profile:qr_form_widget_config"
           }
         ]
       }

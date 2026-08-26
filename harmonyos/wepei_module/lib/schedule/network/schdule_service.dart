@@ -143,10 +143,6 @@ class ScheduleService {
       throw WpyDioException(error: "办公网绑定失效，请重新绑定");
     }
     final ids = res.data.toString().find("\"ids\",\"([^\"]+)\"");
-    print("++++++++IDS++++++++++");
-    print(res.data);
-    print(ids);
-    print("++++++++++++++++++++++++++++++");
     _log('STEP 6: IDs found. Sending POST request for courseTable.action...');
 
     // 获取课表
@@ -162,9 +158,6 @@ class ScheduleService {
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
     _log('STEP 7: Course table data received. Starting to parse HTML...');
-    print("++++++++RES++++++++++");
-    print(res.data.toString());
-    print("++++++++++++++++++++++++++++++");
     return _parseCourseHTML(res.data.toString());
   }
 
@@ -255,7 +248,6 @@ class ScheduleService {
           /// 不能用courseName.contains(arrange.courseName)来判断，否则就会把"机器学习"和"机器学习综合实践"这样的课算在一起
           if (courseName != arrange.name &&
               !_judgeSubtitle(courseName, arrange.name!)) return;
-          print("draw $arrange");
 
           /// 有些个别课没有教室信息，此时roomList.length = 2
           if (roomList.length > roomIndex) {
@@ -319,8 +311,15 @@ class ScheduleService {
             .map((e) =>
                 e.contains('color') ? e.match(r'(?<=>)[^]*?(?=</font)') : e)
             .toList();
-        var ext = tdList[8] == '正常' ? '' : tdList[9];
-        exams.add(Exam(tdList[0], tdList[1], tdList[2], tdList[3], tdList[5],
+        if (tdList.length < 9) return;
+        var date = tdList[3];
+        if (date.isNotEmpty &&
+            date != '时间未安排' &&
+            DateTime.tryParse(date) == null) {
+          date = '时间未安排';
+        }
+        var ext = (tdList.length > 9 && tdList[8] != '正常') ? tdList[9] : '';
+        exams.add(Exam(tdList[0], tdList[1], tdList[2], date, tdList[5],
             tdList[6], tdList[7], tdList[8], ext));
       });
       onResult(exams);

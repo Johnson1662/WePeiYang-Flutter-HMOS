@@ -77,7 +77,7 @@ class AcidCheckDialog extends Dialog {
                     SizedBox(height: 10.w),
                     Text(
                       '${DateFormat('HH:mm').format(start.toLocal())} - ${DateFormat('HH:mm').format(end.toLocal())}',
-                      style: TextUtil.base.NotoSansSC
+                      style: TextUtil.base.PingFangSC
                           .primaryAction(context)
                           .w500
                           .sp(20),
@@ -95,15 +95,15 @@ class AcidCheckDialog extends Dialog {
                               (dur.inMinutes % 60).toString().padLeft(2, '0');
                           return time.isBefore(end)
                               ? Text(
-'距检测${before ? '开始' : '结束'}还有$hr时$min分',
-                                  style: TextUtil.base.NotoSansSC
+                                  '距检测${before ? '开始' : '结束'}还有$hr时$min分',
+                                  style: TextUtil.base.PingFangSC
                                       .courseGradientStop(context)
                                       .normal
                                       .sp(16),
                                 )
                               : Text(
                                   '今日核酸已结束',
-                                  style: TextUtil.base.NotoSansSC
+                                  style: TextUtil.base.PingFangSC
                                       .courseGradientStop(context)
                                       .normal
                                       .sp(16),

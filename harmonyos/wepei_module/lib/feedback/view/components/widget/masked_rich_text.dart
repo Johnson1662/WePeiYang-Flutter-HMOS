@@ -337,8 +337,6 @@ class _MaskedRichTextState extends State<MaskedRichText>
   void _checkUrl(String url) async {
     openUrlInApp(context, url);
   }
-
-  }
 }
 
 /// 把遮罩层裁到所有未揭开矩形的并集；揭开动画进行时，从点击点扩散一个圆

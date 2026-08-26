@@ -112,8 +112,8 @@ class _OpenBoxState extends State<OpenBox> {
         if (src == '归属地') {
           String url =
               'https://qq.ip138.com/idsearch/index.asp?userid=${detail['身份证号']}&action=idcard';
-          if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-            await launchUrl(Uri.parse(url)).catchError((_) {});
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(Uri.parse(url));
           } else {
             ToastProvider.error('请检查网络状态');
           }

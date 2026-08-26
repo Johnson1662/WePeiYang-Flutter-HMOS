@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -86,7 +87,7 @@ class _ThemeSettingState extends State<ThemeSetting>
               CommonPreferences.usingDarkTheme.value = 0;
               CommonPreferences.appThemeId.value = theme.meta.themeId;
               print(theme.meta.address);
-              if(CommonPreferences.autoAppWithTheme.value) {
+              if (Platform.isAndroid && CommonPreferences.autoAppWithTheme.value) {
                 try {
                   await switchIcon(theme.meta.address);
                 }
@@ -505,7 +506,12 @@ class _ThemeSettingState extends State<ThemeSetting>
         backgroundColor:
             WpyTheme.of(context).get(WpyColorKey.secondaryBackgroundColor),
         body: ListView(
-          children: [layout, autoDarkThemeSelect,autoAppWithThemeSelect, gridView],
+          children: [
+            layout,
+            autoDarkThemeSelect,
+            if (Platform.isAndroid) autoAppWithThemeSelect,
+            gridView,
+          ],
         ));
   }
 }

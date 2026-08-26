@@ -7,6 +7,7 @@ import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/widgets/w_button.dart';
+import 'package:wepei_module/commons/widgets/wpy_pic.dart';
 import 'package:wepei_module/feedback/network/feedback_service.dart';
 import 'package:wepei_module/feedback/network/post.dart';
 
@@ -274,9 +275,15 @@ class _AvatarListBuilderState extends State<AvatarListBuilder> {
                       .get(WpyColorKey.primaryBackgroundColor),
                 ),
         ],
-        image: DecorationImage(
-          image: NetworkImage('${avatarBox.addr}'),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.all(Radius.circular(10.r)),
+        child: WpyPic(
+          avatarBox.addr,
+          width: 100.w,
+          height: 100.w,
           fit: BoxFit.cover,
+          withHolder: true,
         ),
       ),
     );

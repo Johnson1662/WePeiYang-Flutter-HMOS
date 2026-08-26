@@ -1,30 +1,36 @@
 import 'package:wepei_module/commons/webview/javascript_channels/img_save_channel.dart';
 import 'package:wepei_module/commons/webview/javascript_channels/share_channel.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+
+typedef WebViewMessageHandler = Future<void> Function(String message);
+
+class WebViewChannelConfig {
+  final String name;
+  final WebViewMessageHandler onMessageReceived;
+
+  const WebViewChannelConfig(this.name, this.onMessageReceived);
+}
 
 class WebViewConfig {
   final String page;
   final String url;
-  final List<JavascriptChannel> channels;
+  final List<WebViewChannelConfig> channels;
 
   WebViewConfig._(this.page, this.url, this.channels);
 
   factory WebViewConfig.fromJson(Map map) {
-    final page = map['page'] ?? "";
-    final url = map['url'] ?? "";
-    final _channels = <JavascriptChannel>[];
+    final page = map['page'] ?? '';
+    final url = map['url'] ?? '';
+    final channels = <WebViewChannelConfig>[];
 
-    void addChannel(String c) {
-      if (c == WebViewChannels.share.value) {
-        _channels.add(ShareChannel(page));
-      } else if (c == WebViewChannels.saveImg.value) {
-        _channels.add(ImgSaveChannel(page));
+    for (final channel in '${map['channels']}'.split(',')) {
+      if (channel == WebViewChannels.share.value) {
+        channels.add(ShareChannel.config(page));
+      } else if (channel == WebViewChannels.saveImg.value) {
+        channels.add(ImgSaveChannel.config(page));
       }
     }
 
-    '${map['channels']}'.split(',').forEach(addChannel);
-
-    return WebViewConfig._(page, url, _channels);
+    return WebViewConfig._(page, url, channels);
   }
 }
 

@@ -71,8 +71,8 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.cac.gov.cn/2016-06/25/c_1119109085.htm';
-                            if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-                              await launchUrl(Uri.parse(url)).catchError((_) {});
+                            if (await canLaunchUrl(Uri.parse(url))) {
+                              await launchUrl(Uri.parse(url));
                             } else {
                               ToastProvider.error('请检查网络状态');
                             }
@@ -89,8 +89,8 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.isc.org.cn/zxzx/xhdt/listinfo-27187.html';
-                            if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-                              await launchUrl(Uri.parse(url)).catchError((_) {});
+                            if (await canLaunchUrl(Uri.parse(url))) {
+                              await launchUrl(Uri.parse(url));
                             } else {
                               ToastProvider.error('请检查网络状态');
                             }
@@ -107,8 +107,8 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.cac.gov.cn/2000-09/30/c_126193701.htm';
-                            if (await canLaunchUrl(Uri.parse(url)).catchError((_) => false)) {
-                              await launchUrl(Uri.parse(url)).catchError((_) {});
+                            if (await canLaunchUrl(Uri.parse(url))) {
+                              await launchUrl(Uri.parse(url));
                             } else {
                               ToastProvider.error('请检查网络状态');
                             }

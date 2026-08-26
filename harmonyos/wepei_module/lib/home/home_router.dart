@@ -16,16 +16,21 @@ class HomeRouter {
   static String restartGame = 'home/restartGame';
   static String laf = 'home/laf';
   static String news = 'home/news';
+  static String courseReview = 'home/courseReview';
   static String casQR = 'home/casQR';
   static String game = '';
   static final Map<String, Widget Function(dynamic arguments)> routers = {
     home: (args) => HomePage(args),
-    wiki: (_) => const WebViewPage(url: 'https://wiki.tjubot.cn/', title: '北洋维基'),
+    wiki: (_) =>
+        const WebViewPage(url: 'https://wiki.tjubot.cn/', title: '北洋维基'),
     mapCalenderPage: (_) => MapCalendarPage(),
     hz: (_) => FiftyTwoHzPage(),
     laf: (_) => LostAndFoundHomePage(),
-    news: (_) => const WebViewPage(url: 'https://news.twt.edu.cn/', title: '天外天新闻网'),
+    news: (_) =>
+        const WebViewPage(url: 'https://news.twt.edu.cn/', title: '天外天新闻网'),
     game: (_) => GamePage(),
+    courseReview: (_) =>
+        const WebViewPage(url: 'https://i.twt.edu.cn/course', title: '课评网'),
     casQR: (_) => CasQRPage(),
   };
 }

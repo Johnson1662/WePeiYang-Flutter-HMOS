@@ -16,14 +16,10 @@ import 'package:wepei_module/schedule/network/experiment_service.dart';
 class _SpiderDio extends DioAbstract {
   @override
   List<Interceptor> interceptors = [
-    ClassesErrorInterceptor(),
+    // CookieManager(CookieJa r()),
     cookieCachedHandler(),
+    ClassesErrorInterceptor()
   ];
-
-  @override
-  Map<String, String>? get headers => {
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
-  };
 }
 
 class ClassesService {
@@ -216,9 +212,6 @@ class ClassesService {
     final allSemester = ret.data.toString().findArrays(
         "id:([0-9]+),schoolYear:\"([0-9]+)-([0-9]+)\",name:\"(1|2)\"");
 
-    print("++++++++ALL SEMESTER++++++++++");
-    print(allSemester);
-    print("++++++++++++++++++++++++++++++");
 
     for (var arr in allSemester) {
       if ("${arr[1]}-${arr[2]} ${arr[3]}" == _currentSemester) {
@@ -226,9 +219,6 @@ class ClassesService {
         break;
       }
     }
-    print("++++++++SEMESTER ID++++++++++");
-    print(semesterId);
-    print("++++++++++++++++++++++++++++++");
   }
 
   static String get _currentSemester {

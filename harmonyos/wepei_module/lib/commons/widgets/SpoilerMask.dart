@@ -16,12 +16,17 @@ class SpoilerMaskImage extends StatelessWidget {
       return SizedBox(
         width: constraints.maxWidth,
         height: constraints.maxHeight,
-        child: Stack(children: [
-          child,
-          SpoilerMask(
-            particleCount: particleCount,
-          )
-        ]),
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            Positioned.fill(child: child),
+            Positioned.fill(
+              child: SpoilerMask(
+                particleCount: particleCount,
+              ),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -57,7 +62,6 @@ class _SpoilerMaskState extends State<SpoilerMask>
   double _maxRadius = 0.0;
 
   void _onTapDown(TapDownDetails details) {
-    print("Tap at: ${details.localPosition}");
     _tapPosition = details.localPosition;
     _waveRadius = 0.0;
     _controller.forward();
@@ -79,8 +83,8 @@ class _SpoilerMaskState extends State<SpoilerMask>
           clipper: CircleClipper(_tapPosition, _waveRadius),
           child: Stack(children: [
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(color: Colors.black.withOpacity(0.2)),
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(color: Colors.black.withValues(alpha: 0.2)),
             ),
             ParticleSimulation(
               width: constraints.maxWidth,
@@ -175,6 +179,9 @@ class ParticleSimulation extends StatefulWidget {
   final double width;
   final double height;
 
+  /// 粒子颜色，不传默认白色（图片马赛克用）
+  final Color? particleColor;
+
   ParticleSimulation({
     Key? key,
     required this.width,
@@ -183,6 +190,7 @@ class ParticleSimulation extends StatefulWidget {
     this.maxParticleSize = 4,
     this.minParticleSize = 1,
     this.maxParticleSpeed = 0.5,
+    this.particleColor,
   }) : super(key: key);
 
   @override
@@ -223,7 +231,8 @@ class _ParticleSimulationState extends State<ParticleSimulation>
       size: _random.nextDouble() * widget.maxParticleSize +
           widget.minParticleSize,
       // 粒子的大小
-      color: Colors.white.withOpacity(_random.nextDouble()),
+      color: (widget.particleColor ?? Colors.white)
+          .withValues(alpha: _random.nextDouble()),
     );
   }
 

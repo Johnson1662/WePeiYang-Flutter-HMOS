@@ -3,10 +3,20 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:wepei_module/commons/environment/config.dart';
+import 'package:wepei_module/commons/util/log/file_log_output.dart';
 
 /// release模式下在内存中存储log信息，debug模式下直接打印
 class Logger {
   static List<String> logs = [];
+
+  static Future<void> init() => FileLogOutput.instance.init();
+
+  static void write(String line) {
+    checkList();
+    logs.add(line);
+    FileLogOutput.instance.write(line);
+    if (EnvConfig.isTest) debugPrint(line);
+  }
 
   static void reportPrint(ZoneDelegate parent, Zone zone, String str) {
     String line = _getFormatTime() + ' | ' + str;
@@ -14,8 +24,7 @@ class Logger {
     if (EnvConfig.isTest) {
       parent.print(zone, line);
     }
-    checkList();
-    logs.add(line);
+    write(line);
   }
 
   static void reportError(Object error, StackTrace? stack) {
@@ -35,8 +44,9 @@ class Logger {
     if (EnvConfig.isTest) {
       for (String line in lines) debugPrint(line);
     }
-    checkList();
-    logs.addAll(lines);
+    for (final line in lines) {
+      write(line);
+    }
   }
 
   /// 为了防止内存占用，控制log条数在200条以内

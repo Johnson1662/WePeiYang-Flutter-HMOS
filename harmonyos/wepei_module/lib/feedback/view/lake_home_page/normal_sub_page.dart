@@ -17,6 +17,7 @@ import 'package:wepei_module/commons/widgets/wpy_pic.dart';
 import 'package:wepei_module/feedback/view/components/post_card.dart';
 import 'package:wepei_module/feedback/view/components/widget/activity_card.dart';
 import 'package:wepei_module/feedback/view/components/widget/hot_rank_card.dart';
+import 'package:wepei_module/feedback/view/components/widget/round_taggings.dart';
 import 'package:wepei_module/feedback/view/lake_home_page/home_page.dart';
 import 'package:wepei_module/feedback/view/lake_home_page/lake_notifier.dart';
 import 'package:wepei_module/main.dart';
@@ -70,17 +71,11 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     if (refreshController.isRefresh && pixels >= 2) {
       refreshController.refreshToIdle();
     }
-    if (pixels < threshold) {
-      LakeUtil.showSearch.value = true;
-    }
+    if (pixels < threshold) _setShowSearch(true);
 
     // Toggle feedback based on scroll direction
     if (_shouldToggleSearchbar(scrollInfo, pixels, maxScrollExtent)) {
-      if (pixels <= _previousOffset) {
-        LakeUtil.showSearch.value = true;
-      } else {
-        LakeUtil.showSearch.value = false;
-      }
+      _setShowSearch(pixels <= _previousOffset);
       _previousOffset = pixels;
     }
 
@@ -89,14 +84,29 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
 
   double _previousOffset = 0;
 
+  bool _showSearchScheduled = false;
+  bool _showSearchTarget = true;
+
+  void _setShowSearch(bool value) {
+    _showSearchTarget = value;
+    if (_showSearchScheduled || LakeUtil.showSearch.value == value) return;
+    _showSearchScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showSearchScheduled = false;
+      if (!mounted) return;
+      LakeUtil.showSearch.value = _showSearchTarget;
+    });
+  }
+
   Future<void> _onRefresh() async {
     // 这里的逻辑是: 开始刷新-delay100ms-显示刷新动画-结束刷新
     // 或者可能是:  开始刷新 - delay100ms - 显示刷新动画
     //            - 刷新结束但动画还没开始（网太快了）
     //            - 取消动画 （不播放了）-  结束刷新
 
-    // 延迟100ms显示刷新动画
-    final task = Timer(Duration(milliseconds: 280), () {
+    final refreshStart = DateTime.now();
+    final task = Timer(Duration(milliseconds: 250), () {
+      if (!mounted) return;
       setState(() {
         isRefresh = true;
       });
@@ -106,7 +116,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
       _initializeHotTagsIfNeeded();
       _initializeProviders();
       getRecTag();
-      await _refreshPostList();
+      await _refreshPostList(refreshStart);
       _initializeLakeArea();
     } catch (e) {
       await _handleRefreshError();
@@ -114,6 +124,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
 
     // 如果还没执行就不执行了
     if (task.isActive) task.cancel();
+    if (!mounted) return;
     setState(() {
       loadFlag++;
       isRefresh = false;
@@ -126,9 +137,14 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     }
   }
 
-  Future<void> _refreshPostList() async {
+  Future<void> _refreshPostList(DateTime refreshStart) async {
     await LakeUtil.initPostList(index, forced: true)
         .catchError((e) => _handlePostListFailure(e));
+    const minRefreshDuration = Duration(milliseconds: 450);
+    final elapsed = DateTime.now().difference(refreshStart);
+    if (elapsed < minRefreshDuration) {
+      await Future.delayed(minRefreshDuration - elapsed);
+    }
     pageController.refreshController.refreshCompleted();
   }
 
@@ -180,14 +196,14 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
   }
 
   late final LakePageController pageController;
+  late Future<void> _postListFuture;
 
   @override
   void initState() {
     super.initState();
-    print("==> init state for tab $index");
     pageController = LakeUtil.lakePageControllers[index]!;
+    _postListFuture = LakeUtil.initPostList(index);
     _initializeProviders();
-    _initializeLakeArea();
   }
 
   void _initializeProviders() {
@@ -206,22 +222,26 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
 
   Widget _buildErrorPage() {
     return HomeErrorContainer(
-      onRetry: () => setState(() {}),
+      onRetry: () => setState(() {
+        _postListFuture = LakeUtil.initPostList(index, forced: true);
+      }),
       errorText: "网络状况不佳，请重试",
     );
   }
 
   bool isRefresh = false;
 
+  void _changeSortAndRefresh(int sortSeq) {
+    LakeUtil.sortSeq.value = sortSeq;
+    pageController.refreshController.requestRefresh();
+  }
+
   Row _buildSortSelection() {
+    final hasTop =
+        pageController.postHolder.postsList.any((post) => post.eTag == 'top');
     return Row(mainAxisAlignment: MainAxisAlignment.start, children: [
       WButton(
-        onPressed: () {
-          setState(() {
-            LakeUtil.sortSeq.value = 1;
-            _onRefresh();
-          });
-        },
+        onPressed: () => _changeSortAndRefresh(1),
         child: Padding(
           padding: EdgeInsets.fromLTRB(20.w, 14.h, 5.w, 6.h),
           child: ValueListenableBuilder(
@@ -236,12 +256,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
         ),
       ),
       WButton(
-        onPressed: () {
-          setState(() {
-            LakeUtil.sortSeq.value = 0;
-            _onRefresh();
-          });
-        },
+        onPressed: () => _changeSortAndRefresh(0),
         child: Padding(
           padding: EdgeInsets.fromLTRB(5.w, 14.h, 10.w, 6.h),
           child: ValueListenableBuilder(
@@ -254,6 +269,25 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
               }),
         ),
       ),
+      if (hasTop) ...[
+        Spacer(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(5.w, 14.h, 12.w, 6.h),
+          child: ValueListenableBuilder<Set<String>>(
+            valueListenable: LakeUtil.collapsedTopTabs,
+            builder: (context, collapsed, _) {
+              if (collapsed.contains('$index')) return SizedBox.shrink();
+              return WButton(
+                onPressed: () => LakeUtil.toggleCollapsedTop(index),
+                child: Text(
+                  '折叠置顶帖',
+                  style: TextUtil.base.label(context).w400.sp(14),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     ]);
   }
 
@@ -274,9 +308,55 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     if (ind == 0) return _buildSortSelection();
     ind--;
 
+    if (isRefresh) return PostSkeleton();
+
     // Post
-    final post = pageController.postHolder.postsList[ind];
+    final posts = pageController.postHolder.postsList;
+    final post = posts[ind];
+    if (post.eTag == 'top' &&
+        LakeUtil.collapsedTopTabs.value.contains('$index')) {
+      final isFirstTop = posts.take(ind).every((item) => item.eTag != 'top');
+      return isFirstTop
+          ? _buildCollapsedTopBar(index)
+          : const SizedBox.shrink();
+    }
     return PostCardNormal(post);
+  }
+
+  Widget _buildCollapsedTopBar(int tabId) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 4),
+      child: InkWell(
+        onTap: () => LakeUtil.toggleCollapsedTop(tabId),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: WpyTheme.of(context).get(WpyColorKey.lightBorderColor),
+                width: 1.h,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              ETagWidget(entry: 'top', full: false),
+              SizedBox(width: 8),
+              Text(
+                '展开置顶帖',
+                style: TextUtil.base.NotoSansSC.w400.sp(14).primary(context),
+              ),
+              Spacer(),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 22,
+                color: WpyTheme.of(context).get(WpyColorKey.secondaryTextColor),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -284,7 +364,7 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
     super.build(context);
 
     return FutureBuilder(
-        future: LakeUtil.initPostList(index),
+        future: _postListFuture,
         builder: (context, snapshot) {
           return AnimatedSwitcher(
             duration: Duration(milliseconds: 300),
@@ -303,49 +383,52 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
                     _onScrollNotification(scrollInfo),
                 child: ListenableBuilder(
                   // 这里是Post的Listview, 需要监听Post刷新
-                  listenable: pageController.postHolder,
+                  listenable: Listenable.merge([
+                    pageController.postHolder,
+                    LakeUtil.collapsedTopTabs,
+                  ]),
                   builder: (context, oldChild) {
                     return SmartRefresher(
-                        physics: BouncingScrollPhysics(),
-                        controller: pageController.refreshController,
-                        scrollController: pageController.scrollController,
-                        header: ClassicHeader(
-                          height: 5.h,
-                          completeDuration: Duration(milliseconds: 300),
-                          idleText: '下拉以刷新 (乀*･ω･)乀',
-                          releaseText: '下拉以刷新',
-                          refreshingText:
-                              topText[Random().nextInt(topText.length)],
-                          completeText: '刷新完成 (ﾉ*･ω･)ﾉ',
-                          failedText: '刷新失败（；´д｀）ゞ',
-                        ),
-                        cacheExtent: 1.sh,
-                        enablePullDown: true,
-                        onRefresh: _onRefresh,
-                        footer: ClassicFooter(
-                          idleText: '下拉以刷新',
-                          noDataText: '无数据',
-                          loadingText: '加载中，请稍等  ;P',
-                          failedText: '加载失败（；´д｀）ゞ',
-                        ),
-                        enablePullUp: true,
-                        onLoading: _onLoading,
-                        child: isRefresh
-                            ? RefreshSkeleton()
-                            : ListView.builder(
-                                // 根据要求， Listview必须紧挨着SmartRefresher，
-                                // 不能包装任何东西
-                                // 所以不得已使用三元表达式
-                                key: PageStorageKey("$index,$loadFlag"),
-                                shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
-                                // 4是因为前面有4个widget，
-                                // Welcome, 热榜， Banner, 排序选择器
-                                itemCount:
-                                    pageController.postHolder.postsList.length +
-                                        4,
-                                itemBuilder: _buildPostList,
-                              ),
+                      physics: BouncingScrollPhysics(),
+                      controller: pageController.refreshController,
+                      scrollController: pageController.scrollController,
+                      header: ClassicHeader(
+                        height: 5.h,
+                        completeDuration: Duration(milliseconds: 300),
+                        idleText: '下拉以刷新 (乀*･ω･)乀',
+                        releaseText: '下拉以刷新',
+                        refreshingText:
+                            topText[Random().nextInt(topText.length)],
+                        completeText: '刷新完成 (ﾉ*･ω･)ﾉ',
+                        failedText: '刷新失败（；´д｀）ゞ',
+                      ),
+                      cacheExtent: 1.sh,
+                      enablePullDown: true,
+                      onRefresh: _onRefresh,
+                      footer: ClassicFooter(
+                        idleText: '下拉以刷新',
+                        noDataText: '无数据',
+                        loadingText: '加载中，请稍等  ;P',
+                        failedText: '加载失败（；´д｀）ゞ',
+                      ),
+                      enablePullUp: true,
+                      onLoading: _onLoading,
+                      child: isRefresh
+                          ? RefreshSkeleton()
+                          : ListView.builder(
+                              // 根据要求， Listview必须紧挨着SmartRefresher，
+                              // 不能包装任何东西
+                              // 所以不得已使用三元表达式
+                              key: PageStorageKey("$index,$loadFlag"),
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              // 4是因为前面有4个widget，
+                              // Welcome, 热榜， Banner, 排序选择器
+                              itemCount:
+                                  pageController.postHolder.postsList.length +
+                                      4,
+                              itemBuilder: _buildPostList,
+                            ),
                     );
                   },
                 ),

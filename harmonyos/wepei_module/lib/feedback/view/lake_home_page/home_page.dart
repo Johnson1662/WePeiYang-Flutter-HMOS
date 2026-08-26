@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:extended_tabs/extended_tabs.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +25,7 @@ import 'package:wepei_module/message/feedback_message_page.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
 import 'package:wepei_module/commons/widgets/w_button.dart';
+import 'package:wepei_module/commons/widgets/wpy_pic.dart';
 import 'package:wepei_module/home/view/web_views/festival_page.dart';
 import 'package:wepei_module/message/model/message_provider.dart';
 
@@ -53,6 +54,7 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
   double get tabBarHeight => 46.h;
 
   late final FbDepartmentsProvider _departmentsProvider;
+  late Future<void> _tabListFuture;
 
   initPage() {
     _departmentsProvider.initDepartments();
@@ -72,36 +74,73 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
     super.initState();
     _departmentsProvider =
         Provider.of<FbDepartmentsProvider>(context, listen: false);
+    _tabListFuture = LakeUtil.initTabList();
+    LakeUtil.getClipboardWeKoContents(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       initPage();
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        LakeUtil.getClipboardWeKoContents(context);
-      });
     });
   }
 
   @override
   bool get wantKeepAlive => true;
 
-  void listToTop() async {
-    // 页面还没加载完成， 无法滚动到顶部
-    if (tabController == null) return;
-    final controller = LakeUtil.currentController.scrollController;
-    if (!controller.hasClients) return;
+  LakePageController? _currentPageController() {
+    if (tabController == null || LakeUtil.tabList.isEmpty) return null;
 
-    // 如果距离太大，直接跳转到1500， 防止动画太夸张
-    if (controller.offset > 1500) {
-      controller.jumpTo(1500.toDouble());
+    final currentIndex =
+        tabController!.index.clamp(0, LakeUtil.tabList.length - 1).toInt();
+    LakeUtil.currentTab.value = currentIndex;
+
+    final currentTabId = LakeUtil.tabList[currentIndex].id;
+    return LakeUtil.lakePageControllers[currentTabId];
+  }
+
+  void listToTop({bool retryAfterFrame = true}) {
+    // 当前 tab 由 TabController.index 唯一决定，对应的控制器已在子页 initState
+    // 无条件挂上，这里直接取即可。
+    final pageController = _currentPageController();
+    final scrollController = pageController?.scrollController;
+    final refreshController = pageController?.refreshController;
+
+    if (scrollController == null ||
+        refreshController == null ||
+        !scrollController.hasClients) {
+      // 极少数情况：当前 tab 刚切过来还没 build 完，下一帧再试一次
+      if (retryAfterFrame && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) listToTop(retryAfterFrame: false);
+        });
+      }
+      return;
     }
 
-    await controller.animateTo(
-      -85.toDouble(),
-      duration: Duration(milliseconds: 400),
-      curve: Curves.easeOutCirc,
-    );
-    Future.delayed(Duration(milliseconds: 400), () {
-      controller.jumpTo(0.toDouble());
-    });
+    void triggerRefresh() {
+      // 动画结束后才触发刷新；中途页面被切走/卸载就放弃，避免对已失活的
+      // ScrollController 继续操作导致崩溃
+      if (!mounted || !scrollController.hasClients) return;
+      if (refreshController.isRefresh) return;
+      refreshController.requestRefresh(
+        duration: Duration(milliseconds: 350),
+        curve: Curves.easeOutCirc,
+      );
+    }
+
+    // 距离太大先瞬移一段，避免动画太夸张
+    if (scrollController.offset > 1500) {
+      scrollController.jumpTo(1500.toDouble());
+    }
+
+    if (scrollController.offset > 0) {
+      scrollController
+          .animateTo(
+            0.toDouble(),
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOutCirc,
+          )
+          .whenComplete(triggerRefresh);
+    } else {
+      triggerRefresh();
+    }
   }
 
   TabController? tabController;
@@ -162,7 +201,7 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
                         overflow: TextOverflow.ellipsis,
                         style: TextUtil.base
                             .infoText(context)
-                            .PingFangSC
+                            .NotoSansSC
                             .w400
                             .sp(15),
                       ),
@@ -175,7 +214,7 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
                         overflow: TextOverflow.ellipsis,
                         style: TextUtil.base
                             .infoText(context)
-                            .PingFangSC
+                            .NotoSansSC
                             .w400
                             .sp(15),
                       ),
@@ -190,8 +229,9 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
 
   Widget _buildReloadPage() {
     return HomeErrorContainer(
-      // 直接重新Load 这个Widget,重新来FutureBuilder的Future
-      onRetry: () => setState(() {}),
+      onRetry: () => setState(() {
+        _tabListFuture = LakeUtil.initTabList();
+      }),
       errorText: "完全没有网络，论坛加载失败",
     );
   }
@@ -265,12 +305,16 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
   }
 
   Widget _buildForumView(List<WPYTab> tabs) {
-    return ExtendedTabBarView(
-      cacheExtent: 0,
+    return TabBarView(
       controller: tabController!,
+      dragStartBehavior: DragStartBehavior.down,
+      physics: const PageScrollPhysics(),
       children: List<Widget>.generate(
         tabs.length,
-        (i) => NSubPage(index: tabs[i].id),
+        (i) => NSubPage(
+          key: PageStorageKey('lake-tab-${tabs[i].id}'),
+          index: tabs[i].id,
+        ),
       ),
     );
   }
@@ -286,10 +330,10 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
         physics: BouncingScrollPhysics(),
         controller: tabController!,
         labelColor: WpyTheme.of(context).get(WpyColorKey.primaryActionColor),
-        labelStyle: TextUtil.base.w400.PingFangSC.sp(18),
+        labelStyle: TextUtil.base.w400.NotoSansSC.sp(18),
         unselectedLabelColor:
             WpyTheme.of(context).get(WpyColorKey.labelTextColor),
-        unselectedLabelStyle: TextUtil.base.w400.PingFangSC.sp(18),
+        unselectedLabelStyle: TextUtil.base.w400.NotoSansSC.sp(18),
         indicator: CustomIndicator(
           borderSide: BorderSide(
             color: WpyTheme.of(context).get(WpyColorKey.primaryActionColor),
@@ -375,7 +419,7 @@ class FeedbackHomePageState extends State<FeedbackHomePage>
         // 给状态切换增加动画
         duration: Duration(milliseconds: 200),
         child: FutureBuilder(
-            future: LakeUtil.initTabList(),
+            future: _tabListFuture,
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return _buildReloadPage();
@@ -563,8 +607,16 @@ class BannerWidget extends StatelessWidget {
                   width: 60.r,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(100.r)),
-                    image: DecorationImage(
-                        image: NetworkImage(picUrl), fit: BoxFit.cover),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(100.r)),
+                    child: WpyPic(
+                      picUrl,
+                      width: 60.r,
+                      height: 60.r,
+                      fit: BoxFit.cover,
+                      withHolder: true,
+                    ),
                   ),
                 ),
                 onTap: () async {
@@ -576,9 +628,9 @@ class BannerWidget extends StatelessWidget {
                               '<token>', '${CommonPreferences.token.value}')
                           .replaceAll('<laketoken>',
                               '${await LakeTokenManager().refreshToken()}');
-                      if (await canLaunchUrlString(launchUrl).catchError((_) => false)) {
+                      if (await canLaunchUrlString(launchUrl)) {
                         launchUrlString(launchUrl,
-                            mode: LaunchMode.externalApplication).catchError((_) {});
+                            mode: LaunchMode.externalApplication);
                       } else {
                         ToastProvider.error('好像无法打开活动呢，请联系天外天工作室');
                       }
@@ -640,7 +692,7 @@ class FbTagsWrapState extends State<FbTagsWrap>
                   label: Text(provider.departmentList[index].name,
                       style: TextUtil.base.normal
                           .label(context)
-                          .PingFangSC
+                          .NotoSansSC
                           .sp(13)),
                 ),
                 onTap: () {
@@ -686,7 +738,7 @@ class FbTagsWrapState extends State<FbTagsWrap>
               child: Container(
                 color: WpyTheme.of(context)
                     .get(WpyColorKey.reverseBackgroundColor)
-                    .withOpacity(0.45),
+                    .withValues(alpha: 0.45),
               ),
             )),
         Offstage(

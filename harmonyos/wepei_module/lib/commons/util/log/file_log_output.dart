@@ -87,6 +87,7 @@ class FileLogOutput {
 
   /// 按时间顺序（旧 → 新）读出全部日志文本。
   Future<String> readAll() async {
+    await _chain;
     final buffer = StringBuffer();
     final files = await logFiles();
     for (final file in files.reversed) {

@@ -58,8 +58,8 @@ class _ActivityCardState extends State<ActivityCard> {
               .replaceAll('<token>', '${CommonPreferences.token.value}')
               .replaceAll(
                   '<laketoken>', '${await LakeTokenManager().refreshToken()}');
-          if (await canLaunchUrlString(launchUrl).catchError((_) => false)) {
-            launchUrlString(launchUrl, mode: LaunchMode.externalApplication).catchError((_) {});
+          if (await canLaunchUrlString(launchUrl)) {
+            launchUrlString(launchUrl, mode: LaunchMode.externalApplication);
           } else {
             ToastProvider.error('好像无法打开活动呢，请联系天外天工作室');
           }
@@ -71,14 +71,13 @@ class _ActivityCardState extends State<ActivityCard> {
                 context.read<FestivalProvider>().nonePopupList[index].title),
           );
         }
-
       },
       child: Stack(
         children: [
           if (WpyTheme.of(context).brightness == Brightness.dark)
             ColorFiltered(
               colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.2), // 调整这个透明度值来控制降低亮度的程度
+                Colors.black.withValues(alpha: 0.2), // 调整这个透明度值来控制降低亮度的程度
                 BlendMode.darken, // 使用darken混合模式来降低亮度
               ),
               child: banner,
@@ -104,7 +103,6 @@ class _ActivityCardState extends State<ActivityCard> {
           builder: (BuildContext context, value, Widget? child) {
         final length = context.read<FestivalProvider>().nonePopupList.length;
         bool canSwipe = length > 1;
-        print("==> length: $length, canSwipe: $canSwipe");
         return ClipRRect(
             borderRadius: BorderRadius.all(Radius.circular(8.r)),
             clipBehavior: Clip.hardEdge,

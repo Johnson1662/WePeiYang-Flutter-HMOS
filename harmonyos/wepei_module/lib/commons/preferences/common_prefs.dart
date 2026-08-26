@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint, ValueNotifier;
@@ -75,6 +76,10 @@ class CommonPreferences {
   static final feedbackLastLostAndFoundWeCo =
       PrefsBean<String>('feedbackLastWeKo');
   static final avatarBoxMyUrl = PrefsBean<String>('avatarBoxMyUrl');
+
+  /// 已折叠置顶帖的分区 id 集合（跨会话记忆）
+  static final collapsedTopTabs =
+      PrefsBean<List<String>>('collapsedTopTabs', []);
 
   /// 求实论坛--等级系统
   static final levelPoint = PrefsBean<int>('levelPoint');
@@ -156,12 +161,20 @@ class CommonPreferences {
   static final happenSpring = PrefsBean<bool>('happenSpring', false);
 
   /// 首页工具栏的东西
-  static final displayOrder = PrefsBean<String>('displayOrder', "0,1,2,3,4,5");
-  static final displayedTool = PrefsBean<List<CardBean>>('displayedTool', [
+  static const defaultDisplayOrder = '0,1,2,3,4,5,6';
+  static const _legacyDefaultDisplayOrder = '0,1,2,3,4,5';
+
+  static final displayOrder =
+      PrefsBean<String>('displayOrder', defaultDisplayOrder);
+  static final toolbarOrderMigrated =
+      PrefsBean<bool>('toolbarOrderMigrated', false);
+  static final displayedTool = CardBeanListPrefs('displayedTool', [
     CardBean("assets/svg_pics/lake_butt_icons/daily.png", 21.w, '课程表',
         'Schedule', ScheduleRouter.course),
     CardBean('assets/svg_pics/lake_butt_icons/QR.png', 24.w, '入校码', 'Entry QR',
         HomeRouter.casQR),
+    CardBean('assets/images/account/comment.png', 24.w, '课评网', 'Course\nReview',
+        HomeRouter.courseReview),
     CardBean("assets/svg_pics/lake_butt_icons/news.png", 24.w, '新闻网', 'News',
         HomeRouter.news),
     CardBean('assets/images/schedule/add.png', 24.w, '地图·校历', 'Map-\nCalendar',
@@ -175,7 +188,36 @@ class CommonPreferences {
     // CardBean('assets/svg_pics/lake_butt_icons/game.png', 33.w, '小游戏', 'Game',
     //     HomeRouter.game)
   ]);
-  static final userTool = PrefsBean<List<CardBean>>('userTool', []);
+  static final userTool = CardBeanListPrefs('userTool', []);
+
+  static List<int> sanitizedDisplayOrder({int minCount = 2}) {
+    final toolsLength = displayedTool.value.length;
+    final rawOrder = displayOrder.value;
+    final effectiveOrder =
+        !toolbarOrderMigrated.value && rawOrder == _legacyDefaultDisplayOrder
+            ? defaultDisplayOrder
+            : rawOrder;
+    final order = <int>[];
+    for (final item in effectiveOrder.split(',')) {
+      final index = int.tryParse(item.trim());
+      if (index == null || index < 0 || index >= toolsLength) continue;
+      if (!order.contains(index)) order.add(index);
+    }
+
+    if (order.length < minCount) {
+      order
+        ..clear()
+        ..addAll(List.generate(toolsLength, (index) => index));
+    }
+    if (order.isEmpty && toolsLength > 0) order.add(0);
+
+    final sanitizedOrder = order.join(',');
+    if (sanitizedOrder != rawOrder) {
+      displayOrder.value = sanitizedOrder;
+    }
+    if (effectiveOrder != rawOrder) toolbarOrderMigrated.value = true;
+    return order;
+  }
 
   /// 自习室
   static final loungeUpdateTime = PrefsBean<String>('loungeUpdateTime');
@@ -219,6 +261,7 @@ class CommonPreferences {
 
   /// 清除所有缓存
   static void clearAllPrefs() {
+    mockPref?.clear();
     sharedPref.clear();
     firstPrivacy.value = false; //隐私政策不重复显示了
   }
@@ -252,6 +295,44 @@ class PrefsBean<T> with PreferencesUtil<T> {
   void clear() => _clearValue(_key);
 }
 
+/// SharedPreferences 不能直接保存 CardBean 列表，使用 JSON 字符串存储。
+class CardBeanListPrefs {
+  CardBeanListPrefs(this._key, List<CardBean> defaultValue)
+      : _defaultValue = List<CardBean>.unmodifiable(defaultValue);
+
+  final String _key;
+  final List<CardBean> _defaultValue;
+  List<CardBean>? _cachedValue;
+
+  List<CardBean> get value => _cachedValue ??= _read();
+
+  Future<void> save() async {
+    final encoded = jsonEncode(value.map((tool) => tool.toJson()).toList());
+    final mockPref = CommonPreferences.mockPref;
+    if (mockPref != null) {
+      await mockPref.setString(_key, encoded);
+    } else {
+      await CommonPreferences.sharedPref.setString(_key, encoded);
+    }
+  }
+
+  List<CardBean> _read() {
+    final raw = CommonPreferences.mockPref?.getString(_key) ??
+        CommonPreferences.sharedPref.getString(_key);
+    if (raw == null) return List<CardBean>.from(_defaultValue);
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return List<CardBean>.from(_defaultValue);
+      return decoded
+          .map((item) => CardBean.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    } catch (_) {
+      return List<CardBean>.from(_defaultValue);
+    }
+  }
+}
+
 mixin PreferencesUtil<T> {
   static SharedPreferences get pref => CommonPreferences.sharedPref;
   static MockSharedPreferences? get mockPref => CommonPreferences.mockPref;
@@ -261,6 +342,9 @@ mixin PreferencesUtil<T> {
 
   dynamic _getValue(String key) {
     if (_useHmos) {
+      if (T == List<String>) {
+        return mockPref!.getStringList(key);
+      }
       return mockPref!.get(key);
     }
     if (T == List<String>) {

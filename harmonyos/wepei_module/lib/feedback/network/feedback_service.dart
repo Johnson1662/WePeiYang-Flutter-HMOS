@@ -1,3 +1,4 @@
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -38,14 +39,8 @@ class FeedbackDio extends DioAbstract {
         //       true);
         default: // 其他错误
           var data = response.data['data'];
-          if (code == 401) {
-            // token 失效，清除旧 token，下一次请求会重新换取
-            CommonPreferences.lakeToken.value = '';
-          }
-          var error = (data is Map && data['error'] != null)
-              ? data['error'].toString()
-              : response.data['msg']?.toString() ?? '请求失败';
-          return handler.reject(WpyDioException(error: error), true);
+          if (data == null || data['error'] == null) return;
+          return handler.reject(WpyDioException(error: data['error']), true);
       }
     })
   ];
@@ -142,6 +137,9 @@ class FeedbackService with AsyncTimer {
     return false;
   }
 
+  static List<Floor> filterBlockedFloors(Iterable<Floor> floors) => floors
+      .where((item) => !CommentBlockCheck(item))
+      .toList();
 
   static getTokenByPw(
     String user,
@@ -516,7 +514,7 @@ class FeedbackService with AsyncTimer {
         },
       );
       final floor = FloorList.fromJson(response.data['data']);
-      onResult(floor.list);
+      onResult(filterBlockedFloors(floor.list));
     } on DioException catch (e) {
       onFailure(e);
     }
@@ -565,7 +563,7 @@ class FeedbackService with AsyncTimer {
       for (Map<String, dynamic> json in commentResponse.data['data']['list']) {
         officialCommentList.add(Floor.fromJson(json));
       }
-      onSuccess(officialCommentList);
+      onSuccess(filterBlockedFloors(officialCommentList));
     } on DioException catch (e) {
       onFailure(e);
     }
@@ -1163,7 +1161,7 @@ class FeedbackService with AsyncTimer {
       avatarBoxList.clear();
       avatarBoxList.addAll(list.avatarFrameList);
     } on DioException catch (e) {
-      print(e.error);
+      Log.e(e, null, 'feedback');
     }
     return avatarBoxList;
   }
@@ -1177,7 +1175,7 @@ class FeedbackService with AsyncTimer {
       avatarBoxList.clear();
       avatarBoxList.addAll(list.avatarFrameList);
     } on DioException catch (e) {
-      print(e.error);
+      Log.e(e, null, 'feedback');
     }
     return avatarBoxList;
   }
@@ -1194,7 +1192,7 @@ class FeedbackService with AsyncTimer {
       }
     } on DioException catch (e) {
       ToastProvider.error('坏耶!头像框设置失败!');
-      print(e.error);
+      Log.e(e, null, 'feedback');
     }
   }
 
@@ -1229,7 +1227,6 @@ class FeedbackService with AsyncTimer {
       formData.fields.addAll([MapEntry('options', element)]);
     });
     final res = await feedbackDio.post('post/vote/new', formData: formData);
-    print("==> d ${res.data}");
     if (res.data['code'] == 200) {
       return;
     }

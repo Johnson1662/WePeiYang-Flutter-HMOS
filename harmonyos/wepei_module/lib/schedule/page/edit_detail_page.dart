@@ -167,7 +167,7 @@ class _EditDetailPageState extends State<EditDetailPage> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         bool? confirm = await _showDialog('是否保存修改内容?');
         if (confirm == true) {
@@ -267,6 +267,7 @@ class _EditDetailPageState extends State<EditDetailPage> {
                       onTap: () {
                         context.read<EditProvider>().add();
                         Future.delayed(const Duration(milliseconds: 100), () {
+                          if (!mounted) return;
                           _scrollController.animateTo(
                             _scrollController.position.maxScrollExtent,
                             duration: const Duration(milliseconds: 200),
