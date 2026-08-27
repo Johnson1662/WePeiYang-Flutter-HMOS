@@ -707,17 +707,12 @@ class _VoteFormWidgetState extends State<VoteFormWidget> {
                                 .get(WpyColorKey.primaryActionColor)),
                       ),
                     ),
-                    Container(
-                      width: 270.h,
-                      child: Wrap(
-                        children: [
-                          Text(e.content,
-                              style: TextUtil.base.w400.NotoSansSC
-                                  .sp(14)
-                                  .primary(context)
-                                  .h(1.6)),
-                        ],
-                      ),
+                    Expanded(
+                      child: Text(e.content,
+                          style: TextUtil.base.w400.NotoSansSC
+                              .sp(14)
+                              .primary(context)
+                              .h(1.6)),
                     ),
                   ],
                 ),

@@ -712,17 +712,12 @@ class _VoteFormWidgetState extends State<VoteFormWidget> {
                                 .get(WpyColorKey.primaryActionColor)),
                       ),
                     ),
-                    Container(
-                      width: 270.h,
-                      child: Wrap(
-                        children: [
-                          Text(e.content,
-                              style: TextUtil.base.w400.PingFangSC
-                                  .sp(14)
-                                  .primary(context)
-                                  .h(1.6)),
-                        ],
-                      ),
+                    Expanded(
+                      child: Text(e.content,
+                          style: TextUtil.base.w400.PingFangSC
+                              .sp(14)
+                              .primary(context)
+                              .h(1.6)),
                     ),
                   ],
                 ),
@@ -797,25 +792,37 @@ class VoteOptionWidget extends StatelessWidget {
     return Column(
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              margin: EdgeInsets.only(top: 5.w),
-              width: 230.h,
-              child: Wrap(children: [
-                Text(
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(top: 5.w, right: 8.w),
+                child: Text(
                   option.content + (selected ? " (已选)" : ""),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextUtil.base.w400.PingFangSC
                       .sp(14)
                       .primary(context)
                       .h(1.6),
                 ),
-              ]),
+              ),
             ),
-            Spacer(),
-            Text(
-              "${option.count.toString()} 票 (${formatPercent(percent)}%)",
-              style:
-                  TextUtil.base.w400.PingFangSC.sp(12).infoText(context).h(1.6),
+            Flexible(
+              flex: 0,
+              child: Padding(
+                padding: EdgeInsets.only(top: 5.w),
+                child: Text(
+                  "${option.count.toString()} 票 (${formatPercent(percent)}%)",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: TextUtil.base.w400.PingFangSC
+                      .sp(12)
+                      .infoText(context)
+                      .h(1.6),
+                ),
+              ),
             ),
           ],
         ),
