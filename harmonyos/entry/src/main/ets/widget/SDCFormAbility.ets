@@ -19,6 +19,13 @@ interface CourseItem {
   timeEnd: string;
 }
 
+interface ScheduleFormBinding {
+  courses: CourseItem[];
+  isEmpty: boolean;
+  lastUpdate: number;
+  formDimension?: string;
+}
+
 interface CourseArrange {
   weekday: number;
   weekList: number[];
@@ -197,14 +204,12 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
 
     todayCourses.sort((a: CourseItem, b: CourseItem) => a.time.localeCompare(b.time));
     console.info(TAG, 'loadFormData: found ' + todayCourses.length + ' courses today');
-    const bindingObj: Record<string, Object> = {
+    const bindingObj: ScheduleFormBinding = {
       courses: todayCourses,
       isEmpty: todayCourses.length === 0,
       lastUpdate: Date.now(),
+      formDimension: dimension || '2*4',
     };
-    if (dimension) {
-      bindingObj['formDimension'] = dimension;
-    }
     return formBindingData.createFormBindingData(bindingObj);
   }
 }
