@@ -269,7 +269,7 @@ class WePeiYangAppState extends State<WePeiYangApp>
                 child: MaterialApp(
                   navigatorKey: RouterManager.navigatorKey,
                   debugShowCheckedModeBanner: false,
-                  title: 'WePeiYang',
+                  title: '微北洋',
                   theme: ThemeData.light().copyWith(
                     platform: TargetPlatform.android,
                     pageTransitionsTheme: const PageTransitionsTheme(
