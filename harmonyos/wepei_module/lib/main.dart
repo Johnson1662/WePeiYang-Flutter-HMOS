@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show Navigator;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:wepei_module/commons/font/font_loader.dart';
@@ -36,9 +35,6 @@ import 'commons/util/logger.dart';
 import 'commons/util/navigator_observers.dart';
 import 'commons/util/router_manager.dart';
 import 'auth/auth_router.dart';
-import 'auth/network/splash_service.dart';
-import 'commons/widgets/colored_icon.dart';
-import 'commons/widgets/wpy_pic.dart';
 import 'home/home_router.dart';
 import 'commons/util/storage_util.dart';
 import 'commons/util/text_util.dart';
@@ -154,10 +150,83 @@ final _appState = WePeiYangAppState._();
 class WePeiYangAppState extends State<WePeiYangApp>
     with WidgetsBindingObserver {
   WePeiYangAppState._();
+  static const _launchChannel = MethodChannel('com.twt.service/saveImg');
+  late final bool _openHome;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _openHome = _resolveInitialPage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WePeiYangApp.navigatorState =
+          RouterManager.navigatorKey.currentState ?? Navigator.of(context);
+      WbyFontLoader.initFonts();
+      unawaited(_notifyNativeFirstFrame());
+      unawaited(LocalSetting.changeSecurity(false).catchError((_) {}));
+      _readCachedData();
+      _refreshLoginState();
+    });
+  }
+
+  Future<void> _notifyNativeFirstFrame() async {
+    try {
+      await _launchChannel
+          .invokeMethod('flutterFirstFrame')
+          .timeout(const Duration(seconds: 1));
+    } catch (_) {}
+    // 服务卡片点击直达：冷启动场景下消费原生侧缓存的待跳转路由
+    try {
+      final pendingRoute = await _launchChannel
+          .invokeMethod<String>('consumePendingRoute')
+          .timeout(const Duration(seconds: 1));
+      if (pendingRoute != null && pendingRoute.isNotEmpty && _openHome) {
+        RouterManager.navigatorKey.currentState?.pushNamed(pendingRoute);
+      }
+    } catch (_) {}
+  }
+
+  bool _resolveInitialPage() {
+    if (CommonPreferences.updateTime.value == '') {
+      CommonPreferences.updateTime.value = '20221019';
+    } else if (CommonPreferences.updateTime.value != '20221019') {
+      CommonPreferences.clearAllPrefs();
+      return false;
+    }
+    return CommonPreferences.isLogin.value &&
+        CommonPreferences.token.value.isNotEmpty;
+  }
+
+  void _readCachedData() {
+    final navContext = RouterManager.navigatorKey.currentContext;
+    if (navContext != null) {
+      try { navContext.read<CourseProvider>().readPref(); } catch (_) {}
+      try { navContext.read<GPANotifier>().readPref(); } catch (_) {}
+      try { navContext.read<ExamProvider>().readPref(); } catch (_) {}
+    }
+  }
+
+  void _refreshLoginState() {
+    if (CommonPreferences.token.value.isEmpty) return;
+    unawaited(LakeTokenManager().refreshToken().catchError((_) => ''));
+    unawaited(
+      AuthService.getInfo(
+        onSuccess: () {},
+        onFailure: (_) {
+          if (CommonPreferences.account.value.isNotEmpty &&
+              CommonPreferences.password.value.isNotEmpty) {
+            unawaited(
+              AuthService.pwLogin(
+                CommonPreferences.account.value,
+                CommonPreferences.password.value,
+                onResult: (_) {},
+                onFailure: (_) {},
+              ),
+            );
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -269,7 +338,7 @@ class WePeiYangAppState extends State<WePeiYangApp>
                       },
                     ),
                   ),
-                  home: const AppEntryPage(),
+                  initialRoute: _openHome ? HomeRouter.home : AuthRouter.login,
                   navigatorObservers: [AppRouteAnalysis()],
                   builder: FlutterSmartDialog.init(
                     toastBuilder: (String msg) => Container(
@@ -289,177 +358,6 @@ class WePeiYangAppState extends State<WePeiYangApp>
           ),
         );
       },
-    );
-  }
-}
-
-class AppEntryPage extends StatefulWidget {
-  const AppEntryPage({super.key});
-
-  @override
-  State<AppEntryPage> createState() => _AppEntryPageState();
-}
-
-class _AppEntryPageState extends State<AppEntryPage> {
-  static const _launchChannel = MethodChannel('com.twt.service/saveImg');
-  late final bool _openHome;
-  String? _remoteUrl;
-  bool _hasNavigated = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _openHome = _resolveInitialPage();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      WePeiYangApp.navigatorState = Navigator.of(context);
-      WbyFontLoader.initFonts();
-      unawaited(_notifyNativeFirstFrame());
-      unawaited(LocalSetting.changeSecurity(false).catchError((_) {}));
-      _readCachedData();
-      _refreshLoginState();
-      // 启动页（对齐原版 SplashScreen）：先展示 logo，再经路由跳转，
-      // 触发 MaterialApp 的 ZoomPageTransitionsBuilder「从中间扩大弹出」入场动画
-      unawaited(_loadSplashIcon());
-      unawaited(_navigateToEntry());
-    });
-  }
-
-  /// 远程开屏图：拉取失败/超时静默保留本地默认 logo。
-  Future<void> _loadSplashIcon() async {
-    try {
-      final banners = await SplashService.getBanner()
-          .timeout(const Duration(seconds: 3));
-      if (!mounted || banners.isEmpty) return;
-      final url = banners.first.picUrl.trim();
-      if (url.isEmpty) return;
-      await precacheImage(CachedNetworkImageProvider(url), context);
-      if (!mounted) return;
-      setState(() => _remoteUrl = url);
-    } catch (_) {
-      // 忽略：保持本地默认开屏图。
-    }
-  }
-
-  Future<void> _navigateToEntry() async {
-    // 启动 logo 至少展示一段时间，让入场过渡可见（对齐原版表现）
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted || _hasNavigated) return;
-    _hasNavigated = true;
-    // 服务卡片点击直达：冷启动场景下消费原生侧缓存的待跳转路由
-    String? pendingRoute;
-    try {
-      pendingRoute = await _launchChannel
-          .invokeMethod<String>('consumePendingRoute')
-          .timeout(const Duration(seconds: 1));
-    } catch (_) {}
-    if (_openHome) {
-      await WePeiYangApp.navigatorState
-          .pushNamedAndRemoveUntil(HomeRouter.home, (route) => false);
-      if (pendingRoute != null && pendingRoute.isNotEmpty) {
-        WePeiYangApp.navigatorState.pushNamed(pendingRoute);
-      }
-    } else {
-      WePeiYangApp.navigatorState.pushReplacementNamed(AuthRouter.login);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = WpyTheme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkMode ? Colors.black : Colors.white;
-
-    final Widget content;
-    if (_remoteUrl != null) {
-      // 远程开屏图：整屏铺满，保留原图配色
-      content = WpyPic(
-        _remoteUrl!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        withHolder: false,
-      );
-    } else {
-      // 本地默认 logo：居中、随主题色着色。
-      // scale/内边距用于对齐原生启动窗口的 startWindowAppIcon（系统固定大小、略偏上居中），
-      // 若仍有偏差，调这里的 0.93 与底部 padding（50）即可。
-      final asset = isDarkMode
-          ? 'assets/images/splash_screen_dark.png'
-          : 'assets/images/splash_screen.png';
-      content = Padding(
-        padding: const EdgeInsets.fromLTRB(30, 30, 30, 80),
-        child: Center(
-          child: Transform.scale(
-            scale: 0.93,
-            child: ColoredIcon(asset, color: WpyTheme.of(context).primary),
-          ),
-        ),
-      );
-    }
-
-    // 本地图 → 远程图之间用淡入过渡
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
-      child: Container(
-        key: ValueKey(_remoteUrl ?? 'local'),
-        color: backgroundColor,
-        constraints: const BoxConstraints.expand(),
-        child: content,
-      ),
-    );
-  }
-
-  Future<void> _notifyNativeFirstFrame() async {
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    try {
-      await _launchChannel
-          .invokeMethod('flutterFirstFrame')
-          .timeout(const Duration(seconds: 1));
-    } catch (_) {}
-  }
-
-  bool _resolveInitialPage() {
-    if (CommonPreferences.updateTime.value == '') {
-      CommonPreferences.updateTime.value = '20221019';
-    } else if (CommonPreferences.updateTime.value != '20221019') {
-      CommonPreferences.clearAllPrefs();
-      return false;
-    }
-    return CommonPreferences.isLogin.value &&
-        CommonPreferences.token.value.isNotEmpty;
-  }
-
-  void _readCachedData() {
-    try {
-      context.read<CourseProvider>().readPref();
-    } catch (_) {}
-    try {
-      context.read<GPANotifier>().readPref();
-    } catch (_) {}
-    try {
-      context.read<ExamProvider>().readPref();
-    } catch (_) {}
-  }
-
-  void _refreshLoginState() {
-    if (CommonPreferences.token.value.isEmpty) return;
-    unawaited(LakeTokenManager().refreshToken().catchError((_) => ''));
-    unawaited(
-      AuthService.getInfo(
-        onSuccess: () {},
-        onFailure: (_) {
-          if (CommonPreferences.account.value.isNotEmpty &&
-              CommonPreferences.password.value.isNotEmpty) {
-            unawaited(
-              AuthService.pwLogin(
-                CommonPreferences.account.value,
-                CommonPreferences.password.value,
-                onResult: (_) {},
-                onFailure: (_) {},
-              ),
-            );
-          }
-        },
-      ),
     );
   }
 }
