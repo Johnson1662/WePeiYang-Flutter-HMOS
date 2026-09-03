@@ -157,8 +157,8 @@ export class SpeechRecognizerHandler implements MethodCallHandler {
       };
       const extraParam: Record<string, Object> = {
         'recognitionMode': 0, // 0 = 实时麦克风录音识别，由系统自动采集麦克风音频
-        'vadBegin': 2000,
-        'vadEnd': 3000,
+        'vadBegin': 10000,
+        'vadEnd': 5000,
         'maxAudioDuration': 60000
       };
       const recognizerParams: speechRecognizer.StartParams = {
