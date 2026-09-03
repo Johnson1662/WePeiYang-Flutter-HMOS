@@ -4,7 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:wepei_module/commons/channel/image_save/image_save.dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
@@ -38,7 +39,10 @@ class CoursePage extends StatefulWidget {
 class _CoursePageState extends State<CoursePage> {
   /// 进入课程表页面后重设选中周并自动刷新自定义课程
   _CoursePageState() {
-    var provider = WePeiYangApp.navigatorState.context!.read<CourseProvider>();
+    var provider =
+        WePeiYangApp.navigatorState.overlay!.context.read<CourseProvider>();
+    // 经 shortcut/小组件等入口可能早于启动流程的 readPref 进入本页，
+    // 此时 provider 还是空的，这里幂等地补读一次本地缓存，避免课表空白。
     if (provider.schoolCourses.isEmpty) {
       provider.readPref();
     }
@@ -63,7 +67,7 @@ class _CoursePageState extends State<CoursePage> {
       }
 
       // 绑定
-      if (!CommonPreferences.hasTjuCredentials) {
+      if (!CommonPreferences.isBindTju.value) {
         Navigator.pushNamed(context, AuthRouter.tjuBind);
       }
     });
@@ -105,9 +109,8 @@ class _CoursePageState extends State<CoursePage> {
         ],
       ))
           .then((value) async {
-        await ImageSave.saveImageFromBytes(value,
-            'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png',
-            album: true);
+        final fullPath = await saveImageToPath(value);
+        GallerySaver.saveImage(fullPath!, albumName: "微北洋");
         ToastProvider.success("图片保存成功");
       });
     });
@@ -180,7 +183,7 @@ class _CourseAppBar extends StatelessWidget implements PreferredSizeWidget {
     var actions = [
       WButton(
         onPressed: () {
-          if (!CommonPreferences.hasTjuCredentials) {
+          if (CommonPreferences.tjuuname.value == '') {
             Navigator.pushNamed(context, AuthRouter.tjuBind);
           } else {
             context.read<CourseProvider>().refreshCourseByBackend(context);
@@ -220,7 +223,7 @@ class _CourseAppBar extends StatelessWidget implements PreferredSizeWidget {
             size: 20.r,
             color: WpyTheme.of(context)
                 .get(WpyColorKey.brightTextColor)
-                .withOpacity(0.7),
+                .withValues(alpha: 0.7),
           ),
         ),
       ),
@@ -363,4 +366,16 @@ class CustomImagePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) =>
       this != oldDelegate;
+}
+
+Future<String?> saveImageToPath(Uint8List imageData) async {
+  try {
+    final directory = await getTemporaryDirectory();
+    final file = File(
+        "${directory.path}/wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png");
+    await file.writeAsBytes(imageData);
+    return file.path;
+  } catch (e) {
+    return null;
+  }
 }

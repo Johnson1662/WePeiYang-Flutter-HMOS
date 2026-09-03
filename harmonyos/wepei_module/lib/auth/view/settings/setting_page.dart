@@ -13,7 +13,7 @@ import 'package:wepei_module/commons/channel/local_setting/local_setting.dart';
 import 'package:wepei_module/commons/environment/config.dart';
 import 'package:wepei_module/commons/test/test_router.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
-import 'package:wepei_module/commons/update/update_manager.dart';
+import 'package:wepei_module/commons/util/app_market.dart';
 import 'package:wepei_module/commons/util/router_manager.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 
@@ -221,10 +221,8 @@ class _SettingPageState extends State<SettingPage> {
                 Navigator.pushNamed(context, AuthRouter.debugInfo);
               },
               onTap: () {
-                print("tab");
-                context.read<UpdateManager>().checkUpdate(
-                      auto: false,
-                    );
+                // OHOS 不允许应用内下载安装 APK 或热更新，检查更新即跳转应用市场详情页
+                openAppMarket();
               },
               child: Row(
                 children: [

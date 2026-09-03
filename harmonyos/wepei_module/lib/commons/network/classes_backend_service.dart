@@ -6,7 +6,7 @@ import 'package:wepei_module/commons/channel/widget_data_sync.dart';
 import 'package:wepei_module/commons/network/classes_service.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/util/type_util.dart';
 import 'package:wepei_module/gpa/model/gpa_model.dart';
@@ -50,7 +50,7 @@ class ClassesBackendService {
       await AuthService.getSemesterInfo();
       return Tuple3(courses, exams, gpaBean);
     } on DioException catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'network');
       return null;
     }
   }

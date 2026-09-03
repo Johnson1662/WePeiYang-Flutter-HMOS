@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/token/lake_token_manager.dart';
+import 'package:wepei_module/commons/util/url_launcher_ohos.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/widgets/colored_icon.dart';
@@ -628,12 +629,7 @@ class BannerWidget extends StatelessWidget {
                               '<token>', '${CommonPreferences.token.value}')
                           .replaceAll('<laketoken>',
                               '${await LakeTokenManager().refreshToken()}');
-                      if (await canLaunchUrlString(launchUrl)) {
-                        launchUrlString(launchUrl,
-                            mode: LaunchMode.externalApplication);
-                      } else {
-                        ToastProvider.error('好像无法打开活动呢，请联系天外天工作室');
-                      }
+                      await launchUrlSafe(context, launchUrl);
                     } else
                       Navigator.pushNamed(context, FeedbackRouter.haitang,
                           arguments: FestivalArgs(

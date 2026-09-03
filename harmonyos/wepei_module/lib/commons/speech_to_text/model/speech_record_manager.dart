@@ -1,13 +1,20 @@
 import 'dart:io';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 
+/// OHOS 侧说明：
+/// `record` 与 `permission_handler` 均无 OpenHarmony 实现，调用会抛
+/// MissingPluginException。因此在 OHOS 上语音输入被整体禁用（聊天页入口已隐藏），
+/// 这里所有方法先做平台短路，避免任何误触崩溃。
+/// 若后续接入 Push/录音的 ArkTS 实现（AVRecorder + 系统权限），再替换这些短路。
 class SpeechRecordManager {
   final Record _recorder = Record();
 
   String? _currentRecordingPath;
 
   Future<bool> ensurePermission() async {
+    if (kIsOhos) return false;
     //先检查是否已有权限，如果有直接返回 true，避免不必要的弹窗逻辑
     if (await _recorder.hasPermission()) {
       return true;
@@ -25,6 +32,7 @@ class SpeechRecordManager {
 
   /// 资源释放 (record 库中是 dispose)
   Future<void> dispose() async {
+    if (kIsOhos) return;
     // 释放资源，防止内存泄漏
     await _recorder.dispose();
   }
@@ -32,6 +40,9 @@ class SpeechRecordManager {
   /// 开始录音
   /// 返回录音文件的临时路径
   Future<String> startRecording() async {
+    if (kIsOhos) {
+      throw Exception('OHOS 暂不支持语音输入');
+    }
     // 确保权限已授予
     if (!await _recorder.hasPermission()) {
       final granted = await ensurePermission();
@@ -64,6 +75,7 @@ class SpeechRecordManager {
   /// 停止录音
   /// 返回录音文件的完整路径
   Future<String?> stopRecording() async {
+    if (kIsOhos) return null;
     // 停止录音，并返回文件路径
     final path = await _recorder.stop();
 
@@ -79,8 +91,11 @@ class SpeechRecordManager {
   }
 
   /// 获取当前录音状态
-  Future<bool> Function() get isRecording => _recorder.isRecording;
+  Future<bool> Function() get isRecording =>
+      kIsOhos ? () async => false : _recorder.isRecording;
 
   /// 暴露一个检查录音状态的异步方法 (可选)
-  Future<bool> isRecordingAsync() => _recorder.isRecording();
+  Future<bool> isRecordingAsync() => kIsOhos
+      ? Future.value(false)
+      : _recorder.isRecording();
 }

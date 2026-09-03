@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:wepei_module/commons/environment/config.dart';
 import 'package:wepei_module/commons/util/level_util.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/feedback/feedback_router.dart';
@@ -34,10 +33,12 @@ class PostCardNormal extends StatefulWidget {
   /// 考古,需要分解其中图片的逻辑
 
   PostCardNormal(this.post,
-      {this.outer = true,
+      {Key? key,
+      this.outer = true,
       this.screenshotController,
       this.expandAll = false,
-      this.avatarClickable = true});
+      this.avatarClickable = true})
+      : super(key: key);
 
   final bool expandAll;
   final Post post;
@@ -77,8 +78,8 @@ class _PostCardNormalState extends State<PostCardNormal> {
   }
 
   Widget _buildMainContent() {
-    if (widget.post.variant == PostVariant.Vote)
-      return VoteWidget(post: widget.post, interactive: !widget.outer);
+    if (post.variant == PostVariant.Vote)
+      return VoteWidget(post: post, interactive: !widget.outer);
 
     if (widget.outer) {
       final previewStyle =
@@ -93,30 +94,24 @@ class _PostCardNormalState extends State<PostCardNormal> {
         );
       }
       return Text(post.content,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: previewStyle);
+          maxLines: 2, overflow: TextOverflow.ellipsis, style: previewStyle);
     }
     return GestureDetector(
-      onLongPress: () {
-        Clipboard.setData(ClipboardData(text: post.content));
-        ToastProvider.success('复制评论成功');
-      },
-      child: Padding(
-        padding: EdgeInsets.only(top: 15.h),
+        onLongPress: () {
+          Clipboard.setData(ClipboardData(text: post.content));
+          ToastProvider.success('复制评论成功');
+        },
         child: ExpandableText(
           text: post.content,
           maxLines: 8,
-          style: TextUtil.base.ProductSans.w400.sp(15).primary(context).h(1.7).copyWith(
-              letterSpacing: 0.7,
-            wordSpacing: 2.0
-          ),
+          style: TextUtil.base.NotoSansSC.w400
+              .sp(14)
+              .primary(context)
+              .h(1.6),
           expand: widget.expandAll,
           buttonIsShown: true,
           isHTML: false,
-        ),
-      )
-    );
+        ));
   }
 
   @override
@@ -167,7 +162,7 @@ class _PostCardNormalState extends State<PostCardNormal> {
                               post.nickname == '' ? '没名字的微友' : post.nickname,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextUtil.base.w400.ProductSans
+                              style: TextUtil.base.w400.NotoSansSC
                                   .sp(16)
                                   .primary(context),
                             ),
@@ -207,7 +202,7 @@ class _PostCardNormalState extends State<PostCardNormal> {
               },
               child: Text(
                 '#MP' + post.id.toString().padLeft(6, '0'),
-                style: TextUtil.base.w400.infoText(context).ProductSans.sp(12),
+                style: TextUtil.base.w400.infoText(context).NotoSansSC.sp(12),
               ),
             ),
         ]));
@@ -221,7 +216,7 @@ class _PostCardNormalState extends State<PostCardNormal> {
           post.title,
           maxLines: widget.outer ? 1 : 10,
           overflow: TextOverflow.ellipsis,
-          style: TextUtil.base.w400.ProductSans.sp(20).primary(context).bold,
+          style: TextUtil.base.w400.NotoSansSC.sp(18).primary(context).bold,
         ),
       )
     ]);
@@ -240,7 +235,7 @@ class _PostCardNormalState extends State<PostCardNormal> {
     List<Widget> head = [
       avatarAndSolve,
       if (post.variant != PostVariant.Vote) eTagAndTitle,
-      if (post.content.isNotEmpty) content,
+      if (post.variant == PostVariant.Vote || post.content.isNotEmpty) content,
       // 行数的区别在内部判断
       SizedBox(height: SplitUtil.h * 10)
     ];
@@ -352,7 +347,7 @@ class _PostCardNormalState extends State<PostCardNormal> {
               child: Text(
                 const ['', '卫津路', '北洋园'][campus],
                 style:
-                    TextUtil.base.ProductSans.w400.sp(14).primaryAction(context),
+                    TextUtil.base.NotoSansSC.w400.sp(14).primaryAction(context),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -377,13 +372,13 @@ class _PostCardNormalState extends State<PostCardNormal> {
             // Text(
             //   "部门: ",
             //   style:
-            //       TextUtil.base.PingFangSC.w400.sp(14).primaryAction(context),
+            //       TextUtil.base.NotoSansSC.w400.sp(14).primaryAction(context),
             // ),
             ConstrainedBox(
               constraints: BoxConstraints(),
               child: Text(
                 post.department!.name,
-                style: TextUtil.base.ProductSans.w400
+                style: TextUtil.base.NotoSansSC.w400
                     .sp(14)
                     .primaryAction(context)
                     .copyWith(fontWeight: FontWeight.bold),
@@ -524,7 +519,7 @@ class _VoteWidgetState extends State<VoteWidget> {
   @override
   Widget build(BuildContext context) {
     final footerStyle =
-        TextUtil.base.w400.PingFangSC.sp(12).secondaryInfo(context).h(1.6);
+        TextUtil.base.w400.NotoSansSC.sp(12).secondaryInfo(context).h(1.6);
     return Stack(
       children: [
         Container(
@@ -543,7 +538,7 @@ class _VoteWidgetState extends State<VoteWidget> {
             children: [
               Text(
                 displayPost.title,
-                style: TextUtil.base.w400.PingFangSC.sp(16).primary(context),
+                style: TextUtil.base.w400.NotoSansSC.sp(16).primary(context),
               ),
               SizedBox(height: 8),
               if (displayPost.voteDetail != null) ...[
@@ -612,7 +607,7 @@ class _VoteWidgetState extends State<VoteWidget> {
             child: Center(
               child: Text(
                 'POLL',
-                style: TextUtil.base.w400.PingFangSC
+                style: TextUtil.base.w400.NotoSansSC
                     .sp(10)
                     .bright(context)
                     .bold
@@ -661,24 +656,24 @@ class _VoteFormWidgetState extends State<VoteFormWidget> {
   @override
   Widget build(BuildContext context) {
     final disableButtonStyle = ButtonStyle(
-        padding: MaterialStateProperty.all(EdgeInsets.symmetric(vertical: 2)),
-        shape: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(EdgeInsets.symmetric(vertical: 2)),
+        shape: WidgetStateProperty.all(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-        backgroundColor: MaterialStateProperty.all(WpyTheme.of(context)
+        backgroundColor: WidgetStateProperty.all(WpyTheme.of(context)
             .get(WpyColorKey.secondaryInfoTextColor)
-            .withOpacity(0.3)));
+            .withValues(alpha: 0.3)));
 
     var disableButtonText =
-        TextUtil.base.w400.PingFangSC.sp(14).secondaryInfo(context).bold.h(1.6);
+        TextUtil.base.w400.NotoSansSC.sp(14).secondaryInfo(context).bold.h(1.6);
     final enableButtonText =
-        TextUtil.base.w400.PingFangSC.sp(14).bright(context).bold.h(1.6);
+        TextUtil.base.w400.NotoSansSC.sp(14).bright(context).bold.h(1.6);
     final enableButtonStyle = ButtonStyle(
-        padding: MaterialStateProperty.all(EdgeInsets.symmetric(vertical: 2)),
-        side: MaterialStateProperty.all(BorderSide(
+        padding: WidgetStateProperty.all(EdgeInsets.symmetric(vertical: 2)),
+        side: WidgetStateProperty.all(BorderSide(
             color: WpyTheme.of(context).get(WpyColorKey.primaryActionColor))),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-        backgroundColor: MaterialStateProperty.all(
+        backgroundColor: WidgetStateProperty.all(
             WpyTheme.of(context).get(WpyColorKey.primaryActionColor)));
 
     return Column(children: [
@@ -714,7 +709,7 @@ class _VoteFormWidgetState extends State<VoteFormWidget> {
                     ),
                     Expanded(
                       child: Text(e.content,
-                          style: TextUtil.base.w400.PingFangSC
+                          style: TextUtil.base.w400.NotoSansSC
                               .sp(14)
                               .primary(context)
                               .h(1.6)),
@@ -742,7 +737,7 @@ class _VoteFormWidgetState extends State<VoteFormWidget> {
                       ToastProvider.error(e.error.toString());
                     else {
                       ToastProvider.error("投票失败, 未知错误");
-                      Logger.reportError(e, StackTrace.current);
+                      Log.e(e, StackTrace.current, 'feedback');
                     }
                   }
                   setState(() {
@@ -801,7 +796,7 @@ class VoteOptionWidget extends StatelessWidget {
                   option.content + (selected ? " (已选)" : ""),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextUtil.base.w400.PingFangSC
+                  style: TextUtil.base.w400.NotoSansSC
                       .sp(14)
                       .primary(context)
                       .h(1.6),
@@ -817,7 +812,7 @@ class VoteOptionWidget extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
-                  style: TextUtil.base.w400.PingFangSC
+                  style: TextUtil.base.w400.NotoSansSC
                       .sp(12)
                       .infoText(context)
                       .h(1.6),
@@ -837,7 +832,7 @@ class VoteOptionWidget extends StatelessWidget {
                 value: value,
                 backgroundColor: WpyTheme.of(context)
                     .get(WpyColorKey.secondaryInfoTextColor)
-                    .withOpacity(0.5),
+                    .withValues(alpha: 0.5),
                 valueColor: AlwaysStoppedAnimation<Color>(WpyTheme.of(context)
                     .get(selected
                         ? WpyColorKey.successGreen

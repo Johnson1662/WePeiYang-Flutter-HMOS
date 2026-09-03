@@ -1,7 +1,7 @@
 import 'package:wepei_module/auth/model/banner_pic.dart';
 import 'package:wepei_module/commons/network/cas_service.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 
 class SplashDio extends DioAbstract {
   @override
@@ -37,7 +37,7 @@ class SplashService with AsyncTimer {
       });
       return list;
     } catch (e, stack) {
-      Logger.reportError(e, stack);
+      Log.e(e, stack, 'splash');
       return [];
     }
   }
@@ -48,7 +48,7 @@ class SplashService with AsyncTimer {
       var result = response.data['result'];
       return KeyPair.fromJson(result);
     } catch (e, stack) {
-      Logger.reportError(e, stack);
+      Log.e(e, stack, 'splash');
       return null;
     }
   }

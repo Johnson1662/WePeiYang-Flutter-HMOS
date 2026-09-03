@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wepei_module/commons/network/ssl_whitelist.dart';
 import 'package:wepei_module/commons/preferences/mock_shared_prefs.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 
 class ImageCacheService {
   ImageCacheService._() {
@@ -12,7 +14,8 @@ class ImageCacheService {
     if (adapter is IOHttpClientAdapter) {
       adapter.createHttpClient = () {
         final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
+        client.badCertificateCallback =
+            (cert, host, port) => shouldBypassSsl(host);
         return client;
       };
     }
@@ -175,7 +178,7 @@ class ImageCacheService {
     return hasExt ? '${sanitized}_$hash' : '${sanitized}_$hash.img';
   }
 
-  bool get _isOhos => !Platform.isAndroid && !Platform.isIOS;
+  bool get _isOhos => kIsOhos;
 
   Future<String?> _getPreferenceString(String key) async {
     if (_isOhos) {

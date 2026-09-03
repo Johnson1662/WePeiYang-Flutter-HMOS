@@ -2,11 +2,9 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:wepei_module/commons/channel/download/download_manager.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 
 class WbyFontLoader {
@@ -34,6 +32,7 @@ class WbyFontLoader {
         },
         download_success: (task) async {
           String? family = task.path.split('/').last.split('-').first;
+          // 如果截取的family不全由字母组成，则让[loadFontFromList]函数自己解析
           if (!RegExp(r'^[a-zA-Z]+$').hasMatch(family)) family = null;
           final list = await File(task.path).readAsBytes();
           await loadFontFromList(list, fontFamily: family);
@@ -51,16 +50,21 @@ class WbyFontLoader {
       List<DownloadTask> taskToDownload = [];
 
       final dio = Dio();
+      // 构建任务
       tasks.forEach((element) {
+        // 看看存不存在
         final f = File(element.path);
         if (f.existsSync()) {
+          // 直接load
           Future.sync(() async {
             final data = await f.readAsBytes();
             await loadFontFromList(data);
           });
           return;
         }
+        // 文件夹
         final dir = Directory(p.dirname(element.path));
+        // 如果不存在就新建
         if (!dir.existsSync()) dir.createSync();
         taskToDownload.add(element);
       });
@@ -78,31 +82,8 @@ class WbyFontLoader {
           }
         });
       } catch (e, s) {
-        Logger.reportError(e, s);
+        Log.e(e, s, 'font');
       }
-    } else {
-      // HarmonyOS: load fonts from bundled assets
-      if (hint) ToastProvider.running('加载字体文件中...');
-      _loadHarmonyOSFonts().then((_) {
-        if (hint) ToastProvider.success('加载字体成功');
-      }).catchError((e) {
-        if (hint) ToastProvider.error('加载字体失败: $e');
-      });
-    }
-  }
-
-  static Future<void> _loadHarmonyOSFonts() async {
-    try {
-      final notoBytes = (await rootBundle.load('assets/fonts/zh/NotoSansSC-Medium.ttf')).buffer.asUint8List();
-      await loadFontFromList(notoBytes, fontFamily: 'NotoSansSC');
-    } catch (e) {
-      debugPrint('loadFontFromList NotoSansSC failed: $e');
-    }
-    try {
-      final pingBytes = (await rootBundle.load('assets/fonts/zh/PingFangSC-SemiBold.ttf')).buffer.asUint8List();
-      await loadFontFromList(pingBytes, fontFamily: 'PingFangSC');
-    } catch (e) {
-      debugPrint('loadFontFromList PingFangSC failed: $e');
     }
   }
 }

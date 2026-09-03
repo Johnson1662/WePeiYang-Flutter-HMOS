@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -9,16 +7,19 @@ import '../themes/wpy_theme.dart';
 class TextUtil {
   TextUtil._();
 
-  static TextStyle base = const TextStyle().Swis;
-
+  static TextStyle base = const TextStyle(fontFamily: 'Swis');
   static bool isInnerScreen = false; // 标记是否为内屏
+
+  static init(BuildContext context) {
+    base = Theme.of(context).textTheme.bodyMedium ?? TextStyle();
+    base = base.Swis;
+  }
 
   // 更新屏幕状态（可在检测到屏幕变化时调用）
   static void updateScreenState(bool innerScreen) {
     isInnerScreen = innerScreen;
   }
 }
-
 
 extension TextStyleAttr on TextStyle {
   /// 粗细
@@ -55,8 +56,8 @@ extension TextStyleAttr on TextStyle {
 
   TextStyle label(context) => this
       .copyWith(color: WpyTheme.of(context).get(WpyColorKey.labelTextColor));
-  TextStyle labelWithOp(context) => this
-      .copyWith(color: WpyTheme.of(context).get(WpyColorKey.labelTextColorWithOp));
+  TextStyle labelWithOp(context) => this.copyWith(
+      color: WpyTheme.of(context).get(WpyColorKey.labelTextColorWithOp));
 
   TextStyle unlabeled(context) => this
       .copyWith(color: WpyTheme.of(context).get(WpyColorKey.unlabeledColor));
@@ -82,8 +83,8 @@ extension TextStyleAttr on TextStyle {
   TextStyle infoText(context) =>
       this.copyWith(color: WpyTheme.of(context).get(WpyColorKey.infoTextColor));
 
-  TextStyle DecText(context) =>
-      this.copyWith(color: WpyTheme.of(context).get(WpyColorKey.elegantLongPostTagColor));
+  TextStyle DecText(context) => this.copyWith(
+      color: WpyTheme.of(context).get(WpyColorKey.elegantLongPostTagColor));
 
   TextStyle oldHint(context) =>
       this.copyWith(color: WpyTheme.of(context).get(WpyColorKey.oldHintColor));
@@ -108,7 +109,8 @@ extension TextStyleAttr on TextStyle {
   TextStyle replySuffix(context) => this
       .copyWith(color: WpyTheme.of(context).get(WpyColorKey.replySuffixColor));
 
-  TextStyle get whiteO60 => this.copyWith(color: Colors.white.withOpacity(0.6));
+  TextStyle get whiteO60 =>
+      this.copyWith(color: Colors.white.withValues(alpha: 0.6));
 
   TextStyle secondaryInfo(context) => this.copyWith(
       color: WpyTheme.of(context).get(WpyColorKey.secondaryInfoTextColor));
@@ -159,8 +161,6 @@ extension TextStyleAttr on TextStyle {
   TextStyle get transParent => this.copyWith(color: Colors.transparent);
 
   /// 字体
-   // override in HarmonyOS build
-
   TextStyle get Swis => this.copyWith(fontFamily: 'Swis');
 
   TextStyle get NotoSansSC => this.copyWith(fontFamily: 'NotoSansSC');
@@ -191,6 +191,7 @@ extension TextStyleAttr on TextStyle {
     double adjustedSize = TextUtil.isInnerScreen ? (s.sp - 10) : s.sp;
     return this.copyWith(fontSize: adjustedSize);
   }
+
   TextStyle h(double h) => this.copyWith(height: h);
 
   TextStyle space({double? wordSpacing, double? letterSpacing}) =>

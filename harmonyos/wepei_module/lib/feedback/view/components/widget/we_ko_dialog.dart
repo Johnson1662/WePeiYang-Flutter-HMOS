@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wepei_module/commons/environment/config.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
+import 'package:wepei_module/commons/widgets/wpy_pic.dart';
 import 'package:wepei_module/feedback/network/post.dart';
 
 import '../../../../commons/themes/template/wpy_theme_data.dart';
@@ -39,15 +40,15 @@ class WeKoDialog extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 50),
                 child: Text('有人给你分享了微口令!',
                     style:
-                        TextUtil.base.label(context).regular.sp(16).PingFangSC),
+                        TextUtil.base.label(context).regular.sp(16).NotoSansSC),
               ),
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(post.title,
-                    style: TextUtil.base.label(context).bold.sp(17).PingFangSC),
+                    style: TextUtil.base.label(context).bold.sp(17).NotoSansSC),
               ),
               if (post.imageUrls.isNotEmpty)
-                Image.network(
+                WpyPic(
                   baseUrl + post.imageUrls[0],
                   height: 150,
                   width: 150,
@@ -58,7 +59,7 @@ class WeKoDialog extends StatelessWidget {
                 child: Text(
                   post.content,
                   style:
-                      TextUtil.base.infoText(context).regular.sp(14).PingFangSC,
+                      TextUtil.base.infoText(context).regular.sp(14).NotoSansSC,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -66,19 +67,18 @@ class WeKoDialog extends StatelessWidget {
               ElevatedButton(
                 onPressed: onConfirm,
                 style: ButtonStyle(
-                  elevation: MaterialStateProperty.all(3),
+                  elevation: WidgetStateProperty.all(3),
                   overlayColor:
-                      MaterialStateProperty.resolveWith<Color>((states) {
-                    if (states.contains(MaterialState.pressed))
+                      WidgetStateProperty.resolveWith<Color>((states) {
+                    if (states.contains(WidgetState.pressed))
                       return WpyTheme.of(context)
                           .get(WpyColorKey.oldSecondaryActionColor);
                     return WpyTheme.of(context)
                         .get(WpyColorKey.secondaryBackgroundColor);
                   }),
-                  backgroundColor: MaterialStateProperty.all(
-                      WpyTheme.of(context)
-                          .get(WpyColorKey.secondaryBackgroundColor)),
-                  shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                  backgroundColor: WidgetStateProperty.all(WpyTheme.of(context)
+                      .get(WpyColorKey.secondaryBackgroundColor)),
+                  shape: WidgetStateProperty.all(RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10))),
                 ),
                 child: Container(
@@ -86,7 +86,7 @@ class WeKoDialog extends StatelessWidget {
                   child: Text(
                     '查看详情',
                     style:
-                        TextUtil.base.label(context).regular.sp(16).PingFangSC,
+                        TextUtil.base.label(context).regular.sp(16).NotoSansSC,
                   ),
                 ),
               ),

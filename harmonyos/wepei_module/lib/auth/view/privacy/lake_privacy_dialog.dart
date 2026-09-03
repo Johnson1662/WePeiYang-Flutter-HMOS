@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
-import 'package:wepei_module/commons/util/toast_provider.dart';
+import 'package:wepei_module/commons/util/url_launcher_ohos.dart';
 import 'package:wepei_module/main.dart';
 
 import '../../../commons/themes/wpy_theme.dart';
@@ -71,11 +71,7 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.cac.gov.cn/2016-06/25/c_1119109085.htm';
-                            if (await canLaunchUrl(Uri.parse(url))) {
-                              await launchUrl(Uri.parse(url));
-                            } else {
-                              ToastProvider.error('请检查网络状态');
-                            }
+                            await launchUrlSafe(context, url);
                           },
                       ),
                       TextSpan(text: "及"),
@@ -89,11 +85,7 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.isc.org.cn/zxzx/xhdt/listinfo-27187.html';
-                            if (await canLaunchUrl(Uri.parse(url))) {
-                              await launchUrl(Uri.parse(url));
-                            } else {
-                              ToastProvider.error('请检查网络状态');
-                            }
+                            await launchUrlSafe(context, url);
                           },
                       ),
                       TextSpan(text: "、"),
@@ -107,11 +99,7 @@ class LakePrivacyDialog extends Dialog {
                           ..onTap = () async {
                             String url =
                                 'https://link.zhihu.com/?target=http://www.cac.gov.cn/2000-09/30/c_126193701.htm';
-                            if (await canLaunchUrl(Uri.parse(url))) {
-                              await launchUrl(Uri.parse(url));
-                            } else {
-                              ToastProvider.error('请检查网络状态');
-                            }
+                            await launchUrlSafe(context, url);
                           },
                       ),
                       TextSpan(text: "管理规定的信息，主要表现为：\n"),

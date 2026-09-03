@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:wepei_module/commons/channel/image_save/image_save.dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wepei_module/commons/environment/config.dart';
+import 'package:wepei_module/commons/channel/image_save/image_save.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/util/dialog_provider.dart';
 import 'package:wepei_module/commons/util/storage_util.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
@@ -17,7 +19,6 @@ import 'package:qr_code_tools/qr_code_tools.dart';
 
 import '../../../commons/themes/template/wpy_theme_data.dart';
 import '../../../commons/themes/wpy_theme.dart';
-import 'package:flutter/animation.dart';
 
 class ImageViewPageArgs {
   final List<String> urlList;
@@ -70,6 +71,19 @@ class _ImageViewPageState extends State<ImageViewPage>
     super.dispose();
   }
 
+  String _imageUrlAt(int index) {
+    final url = widget.args.urlList[index];
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return baseUrl + url;
+  }
+
+  String _imageFileNameAt(int index) {
+    final url = widget.args.urlList[index].split('#').first;
+    final name = Uri.tryParse(url)?.pathSegments.last ?? url;
+    if (name.contains('.') && name.split('.').last.length <= 5) return name;
+    return '$name.jpg';
+  }
+
   @override
   Widget build(BuildContext context) {
     timeDilation = 0.5;
@@ -99,8 +113,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                   basePosition: widget.args.isLongPic
                       ? Alignment.topCenter
                       : Alignment.center,
-                  imageProvider:
-                      NetworkImage(baseUrl + widget.args.urlList[index]),
+                  imageProvider: NetworkImage(_imageUrlAt(index)),
                   maxScale: widget.args.isLongPic
                       ? PhotoViewComputedScale.contained * 20
                       : PhotoViewComputedScale.contained * 5.0,
@@ -135,7 +148,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                         decoration: BoxDecoration(
                             color: WpyTheme.of(context)
                                 .get(WpyColorKey.labelTextColor)
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                             borderRadius:
                                 BorderRadius.all(Radius.circular(14.r))),
                         padding: EdgeInsets.fromLTRB(12.w, 10.w, 14.w, 10.w),
@@ -157,7 +170,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                   decoration: BoxDecoration(
                       color: WpyTheme.of(context)
                           .get(WpyColorKey.labelTextColor)
-                          .withOpacity(0.7),
+                          .withValues(alpha: 0.7),
                       borderRadius: BorderRadius.all(Radius.circular(14.r))),
                   padding: EdgeInsets.fromLTRB(14.w, 10.w, 14.w, 14.w),
                   child: Row(
@@ -218,10 +231,11 @@ class _ImageViewPageState extends State<ImageViewPage>
 
   void _checkQRCode() async {
     try {
-      final imageUrl = baseUrl + widget.args.urlList[indexNow];
+      final imageUrl = _imageUrlAt(indexNow);
       final imagePath = await StorageUtil.saveTempFileFromNetwork(imageUrl,
-          filename: widget.args.urlList[indexNow]);
+          filename: _imageFileNameAt(indexNow));
       String? qrResult = await QrCodeToolsPlugin.decodeFrom(imagePath);
+      if (!mounted) return;
       if (qrResult != null && qrResult.isNotEmpty) {
         setState(() {
           hasQRCode = true;
@@ -234,6 +248,7 @@ class _ImageViewPageState extends State<ImageViewPage>
         _animationController.reverse();
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         hasQRCode = false;
       });
@@ -243,29 +258,48 @@ class _ImageViewPageState extends State<ImageViewPage>
 
   void saveImage() async {
     ToastProvider.running('保存中');
-    final url = baseUrl + widget.args.urlList[indexNow];
-    final fileName = widget.args.urlList[indexNow].split('/').last;
-    await ImageSave.saveImageFromUrl(url, fileName, album: true);
+    if (kIsOhos) {
+      // OHOS：gallery_saver_plus 无实现，走系统相册保存（saveImg 通道）
+      await ImageSave.saveImageFromUrl(
+        _imageUrlAt(indexNow),
+        _imageFileNameAt(indexNow),
+        album: true,
+      );
+      ToastProvider.success('保存成功');
+      return;
+    }
+    await GallerySaver.saveImage(_imageUrlAt(indexNow), albumName: "微北洋");
     ToastProvider.success('保存成功');
   }
 
   void showSaveImageBottomSheet() async {
     ToastProvider.running('请稍后');
     final path = await StorageUtil.saveTempFileFromNetwork(
-        baseUrl + widget.args.urlList[indexNow],
-        filename: widget.args.urlList[indexNow]);
-    Share.shareXFiles([XFile(path)]);
+        _imageUrlAt(indexNow),
+        filename: _imageFileNameAt(indexNow));
+    if (kIsOhos) {
+      // OHOS：share_plus 无实现，分享降级为保存到系统相册
+      await ImageSave.saveImageFromUrl(
+        _imageUrlAt(indexNow),
+        _imageFileNameAt(indexNow),
+        album: true,
+      );
+      ToastProvider.success('已保存到相册');
+      return;
+    }
+    await SharePlus.instance
+        .share(ShareParams(files: [XFile(path, mimeType: 'image/*')]));
   }
 
   void recognizeQRCode() async {
     ToastProvider.running('识别中');
     try {
-      final imageUrl = baseUrl + widget.args.urlList[indexNow];
+      final imageUrl = _imageUrlAt(indexNow);
       final imagePath = await StorageUtil.saveTempFileFromNetwork(imageUrl,
-          filename: widget.args.urlList[indexNow]);
+          filename: _imageFileNameAt(indexNow));
       String? qrResult = await QrCodeToolsPlugin.decodeFrom(imagePath);
       if (qrResult != null && qrResult.isNotEmpty) {
-        if (await canLaunchUrl(Uri.parse(qrResult)).catchError((_) => false)) {
+        if (await canLaunchUrl(Uri.parse(qrResult))) {
           showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -273,7 +307,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                     title: '天外天工作室提示您',
                     titleTextStyle: TextUtil.base.normal
                         .infoText(context)
-                        .PingFangSC
+                        .NotoSansSC
                         .sp(22)
                         .w600,
                     content: Column(
@@ -291,11 +325,11 @@ class _ImageViewPageState extends State<ImageViewPage>
                           child: Text(qrResult,
                               style: qrResult.contains('b23.tv') ||
                                       qrResult.contains('bilibili.com')
-                                  ? TextUtil.base.PingFangSC
+                                  ? TextUtil.base.NotoSansSC
                                       .biliPink(context)
                                       .w600
                                       .h(1.6)
-                                  : TextUtil.base.PingFangSC
+                                  : TextUtil.base.NotoSansSC
                                       .link(context)
                                       .w600
                                       .h(1.6)),
@@ -311,7 +345,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                     cancelText: "取消",
                     confirmTextStyle: TextUtil.base.normal
                         .bright(context)
-                        .PingFangSC
+                        .NotoSansSC
                         .sp(16)
                         .w600,
                     confirmButtonColor: qrResult.contains('b23.tv') ||
@@ -321,7 +355,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                             .get(WpyColorKey.primaryTextButtonColor),
                     cancelTextStyle: TextUtil.base.normal
                         .label(context)
-                        .PingFangSC
+                        .NotoSansSC
                         .sp(16)
                         .w400,
                     confirmText: "继续",
@@ -333,7 +367,7 @@ class _ImageViewPageState extends State<ImageViewPage>
                           mode: qrResult.contains('b23.tv') ||
                                   qrResult.contains('bilibili.com')
                               ? LaunchMode.externalNonBrowserApplication
-                              : LaunchMode.externalApplication).catchError((_) {});
+                              : LaunchMode.externalApplication);
                       Navigator.pop(context);
                     });
               });

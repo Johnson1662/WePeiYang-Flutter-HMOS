@@ -320,7 +320,38 @@ class NSubPageState extends State<NSubPage> with AutomaticKeepAliveClientMixin {
           ? _buildCollapsedTopBar(index)
           : const SizedBox.shrink();
     }
-    return PostCardNormal(post);
+    // 帖子卡片入场过渡（对齐原版）：排序/刷新变化时淡入 + 上移展开
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topLeft,
+          children: [
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      transitionBuilder: (child, animation) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(0, 0.025),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          ),
+        );
+      },
+      child: PostCardNormal(
+        post,
+        key: ValueKey('${LakeUtil.sortSeq.value}-$loadFlag-${post.id}'),
+      ),
+    );
   }
 
   Widget _buildCollapsedTopBar(int tabId) {

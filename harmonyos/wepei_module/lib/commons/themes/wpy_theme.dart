@@ -31,7 +31,7 @@ class WpyTheme extends InheritedWidget {
       bool isDarkModeEnabled = await iOSThemeService.isDarkModeEnabled();
       return isDarkModeEnabled;
     } else {
-      // 对于Android/OHOS/其他平台，使用Flutter的MediaQuery来检测
+      // 对于其他平台，使用Flutter的MediaQuery来检测
       return MediaQuery.of(context).platformBrightness == Brightness.dark;
     }
   } // 事实上不需要单独通过iOS原生代码来获取iOS深色模式状态，MediaQuery就够用了...
@@ -68,29 +68,36 @@ class WpyTheme extends InheritedWidget {
     globalTheme.value = theme;
   }
 
+  static WpyThemeData themeById(String themeId, {Brightness? brightness}) {
+    return WpyThemeData.themeList.firstWhere((element) {
+      return element.meta.themeId == themeId &&
+          (brightness == null || element.meta.brightness == brightness);
+    }, orElse: () {
+      return brightness == Brightness.dark
+          ? WpyThemeData.darkThemeList[0]
+          : WpyThemeData.brightThemeList[0];
+    });
+  }
+
+  static void applyStoredTheme({required Brightness brightness}) {
+    final themeId = brightness == Brightness.dark
+        ? CommonPreferences.appDarkThemeId.value
+        : CommonPreferences.appThemeId.value;
+    globalTheme.value = themeById(themeId, brightness: brightness);
+    CommonPreferences.usingDarkTheme.value =
+        brightness == Brightness.dark ? 1 : 0;
+  }
+
   static Future<void> updateAutoDarkTheme(BuildContext context) async {
     if (!CommonPreferences.autoDarkTheme.value) return;
 
-    // 检查要移动到什么主题
-    WpyThemeData shiftTheme = WpyThemeData.themeList.firstWhere((element) {
-      if (globalTheme.value.meta.brightness == Brightness.light) {
-        return element.meta.themeId == CommonPreferences.appDarkThemeId.value;
-      } else {
-        return element.meta.themeId == CommonPreferences.appThemeId.value;
-      }
-    }, orElse: () => WpyThemeData.brightThemeList[0]);
-
     if (await isDarkMode(context)) {
       if (globalTheme.value.meta.brightness == Brightness.light) {
-        globalTheme.value = shiftTheme;
-        CommonPreferences.appDarkThemeId.value = shiftTheme.meta.darkThemeId;
-        CommonPreferences.usingDarkTheme.value = 1;
+        applyStoredTheme(brightness: Brightness.dark);
       }
     } else {
       if (globalTheme.value.meta.brightness == Brightness.dark) {
-        globalTheme.value = shiftTheme;
-        CommonPreferences.appDarkThemeId.clear();
-        CommonPreferences.usingDarkTheme.value = 0;
+        applyStoredTheme(brightness: Brightness.light);
       }
     }
   }
@@ -112,7 +119,7 @@ class iOSThemeService {
   static const channel = MethodChannel('com.twt.service/theme');
 
   static Future<bool> isDarkModeEnabled() async {
-    final bool isDarkMode = await channel.invokeMethod('isDarkMode').timeout(const Duration(seconds: 2)).catchError((_) => false);
+    final bool isDarkMode = await channel.invokeMethod('isDarkMode');
     return isDarkMode;
   }
 }

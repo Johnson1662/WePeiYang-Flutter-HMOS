@@ -4,30 +4,65 @@ import 'package:intl/intl.dart';
 import 'package:wepei_module/auth/network/auth_service.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
 import 'package:wepei_module/commons/preferences/common_prefs.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/studyroom/model/studyroom_models.dart';
 import 'package:wepei_module/studyroom/util/session_util.dart';
 
-class _StudyroomDio {
-  final Dio _dio;
+class _StudyroomDio extends DioAbstract {
+  _StudyroomDio() : super();
 
-  _StudyroomDio() : _dio = Dio(BaseOptions(
-    baseUrl: 'https://selfstudy.twt.edu.cn/',
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-    headers: {
-      'DOMAIN': AuthDio.DOMAIN,
-      'ticket': AuthDio.ticket,
-    },
-  ));
+  @override
+  String get baseUrl => 'https://selfstudy.twt.edu.cn/';
 
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) =>
-      _dio.get(path, queryParameters: queryParameters);
+  @override
+  Map<String, String>? get headers => {
+        "DOMAIN": AuthDio.DOMAIN,
+        "ticket": AuthDio.ticket,
+      };
 
-  Future<Response> post(String path, {Map<String, dynamic>? queryParameters, dynamic data}) =>
-      _dio.post(path, queryParameters: queryParameters, data: data);
+  @override
+  List<Interceptor> get interceptors => [
+        _StyApiInterceptor(),
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            options.headers['token'] = CommonPreferences.token.value;
+            return handler.next(options);
+          },
+        )
+      ];
 }
 
+class _StyApiInterceptor extends InterceptorsWrapper {
+  @override
+  void onResponse(response, handler) {
+    final data = response.data;
+    var respData = _BuildingResponse.fromJson(data);
+    if (respData.success) {
+      response.data = respData.data;
+      handler.resolve(response);
+    } else {
+      handler.reject(
+        DioException(
+          error: respData.data as String? ?? "未知错误",
+          requestOptions: response.requestOptions,
+        ),
+        true,
+      );
+    }
+  }
+}
+
+class _BuildingResponse {
+  bool get success => 10000 == code;
+
+  _BuildingResponse.fromJson(Map<String, dynamic> json) {
+    code = json['code'];
+    data = json['data'];
+  }
+
+  int? code;
+  dynamic data;
+}
 
 final _studyroomDio = _StudyroomDio();
 
@@ -53,7 +88,7 @@ class StudyroomService {
       );
       return true;
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return false;
     }
   }
@@ -67,7 +102,7 @@ class StudyroomService {
       );
       return true;
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return false;
     }
   }
@@ -75,11 +110,11 @@ class StudyroomService {
   static Future<List<Campus>> getCampusList() async {
     try {
       final response = await _studyroomDio.get('/campus');
-      if (response.statusCode != 200) return [];
-      final raw = response.data as Map<String, dynamic>;
-      return (raw['data'] as List).map((e) => Campus.fromJson(e)).toList();
+      return List<Campus>.from(
+        response.data.map((e) => Campus.fromJson(e)),
+      );
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return [];
     }
   }
@@ -87,11 +122,11 @@ class StudyroomService {
   static Future<List<Building>> getBuildingList(int campusId) async {
     try {
       final response = await _studyroomDio.get('/campus/${campusId}/building');
-      if (response.statusCode != 200) return [];
-      final raw = response.data as Map<String, dynamic>;
-      return (raw['data'] as List).map((e) => Building.fromJson(e)).toList();
+      return List<Building>.from(
+        response.data.map((e) => Building.fromJson(e)),
+      );
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return [];
     }
   }
@@ -107,11 +142,11 @@ class StudyroomService {
         response = await _studyroomDio.get(
             '/building/${buildingId}/room/session/${session}/date/${DateFormat('yyyy-MM-dd').format(date)}');
       }
-      if (response.statusCode != 200) return [];
-      final raw = response.data as Map<String, dynamic>;
-      return (raw['data'] as List).map((e) => Room.fromJson(e)).toList();
+      return List<Room>.from(
+        response.data.map((e) => Room.fromJson(e)),
+      );
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return [];
     }
   }
@@ -119,11 +154,11 @@ class StudyroomService {
   static Future<List<Occupy>> getSchedule(int id) async {
     try {
       final response = await _studyroomDio.get('/room/${id}/schedule');
-      if (response.statusCode != 200) return [];
-      final raw = response.data as Map<String, dynamic>;
-      return (raw['data'] as List).map((e) => Occupy.fromJson(e)).toList();
+      return List<Occupy>.from(
+        response.data.map((e) => Occupy.fromJson(e)),
+      );
     } catch (e, s) {
-      Logger.reportError(e, s);
+      Log.e(e, s, 'studyroom');
       return [];
     }
   }

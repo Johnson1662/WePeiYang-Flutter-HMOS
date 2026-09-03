@@ -9,6 +9,18 @@ class ImageSave {
   static const _channel = MethodChannel('com.twt.service/saveImg');
   static const _pickerChannel = MethodChannel('com.twt.service/saveImg');
 
+  /// 应用持久化文件目录（OHOS 的 context.filesDir；非 cache，清后台不清除）。
+  /// 失败或异常时返回 null，调用方自行回退。
+  static Future<String?> getFilesDir() async {
+    try {
+      return await _channel
+          .invokeMethod<String>('getFilesDir')
+          .timeout(const Duration(seconds: 2));
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Save image bytes.
   /// If [album] is true, tries to save to system album via MethodChannel,
   /// then falls back to documents/微北洋/.

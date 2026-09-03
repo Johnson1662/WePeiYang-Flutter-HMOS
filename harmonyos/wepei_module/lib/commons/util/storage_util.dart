@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:wepei_module/commons/network/wpy_dio.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 
-bool get _isOhos => !Platform.isAndroid && !Platform.isIOS;
+bool get _isOhos => kIsOhos;
 
 class StorageUtil {
   static late Directory downloadDir;
@@ -19,9 +21,11 @@ class StorageUtil {
   static Future<void> init() async {
     if (_isOhos) {
       downloadDir = Directory.systemTemp;
-      filesDir = Directory.systemTemp;
       tempDir = Directory.systemTemp;
       photoDir = Directory.systemTemp;
+      // OHOS：系统Temp(=cache 目录) 在清后台/清理缓存时可能被清除，
+      // 登录态等持久数据必须放 filesDir（context.filesDir）。
+      filesDir = await _ohosFilesDir();
       return;
     }
     downloadDir = Platform.isAndroid
@@ -37,6 +41,19 @@ class StorageUtil {
                 type: StorageDirectory.pictures))!
             .first
         : await getApplicationDocumentsDirectory();
+  }
+
+  static Future<Directory> _ohosFilesDir() async {
+    try {
+      final path = await ImageSave.getFilesDir();
+      if (path != null && path.isNotEmpty) {
+        final dir = Directory(path);
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+        return dir;
+      }
+    } catch (_) {}
+    // 通道不可用时回退 cache 目录（仍有修复 A 兜底，不丢登录态）
+    return Directory.systemTemp;
   }
 
   static Future<String> saveTempFile(String filename, Uint8List bytes) async {

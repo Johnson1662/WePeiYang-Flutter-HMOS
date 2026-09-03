@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/widgets/loading.dart';
@@ -44,7 +44,7 @@ enum SearchPageStatus {
 }
 
 class _SearchResultPageState extends State<SearchResultPage> {
-  final String keyword;
+  late String keyword;
   final String tagId;
   final int lakeType;
   final String departmentId;
@@ -57,11 +57,59 @@ class _SearchResultPageState extends State<SearchResultPage> {
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
   ScrollController _sc = ScrollController();
+  late final TextEditingController _searchController;
+  final FocusNode _searchFocus = FocusNode();
 
   List<Post> _list = [];
 
-  _SearchResultPageState(this.keyword, this.tagId, this.departmentId,
-      this.title, this.type, this.lakeType);
+  _SearchResultPageState(String keyword, this.tagId, this.departmentId,
+      this.title, this.type, this.lakeType) {
+    this.keyword = keyword;
+    _searchController = TextEditingController(text: keyword);
+  }
+
+  bool get _canEditKeyword =>
+      tagId.isEmpty && departmentId.isEmpty && lakeType == 0;
+
+  int? _postIdFromKeyword(String keyword) {
+    if (!keyword.startsWith('#MP')) return null;
+    return int.tryParse(keyword.substring(3));
+  }
+
+  void _submitKeyword(String value) {
+    final nextKeyword = value.trim();
+    if (nextKeyword.isEmpty) return;
+
+    final postId = _postIdFromKeyword(nextKeyword);
+    if (postId != null) {
+      FeedbackService.getPostById(
+        id: postId,
+        onResult: (post) {
+          if (!mounted) return;
+          Navigator.pushNamed(
+            context,
+            FeedbackRouter.detail,
+            arguments: post,
+          );
+        },
+        onFailure: (e) {
+          ToastProvider.error('无法找到对应帖子，报错信息：${e.error}');
+        },
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() {
+      keyword = nextKeyword;
+      currentPage = 1;
+      totalPage = 1;
+      status = SearchPageStatus.loading;
+      _list.clear();
+    });
+    _refreshController.resetNoData();
+    _refreshPost();
+  }
 
   _refreshPost() async {
     try {
@@ -78,13 +126,14 @@ class _SearchResultPageState extends State<SearchResultPage> {
       totalPage = page;
       _list.clear();
       setState(() => _list.addAll(list));
+      _refreshController.refreshCompleted();
     } catch (e) {
       if (e is DioException) {
         status = SearchPageStatus.idle;
         ToastProvider.error(e.error.toString());
         _refreshController.refreshFailed();
       } else {
-        Logger.reportError(e, StackTrace.current);
+        Log.e(e, StackTrace.current, 'feedback');
       }
     }
   }
@@ -94,39 +143,36 @@ class _SearchResultPageState extends State<SearchResultPage> {
     setState(() {
       status = SearchPageStatus.loading;
     });
-    _refreshPost();
+    await _refreshPost();
   }
 
-
   _onLoading() async {
-     if (currentPage != totalPage) {
-       currentPage++;
-       try {
-         final result = await FeedbackService.getPosts(
-             departmentId: departmentId,
-             type: '$type',
-             page: currentPage,
-             tagId: tagId,
-             keyword: keyword,
-             searchMode: searchMode);
-         final list = result.item1, page = result.item2;
-         totalPage = page;
-         print(currentPage);
-         print(totalPage);
-         setState(() => _list.addAll(list));
-         _refreshController.loadComplete();
-         if (list.isEmpty) _refreshController.loadNoData();
-       } catch (e) {
-         if (e is DioException) {
-           ToastProvider.error(e.error.toString());
-           _refreshController.loadFailed();
-         } else {
-           Logger.reportError(e, StackTrace.current);
-         }
-       }
-     } else {
-    _refreshController.loadNoData();
-     }
+    if (currentPage != totalPage) {
+      currentPage++;
+      try {
+        final result = await FeedbackService.getPosts(
+            departmentId: departmentId,
+            type: '$type',
+            page: currentPage,
+            tagId: tagId,
+            keyword: keyword,
+            searchMode: searchMode);
+        final list = result.item1, page = result.item2;
+        totalPage = page;
+        setState(() => _list.addAll(list));
+        _refreshController.loadComplete();
+        if (list.isEmpty) _refreshController.loadNoData();
+      } catch (e) {
+        if (e is DioException) {
+          ToastProvider.error(e.error.toString());
+          _refreshController.loadFailed();
+        } else {
+          Log.e(e, StackTrace.current, 'feedback');
+        }
+      }
+    } else {
+      _refreshController.loadNoData();
+    }
   }
 
   @override
@@ -143,7 +189,6 @@ class _SearchResultPageState extends State<SearchResultPage> {
           searchMode: searchMode,
         );
         final list = result.item1, page = result.item2;
-        print('page: $page, list: ${list.length}');
         totalPage = page;
         setState(() {
           _list.addAll(list);
@@ -153,10 +198,19 @@ class _SearchResultPageState extends State<SearchResultPage> {
         if (e is DioException) {
           ToastProvider.error(e.error.toString());
         } else {
-          Logger.reportError(e, StackTrace.current);
+          Log.e(e, StackTrace.current, 'feedback');
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    _refreshController.dispose();
+    _sc.dispose();
+    super.dispose();
   }
 
   @override
@@ -176,20 +230,23 @@ class _SearchResultPageState extends State<SearchResultPage> {
             Navigator.pop(context, true);
           },
         ),
-        title: WButton(
-          onPressed: () {
-            if (_sc.offset > 1000) {
-              _sc.jumpTo(800);
-              _refreshController.requestRefresh();
-            } else
-              _sc.animateTo(-180,
-                  duration: Duration(milliseconds: 600),
-                  curve: Curves.easeInOut);
-          },
-          child: Center(
-            child: Text(title, style: TextUtil.base.bold.label(context).sp(16)),
-          ),
-        ),
+        title: _canEditKeyword
+            ? _buildSearchTitle()
+            : WButton(
+                onPressed: () {
+                  if (_sc.offset > 1000) {
+                    _sc.jumpTo(800);
+                    _refreshController.requestRefresh();
+                  } else
+                    _sc.animateTo(-180,
+                        duration: Duration(milliseconds: 600),
+                        curve: Curves.easeInOut);
+                },
+                child: Center(
+                  child: Text(title,
+                      style: TextUtil.base.bold.label(context).sp(16)),
+                ),
+              ),
         actions: [
           if (lakeType != 0)
             InkWell(
@@ -324,7 +381,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
 
     return PopScope(
       canPop: true,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         Navigator.pop(context, true);
       },
@@ -342,6 +399,50 @@ class _SearchResultPageState extends State<SearchResultPage> {
             Navigator.pop(context, true);
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildSearchTitle() {
+    return Container(
+      height: 34,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(
+        color: WpyTheme.of(context).get(WpyColorKey.secondaryBackgroundColor),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocus,
+        textInputAction: TextInputAction.search,
+        style: TextUtil.base.label(context).NotoSansSC.w400.sp(15),
+        decoration: InputDecoration(
+          hintText: '搜索冒泡',
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 18,
+            color: WpyTheme.of(context).get(WpyColorKey.infoTextColor),
+          ),
+          suffixIcon: _searchController.text.isEmpty
+              ? null
+              : WButton(
+                  onPressed: () {
+                    setState(() => _searchController.clear());
+                    _searchFocus.requestFocus();
+                  },
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 17,
+                    color: WpyTheme.of(context).get(WpyColorKey.infoTextColor),
+                  ),
+                ),
+        ),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: _submitKeyword,
       ),
     );
   }

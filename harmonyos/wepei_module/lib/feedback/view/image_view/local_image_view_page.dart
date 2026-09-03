@@ -101,9 +101,11 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
 
   Future<void> _preloadImage(int index) async {
     if (widget.args.imageCount == 0) return;
+    final provider = _imageProviderAt(index);
+
     try {
-      await precacheImage(_imageProviderAt(index), context);
-    } catch (_) {
+      await precacheImage(provider, context);
+    } catch (e) {
       if (mounted) {
         setState(() {
           _loading = false;
@@ -129,10 +131,12 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
   Future<void> _saveCurrentImage() async {
     try {
       ToastProvider.running('图片保存中');
+
       final assetPath =
           widget.args.saveAssetList?[_index] ?? widget.args.assetList[_index];
       final data = await rootBundle.load(assetPath);
       final fileName = assetPath.split('/').last;
+
       await ImageSave.saveImageFromBytes(
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         fileName,
@@ -225,7 +229,7 @@ class _LocalImageViewPageState extends State<LocalImageViewPage> {
               decoration: BoxDecoration(
                 color: WpyTheme.of(context)
                     .get(WpyColorKey.labelTextColor)
-                    .withOpacity(0.7),
+                    .withValues(alpha: 0.7),
                 borderRadius: BorderRadius.all(Radius.circular(14.r)),
               ),
               padding: EdgeInsets.fromLTRB(14.w, 10.w, 14.w, 14.w),

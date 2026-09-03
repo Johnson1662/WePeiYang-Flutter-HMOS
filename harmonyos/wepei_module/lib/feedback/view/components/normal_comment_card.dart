@@ -84,9 +84,9 @@ class _NCommentCardState extends State<NCommentCard>
           content: Text('您确定要$quote这条评论吗？'),
           cancelText: "取消",
           confirmTextStyle:
-              TextUtil.base.normal.label(context).ProductSans.sp(16).w400,
+              TextUtil.base.normal.label(context).NotoSansSC.sp(16).w400,
           cancelTextStyle:
-              TextUtil.base.normal.label(context).ProductSans.sp(16).w600,
+              TextUtil.base.normal.label(context).NotoSansSC.sp(16).w600,
           confirmText: quote == '摧毁' ? 'BOOM' : "确认",
           cancelFun: () {
             Navigator.of(context).pop();
@@ -170,7 +170,7 @@ class _NCommentCardState extends State<NCommentCard>
                         },
                         child: Text(
                           "恢复原评论状态（取消置顶）",
-                          style: TextUtil.base.normal.w400.ProductSans
+                          style: TextUtil.base.normal.w400.NotoSansSC
                               .primary(context)
                               .sp(16),
                         ),
@@ -184,14 +184,14 @@ class _NCommentCardState extends State<NCommentCard>
                         },
                         child: Text(
                           "评论置顶",
-                          style: TextUtil.base.normal.w400.ProductSans
+                          style: TextUtil.base.normal.w400.NotoSansSC
                               .primary(context)
                               .sp(16),
                         ),
                       ),
 
                     // 拉黑按钮
-                    if ((Platform.isIOS || (!Platform.isAndroid && !Platform.isIOS)) && widget.showBlockButton)
+                    if (Platform.isIOS && widget.showBlockButton)
                       // 分享按钮
                       CupertinoActionSheetAction(
                         onPressed: () {
@@ -200,7 +200,7 @@ class _NCommentCardState extends State<NCommentCard>
                         },
                         child: Text(
                           '拉黑',
-                          style: TextUtil.base.normal.w400.ProductSans
+                          style: TextUtil.base.normal.w400.NotoSansSC
                               .primary(context)
                               .sp(16),
                         ),
@@ -223,7 +223,7 @@ class _NCommentCardState extends State<NCommentCard>
                       },
                       child: Text(
                         '分享',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -246,7 +246,7 @@ class _NCommentCardState extends State<NCommentCard>
                       },
                       child: Text(
                         '回复',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -261,7 +261,7 @@ class _NCommentCardState extends State<NCommentCard>
                       },
                       child: Text(
                         '复制',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -289,7 +289,7 @@ class _NCommentCardState extends State<NCommentCard>
                             },
                             child: Text(
                               '删除',
-                              style: TextUtil.base.normal.w400.ProductSans
+                              style: TextUtil.base.normal.w400.NotoSansSC
                                   .primary(context)
                                   .sp(16),
                             ),
@@ -304,7 +304,7 @@ class _NCommentCardState extends State<NCommentCard>
                             },
                             child: Text(
                               '举报',
-                              style: TextUtil.base.normal.w400.ProductSans
+                              style: TextUtil.base.normal.w400.NotoSansSC
                                   .primary(context)
                                   .sp(16),
                             ),
@@ -331,7 +331,7 @@ class _NCommentCardState extends State<NCommentCard>
                         },
                         child: Text(
                           '删评',
-                          style: TextUtil.base.normal.w400.ProductSans
+                          style: TextUtil.base.normal.w400.NotoSansSC
                               .primary(context)
                               .sp(16),
                         ),
@@ -342,7 +342,7 @@ class _NCommentCardState extends State<NCommentCard>
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       '取消',
-                      style: TextUtil.base.normal.w400.ProductSans
+                      style: TextUtil.base.normal.w400.NotoSansSC
                           .primary(context)
                           .sp(16),
                     ),
@@ -368,7 +368,7 @@ class _NCommentCardState extends State<NCommentCard>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      TextUtil.base.w400.bold.ProductSans.sp(16).label(context),
+                      TextUtil.base.w400.bold.NotoSansSC.sp(16).label(context),
                 ),
               ),
               Padding(
@@ -418,7 +418,7 @@ class _NCommentCardState extends State<NCommentCard>
                                 ? "${widget.comment.replyToName.substring(0, 7)}..."
                                 : widget.comment.replyToName,
                         style:
-                            TextUtil.base.w700.ProductSans.sp(16).label(context),
+                            TextUtil.base.w700.NotoSansSC.sp(16).label(context),
                       ),
                     ),
                     SizedBox(width: 2)
@@ -454,7 +454,7 @@ class _NCommentCardState extends State<NCommentCard>
               if (widget.comment.value != 0)
                 Text(
                   "  置顶评论",
-                  style: TextUtil.base.w500.ProductSans
+                  style: TextUtil.base.w500.NotoSansSC
                       .sp(10)
                       .primaryAction(context),
                 ),
@@ -483,7 +483,7 @@ class _NCommentCardState extends State<NCommentCard>
                 text: widget.comment.content,
                 maxLines: !widget.isFullView && widget.isSubFloor ? 3 : 8,
                 style:
-                    TextUtil.base.w400.ProductSans.label(context).h(1.8).sp(14),
+                    TextUtil.base.w400.NotoSansSC.label(context).h(1.8).sp(14),
                 expand: false || widget.expandAll,
                 buttonIsShown: true,
                 isHTML: false,
@@ -495,41 +495,92 @@ class _NCommentCardState extends State<NCommentCard>
       ]);
     }
 
-    var commentImage = Padding(
-        padding: EdgeInsets.symmetric(vertical: 10),
-        child: AnimatedSize(
-          duration: Duration(milliseconds: 150),
-          curve: Curves.decelerate,
-          child: widget.comment.content != ''
-              ? WButton(
-                  onPressed: () {
-                    setState(() {
-                      _picFullView = true;
-                    });
-                  },
-                  child: _picFullView
-                      ? WButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              FeedbackRouter.imageView,
-                              arguments: ImageViewPageArgs(
-                                  [widget.comment.imageUrl], 1, 0, false),
-                            );
-                          },
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                                maxHeight: WePeiYangApp.screenWidth * 2),
-                            child: WpyPic(
-                              picBaseUrl + 'origin/' + widget.comment.imageUrl,
-                              withHolder: true,
-                              holderHeight: SplitUtil.w * 64,
+    var commentImage = LayoutBuilder(builder: (context, constraints) {
+      final imageWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+          ? constraints.maxWidth
+          : WePeiYangApp.screenWidth;
+      return Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: AnimatedSize(
+            duration: Duration(milliseconds: 150),
+            curve: Curves.decelerate,
+            child: widget.comment.content != ''
+                ? WButton(
+                    onPressed: () {
+                      setState(() {
+                        _picFullView = true;
+                      });
+                    },
+                    child: _picFullView
+                        ? WButton(
+                            onPressed: () {
+                              Navigator.pushNamed(
+                                context,
+                                FeedbackRouter.imageView,
+                                arguments: ImageViewPageArgs(
+                                    [widget.comment.imageUrl], 1, 0, false),
+                              );
+                            },
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                  maxHeight: WePeiYangApp.screenWidth * 2),
+                              child: WpyPic(
+                                picBaseUrl +
+                                    'origin/' +
+                                    widget.comment.imageUrl,
+                                width: imageWidth,
+                                fit: BoxFit.fitWidth,
+                                withHolder: true,
+                                holderHeight: SplitUtil.w * 64,
+                              ),
                             ),
+                          )
+                        : Row(
+                            children: [
+                              ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(4)),
+                                  child: WpyPic(
+                                    '${picBaseUrl}thumb/${widget.comment.imageUrl}',
+                                    width: SplitUtil.w * 68,
+                                    height: SplitUtil.w * 68,
+                                    fit: BoxFit.cover,
+                                    withHolder: true,
+                                  )),
+                              Spacer()
+                            ],
+                          ))
+                : _picFullView
+                    ? WButton(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            FeedbackRouter.imageView,
+                            arguments: ImageViewPageArgs(
+                                [widget.comment.imageUrl], 1, 0, false),
+                          );
+                        },
+                        child: ConstrainedBox(
+                          constraints:
+                              BoxConstraints(maxHeight: SplitUtil.sh * 2),
+                          child: WpyPic(
+                            '${picBaseUrl}origin/${widget.comment.imageUrl}',
+                            width: imageWidth,
+                            fit: BoxFit.fitWidth,
+                            withHolder: true,
+                            holderHeight: SplitUtil.w * 64,
                           ),
-                        )
-                      : Row(
-                          children: [
-                            ClipRRect(
+                        ),
+                      )
+                    : Row(
+                        children: [
+                          WButton(
+                            onPressed: () {
+                              setState(() {
+                                _picFullView = true;
+                              });
+                            },
+                            child: ClipRRect(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(4)),
                                 child: WpyPic(
@@ -539,74 +590,34 @@ class _NCommentCardState extends State<NCommentCard>
                                   fit: BoxFit.cover,
                                   withHolder: true,
                                 )),
-                            Spacer()
-                          ],
-                        ))
-              : _picFullView
-                  ? WButton(
-                      onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          FeedbackRouter.imageView,
-                          arguments: ImageViewPageArgs(
-                              [widget.comment.imageUrl], 1, 0, false),
-                        );
-                      },
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(maxHeight: SplitUtil.sh * 2),
-                        child: WpyPic(
-                          '${picBaseUrl}origin/${widget.comment.imageUrl}',
-                          withHolder: true,
-                          holderHeight: SplitUtil.w * 64,
-                        ),
+                          ),
+                          Expanded(
+                              child: WButton(
+                                  onPressed: () {
+                                    if (Provider.of<NewFloorProvider>(context,
+                                            listen: false)
+                                        .inputFieldEnabled) {
+                                      Provider.of<NewFloorProvider>(context,
+                                              listen: false)
+                                          .clearAndClose();
+                                    } else {
+                                      Provider.of<NewFloorProvider>(context,
+                                              listen: false)
+                                          .inputFieldOpenAndReplyTo(
+                                              widget.comment.id);
+                                      FocusScope.of(context).requestFocus(
+                                          Provider.of<NewFloorProvider>(context,
+                                                  listen: false)
+                                              .focusNode);
+                                    }
+                                  },
+                                  child: Container(
+                                      height: SplitUtil.w * 68,
+                                      color: Colors.transparent)))
+                        ],
                       ),
-                    )
-                  : Row(
-                      children: [
-                        WButton(
-                          onPressed: () {
-                            setState(() {
-                              _picFullView = true;
-                            });
-                          },
-                          child: ClipRRect(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(4)),
-                              child: WpyPic(
-                                '${picBaseUrl}thumb/${widget.comment.imageUrl}',
-                                width: SplitUtil.w * 68,
-                                height: SplitUtil.w * 68,
-                                fit: BoxFit.cover,
-                                withHolder: true,
-                              )),
-                        ),
-                        Expanded(
-                            child: WButton(
-                                onPressed: () {
-                                  if (Provider.of<NewFloorProvider>(context,
-                                          listen: false)
-                                      .inputFieldEnabled) {
-                                    Provider.of<NewFloorProvider>(context,
-                                            listen: false)
-                                        .clearAndClose();
-                                  } else {
-                                    Provider.of<NewFloorProvider>(context,
-                                            listen: false)
-                                        .inputFieldOpenAndReplyTo(
-                                            widget.comment.id);
-                                    FocusScope.of(context).requestFocus(
-                                        Provider.of<NewFloorProvider>(context,
-                                                listen: false)
-                                            .focusNode);
-                                  }
-                                },
-                                child: Container(
-                                    height: SplitUtil.w * 68,
-                                    color: Colors.transparent)))
-                      ],
-                    ),
-        ));
+          ));
+    });
 
     var subFloor;
     if (!widget.isSubFloor) {
@@ -738,26 +749,26 @@ class _NCommentCardState extends State<NCommentCard>
             commentContent,
             if (widget.comment.imageUrl != '') commentImage,
             if (_picFullView == true && widget.comment.imageUrl != '')
-              TextButton(
-                  style: ButtonStyle(
-                      alignment: Alignment.topRight,
-                      padding: MaterialStateProperty.all(EdgeInsets.zero)),
-                  onPressed: () {
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
                     setState(() {
                       _picFullView = false;
                     });
                   },
-                  child: Row(
-                    children: [
-                      Spacer(),
-                      Text('收起',
-                          style: TextUtil.base
-                              .infoText(context)
-                              .w800
-                              .ProductSans
-                              .sp(12)),
-                    ],
-                  ))
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                    child: Text('收起',
+                        style: TextUtil.base
+                            .infoText(context)
+                            .w800
+                            .NotoSansSC
+                            .sp(12)),
+                  ),
+                ),
+              )
             else
               SizedBox(height: SplitUtil.h * 8),
             bottomWidget,
@@ -804,7 +815,7 @@ class _NCommentCardState extends State<NCommentCard>
                                                 .toString() +
                                             ' 条回复 >'
                                         : '查看回复详情 >',
-                                    style: TextUtil.base.ProductSans.w400
+                                    style: TextUtil.base.NotoSansSC.w400
                                         .sp(12)
                                         .primaryAction(context)),
                                 Spacer()
@@ -860,7 +871,7 @@ class AdminPopUpState extends State<AdminPopUp> {
             Center(
                 child: Text("评论置顶",
                     style:
-                        TextUtil.base.ProductSans.w500.sp(16).label(context))),
+                        TextUtil.base.NotoSansSC.w500.sp(16).label(context))),
             SizedBox(
               height: SplitUtil.h * 20,
             ),
@@ -888,18 +899,17 @@ class AdminPopUpState extends State<AdminPopUp> {
                   adminTopFloor(widget.floorId, tc.text);
                 },
                 style: ButtonStyle(
-                  elevation: MaterialStateProperty.all(2),
-                  backgroundColor: MaterialStateProperty.all(
-                      WpyTheme.of(context)
-                          .get(WpyColorKey.secondaryBackgroundColor)),
-                  shape: MaterialStateProperty.all(
+                  elevation: WidgetStateProperty.all(2),
+                  backgroundColor: WidgetStateProperty.all(WpyTheme.of(context)
+                      .get(WpyColorKey.secondaryBackgroundColor)),
+                  shape: WidgetStateProperty.all(
                     RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),
                     ),
                   ),
                 ),
                 child: Text("确认",
-                    style: TextUtil.base.ProductSans.w500.sp(14).label(context)),
+                    style: TextUtil.base.NotoSansSC.w500.sp(14).label(context)),
               ),
             )
           ]),

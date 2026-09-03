@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show debugPrint, ValueNotifier;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wepei_module/home/view/wpy_page.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 
 import '../../gpa/gpa_router.dart';
 import '../../home/home_router.dart';
@@ -21,7 +22,7 @@ class CommonPreferences {
   /// 初始化sharedPrefs
   static Future<void> init() async {
     // On HarmonyOS (or any platform without native SharedPreferences), use MockSharedPreferences
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsOhos) {
       debugPrint(
           '[CommonPreferences] Using MockSharedPreferences for HarmonyOS');
       mockPref = await MockSharedPreferences.getInstance();
@@ -338,7 +339,7 @@ mixin PreferencesUtil<T> {
   static MockSharedPreferences? get mockPref => CommonPreferences.mockPref;
 
   bool get _useHmos =>
-      !Platform.isAndroid && !Platform.isIOS && mockPref != null;
+      kIsOhos && mockPref != null;
 
   dynamic _getValue(String key) {
     if (_useHmos) {

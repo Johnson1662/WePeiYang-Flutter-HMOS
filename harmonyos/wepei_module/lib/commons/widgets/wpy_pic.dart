@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/network/image_cache_service.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/themes/wpy_theme.dart';
@@ -67,7 +68,7 @@ class WpyPic extends StatefulWidget {
     _WpyPicState._ohosImageCache.clear();
     _WpyPicState._ohosImageRequests.clear();
     try {
-      if (!Platform.isAndroid && !Platform.isIOS) {
+      if (kIsOhos) {
         await ImageCacheService.instance.clearAllCache();
       }
       final cacheDir = Directory('${Directory.systemTemp.path}/libCachedImageData');
@@ -153,7 +154,7 @@ class _WpyPicState extends State<WpyPic> {
         if (widget.reduce && WpyTheme.of(context).brightness == Brightness.dark)
           return ColorFiltered(
             colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.2),
+              Colors.black.withValues(alpha: 0.2),
               BlendMode.darken,
             ),
             child: imageWidget,
@@ -298,7 +299,7 @@ class _WpyPicState extends State<WpyPic> {
       if (widget.reduce && WpyTheme.of(context).brightness == Brightness.dark)
         return ColorFiltered(
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.2),
+            Colors.black.withValues(alpha: 0.2),
             BlendMode.darken,
           ),
           child: imageWidget,
@@ -369,7 +370,7 @@ class _WpyPicState extends State<WpyPic> {
       return Container(child: cachedNetwork);
     }
     // OHOS: use the persistent cache service for network images.
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsOhos) {
       return Container(child: _ohosNetwork);
     }
     return Container(child: network);

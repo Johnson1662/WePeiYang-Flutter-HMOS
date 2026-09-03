@@ -1,0 +1,24 @@
+微北洋 (WePeiYang) HarmonyOS 版第三方组件声明
+=============================================
+
+本应用（OpenHarmony/HarmonyOS NEXT 版）基于 Flutter 开源框架开发，
+除仓库根目录 LICENSE（GPL-3.0-or-later）外，还使用了以下第三方组件，
+其许可如下。各组件完整许可文本见其官方仓库。
+
+组件清单（OHOS 构建实际集成）：
+- Flutter / Flutter Engine                      BSD-3-Clause
+  https://flutter.dev / openharmony-tpc/flutter_flutter
+- flutter_inappwebview_ohos                     Apache-2.0
+  https://gitcode.com/CPF-Flutter/flutter_inappwebview
+- photo_manager (3.6.4)                         MIT
+  https://pub.dev/packages/photo_manager
+- url_launcher                                  BSD-3-Clause
+  https://pub.dev/packages/url_launcher
+- package_info_plus                             BSD-3-Clause
+  https://pub.dev/packages/package_info_plus
+- 以及 pubspec.yaml 中声明、未在此列出的其余纯 Dart 依赖包
+  （如 dio、provider、shared_preferences 等，均为其各自开源许可）。
+
+说明：OHOS 版未集成 Android 版所使用的友盟统计、个推推送、
+岳鹰监控、高德地图及厂商推送 SDK；上述能力在 OHOS 端由系统能力或
+自建 MethodChannel 承担，详情见隐私政策。

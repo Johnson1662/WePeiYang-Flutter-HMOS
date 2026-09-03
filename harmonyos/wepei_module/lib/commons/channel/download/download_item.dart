@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:wepei_module/commons/update/version_data.dart';
 import 'package:wepei_module/commons/util/storage_util.dart';
 
 class DownloadTask {
@@ -20,26 +19,6 @@ class DownloadTask {
     required this.id,
     required this.path,
   });
-
-  factory DownloadTask.updateApk(AndroidVersion _version) {
-    return DownloadTask(
-      url: _version.apkUrl,
-      fileName: _version.apkName,
-      title: '微北洋',
-      description: _version.apkName,
-      showNotification: false,
-      type: DownloadType.apk,
-    );
-  }
-
-  factory DownloadTask.updateZip(AndroidVersion _version) {
-    return DownloadTask(
-      url: _version.zipUrl,
-      fileName: _version.zipName,
-      showNotification: false,
-      type: DownloadType.hotfix,
-    );
-  }
 
   factory DownloadTask({
     required String url,
@@ -97,10 +76,11 @@ class DownloadList {
   String toJson() => json.encode(toMap());
 }
 
-enum DownloadType { apk, font, hotfix, other }
+/// OHOS 侧不下载 APK 与热修复包，只保留字体下载等普通类型。
+enum DownloadType { font, other }
 
 extension DownloadTypeExt on DownloadType {
-  String get text => ['apk', 'font', 'hotfix', 'other'][index];
+  String get text => ['font', 'other'][index];
 
   String get path =>
       StorageUtil.downloadDir.path + Platform.pathSeparator + text;

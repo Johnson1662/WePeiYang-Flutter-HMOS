@@ -1,13 +1,13 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:wepei_module/commons/util/log/log.dart';
+import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wepei_module/commons/speech_to_text/API/aliyun_isi_protocol.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../commons/speech_to_text/model/record_controller.dart';
+import '../page/xiaotian_page.dart';
 import '../widget/bubble_widget.dart';
 import '../../model/xiaotian_state.dart';
 import 'package:provider/provider.dart';
@@ -55,11 +55,14 @@ class Suggestion extends StatelessWidget {
   Widget build(BuildContext context) {
     return WButton(
         onPressed: () async {
+          final pageState = context.findAncestorStateOfType<AiPageState>();
+          pageState?.setAvoidBottomInset(false);
           final result = await showCustomInputDialog(
             context,
             title: '发送反馈',
             hint: '请输入你的意见',
           );
+          pageState?.setAvoidBottomInset(true);
           if (result == null) return;
           final fb = FeedBack(
               traceId: context.read<xiaotianChatState>().traceID,
@@ -75,7 +78,7 @@ class Suggestion extends StatelessWidget {
             borderRadius: BorderRadius.circular(10.r),
             color: WpyTheme.of(context)
                 .get(WpyColorKey.oldSwitchBarColor)
-                .withOpacity(0.9),
+                .withValues(alpha: 0.9),
           ),
           child: Column(
             children: [
@@ -139,6 +142,7 @@ class _NewChatTileState extends State<NewChatTile> {
     }
   }
 
+  // 加载占位：用骨架条代替旋转圈，和首屏骨架屏风格统一
   Widget _buildSkeleton() {
     final base = WpyTheme.of(context).get(WpyColorKey.secondaryBackgroundColor);
     final highlight =
@@ -166,6 +170,8 @@ class _NewChatTileState extends State<NewChatTile> {
     );
   }
 
+  // 真实内容：用轻量的 Container + WButton 代替 ActionChip，
+  // 构建成本远低于 Material 的 Chip，避免出现时一次性构建造成掉帧
   Widget _buildContent() {
     if (_hotTopics.isEmpty) {
       return const Text(
@@ -178,7 +184,7 @@ class _NewChatTileState extends State<NewChatTile> {
         TextUtil.base.normal.PingFangSC.textButtonPrimary(context).sp(14);
     final bg = WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor);
     final borderColor =
-        WpyTheme.of(context).get(WpyColorKey.beanDarkColor).withOpacity(0.8);
+        WpyTheme.of(context).get(WpyColorKey.beanDarkColor).withValues(alpha: 0.8);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -207,9 +213,10 @@ class _NewChatTileState extends State<NewChatTile> {
   Widget build(BuildContext context) {
     return Center(
       child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        behavior:
+            ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: SingleChildScrollView(
-          child: Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -256,6 +263,9 @@ class _NewChatTileState extends State<NewChatTile> {
               padding: EdgeInsets.symmetric(horizontal: 25.w),
               child: Align(
                 alignment: Alignment.centerLeft, // 让chips靠左
+                // 骨架条与真实话题用 AnimatedCrossFade 过渡：它预先构建两边、
+                // 只 lerp 已测量好的尺寸并做淡入淡出，不会像 AnimatedSize 那样
+                // 每帧重新测量子树，配合轻量话题卡片，加载完成时不再掉帧。
                 child: RepaintBoundary(
                   child: AnimatedCrossFade(
                     firstChild: _buildSkeleton(),
@@ -275,7 +285,7 @@ class _NewChatTileState extends State<NewChatTile> {
           ],
         ),
       ),
-    ),
+      ),
     );
   }
 }
@@ -308,7 +318,8 @@ class _ChatTileState extends State<ChatTile> {
     return Consumer2<xiaotianChatState, xiaotianInputState>(
         builder: (context, chatState, inputState, _) {
       return ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          behavior:
+              ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: ListView.builder(
           controller: inputState.scrollController,
           itemCount: chatState.messages.length,
@@ -323,6 +334,7 @@ class _ChatTileState extends State<ChatTile> {
                 key: key,
                 messageId: msg.id,
                 index: index,
+                likeCount: msg.likeCount,
                 onFinished: (text) {
                   msg.setText(text);
                 },
@@ -332,13 +344,11 @@ class _ChatTileState extends State<ChatTile> {
                 sessionId: msg.sessionId,
                 headers: msg.headers,
                 text: msg.text, // 历史消息直接显示
-                likeCount: msg.likeCount,
               );
             } else {
               return const SizedBox.shrink();
             }
-          }),
-          );
+          }));
     });
   }
 }
@@ -359,8 +369,6 @@ class _inputBoxState extends State<inputBox> {
     accessKeySecret: aliyunInfo.accessKeySecret,
     appKey: aliyunInfo.appKey,
   );
-  // 用来记录开始录音时的光标位置或已有文本，视需求而定
-  String _textBeforeRecording = "";
   String _prefixText = ""; // 光标前的文字
   String _suffixText = ""; // 光标后的文字
   @override
@@ -406,58 +414,62 @@ class _inputBoxState extends State<inputBox> {
 
   // 开始/停止录音的包装方法
   Future<void> _toggleRecording() async {
+    if (kIsOhos) {
+      ToastProvider.error('当前设备暂不支持语音输入');
+      return;
+    }
     final inputState = Provider.of<xiaotianInputState>(context, listen: false);
+
     if (!_recordController.isRecording) {
-      if (Platform.isAndroid || Platform.isIOS) {
-        final status = await Permission.microphone.status;
-        if (status.isPermanentlyDenied) {
-          if (!mounted) return;
-          showDialog(
-            context: context,
-            builder: (context) => Dialog(
-              backgroundColor:
-                  WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
-              surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r)),
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.mic_off, size: 30),
-                      ],
+      final status = await Permission.microphone.status;
+      if (status.isPermanentlyDenied) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor:
+                WpyTheme.of(context).get(WpyColorKey.primaryBackgroundColor),
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r)),
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.mic_off, size: 30),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Center(
+                    child: Text(
+                      "小天老师需要麦克风权限\n请前往系统设置开启",
+                      style: TextUtil.base.normal,
+                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 20),
-                    Center(
-                      child: Text(
-                        "小天老师需要麦克风权限\n请前往系统设置开启",
-                        style: TextUtil.base.normal,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    WbyDialogStandardTwoButton(
-                      firstText: "取消",
-                      secondText: "打开设置",
-                      first: () => Navigator.pop(context),
-                      second: () {
-                        Navigator.pop(context);
-                        openAppSettings();
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 20),
+                  WbyDialogStandardTwoButton(
+                    firstText: "取消",
+                    secondText: "打开设置",
+                    first: () => Navigator.pop(context),
+                    second: () {
+                      Navigator.pop(context);
+                      openAppSettings();
+                    },
+                  ),
+                ],
               ),
             ),
-          );
-          return;
-        }
+          ),
+        );
+        return;
       }
+
       final controller = inputState.textController;
       final text = controller.text;
       final selection = controller.selection;
@@ -496,7 +508,7 @@ class _inputBoxState extends State<inputBox> {
             BoxShadow(
                 color: WpyTheme.of(context)
                     .get(WpyColorKey.beanDarkColor)
-                    .withOpacity(0.6),
+                    .withValues(alpha: 0.6),
                 blurRadius: 8.r,
                 offset: Offset(0, 0))
           ],
@@ -556,7 +568,9 @@ class _inputBoxState extends State<inputBox> {
                               _recordController.state == RecordState.processing;
                           bool isRecording = _recordController.isRecording;
                           return WButton(
-                            onPressed: isProcessing ? null : _toggleRecording,
+                            // OHOS 无 record/permission_handler 实现，禁用语音入口
+                            onPressed:
+                                (isProcessing || kIsOhos) ? null : _toggleRecording,
                             child: isProcessing
                                 ? SizedBox(
                                     width: 24.r,
@@ -579,8 +593,8 @@ class _inputBoxState extends State<inputBox> {
                                     shadows: isRecording
                                         ? [
                                             Shadow(
-                                              color:
-                                                  Colors.red.withOpacity(0.5),
+                                              color: Colors.red
+                                                  .withValues(alpha: 0.5),
                                               blurRadius: 3,
                                               offset: Offset(2, 2),
                                             )

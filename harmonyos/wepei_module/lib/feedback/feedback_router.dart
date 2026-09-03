@@ -58,7 +58,8 @@ class FeedbackRouter {
     notice: (args) => FeedbackNoticePage(args),
     summary: (_) =>
         Builder(builder: (context) => FeedbackSummaryPage(context: context)),
-    haitang: (args) => FestivalPage(args),
+    haitang: (args) =>
+        Builder(builder: (context) => FestivalPage(args, context: context)),
     openBox: (args) => OpenBox(args),
     collection: (_) => CollectionPage(),
     person: (args) => PersonPage(args),

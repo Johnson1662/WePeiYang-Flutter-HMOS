@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -454,7 +455,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                                         .get(WpyColorKey.oldSwitchBarColor),
                                     checkColor: WpyTheme.of(context)
                                         .get(WpyColorKey.reverseTextColor),
-                                    side: MaterialStateBorderSide.resolveWith(
+                                    side: WidgetStateBorderSide.resolveWith(
                                         (_) => BorderSide(
                                               color: WpyTheme.of(context).get(
                                                   WpyColorKey.infoTextColor),
@@ -589,7 +590,7 @@ class _PostDetailPageState extends State<PostDetailPage>
         onPressed: () => _refreshController.requestRefresh(),
         child: Text(
           widget.post.type == 1 ? '校务提问：实名' : '冒泡',
-          style: TextUtil.base.ProductSans.label(context).w600.sp(18),
+          style: TextUtil.base.NotoSansSC.label(context).w600.sp(18),
         ),
       ),
       elevation: 0,
@@ -734,9 +735,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                 child: CupertinoActionSheet(
                   actions: [
                     // 拉黑按钮
-                    if ((Platform.isIOS ||
-                            (!Platform.isAndroid && !Platform.isIOS)) &&
-                        _showBlockButton)
+                    if ((Platform.isIOS || kIsOhos) && _showBlockButton)
                       // 分享按钮
                       CupertinoActionSheetAction(
                         onPressed: () {
@@ -745,7 +744,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                         },
                         child: Text(
                           '拉黑',
-                          style: TextUtil.base.normal.w400.ProductSans
+                          style: TextUtil.base.normal.w400.NotoSansSC
                               .primary(context)
                               .sp(16),
                         ),
@@ -772,7 +771,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                       },
                       child: Text(
                         '分享',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -784,7 +783,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                       },
                       child: Text(
                         '截图分享',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -797,7 +796,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                       },
                       child: Text(
                         '选择评论截图',
-                        style: TextUtil.base.normal.w400.ProductSans
+                        style: TextUtil.base.normal.w400.NotoSansSC
                             .primary(context)
                             .sp(16),
                       ),
@@ -811,7 +810,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                           },
                           child: Text(
                             '举报',
-                            style: TextUtil.base.normal.w400.ProductSans
+                            style: TextUtil.base.normal.w400.NotoSansSC
                                 .primary(context)
                                 .sp(16),
                           ))
@@ -839,7 +838,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                           },
                           child: Text(
                             '删除',
-                            style: TextUtil.base.normal.w400.ProductSans
+                            style: TextUtil.base.normal.w400.NotoSansSC
                                 .primary(context)
                                 .sp(16),
                           )),
@@ -849,7 +848,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       '取消',
-                      style: TextUtil.base.normal.w400.ProductSans
+                      style: TextUtil.base.normal.w400.NotoSansSC
                           .primary(context)
                           .sp(16),
                     ),
@@ -1169,7 +1168,7 @@ class _PostDetailPageState extends State<PostDetailPage>
                                                               Shadow(
                                                                 color: Colors
                                                                     .red
-                                                                    .withOpacity(
+                                                                    .withValues(alpha: 
                                                                         0.5),
                                                                 blurRadius: 3,
                                                                 offset: Offset(
@@ -1406,7 +1405,7 @@ class CommentInputFieldState extends State<CommentInputField> {
     Widget inputField = Consumer<NewFloorProvider>(builder: (_, data, __) {
       data.focusNode = _commentFocus;
       return TextField(
-        style: TextUtil.base.w400.ProductSans.sp(16).h(1.4).primary(context),
+        style: TextUtil.base.w400.NotoSansSC.sp(16).h(1.4).primary(context),
         focusNode: _commentFocus,
         controller: textEditingController,
         maxLength: 200,
@@ -1417,7 +1416,7 @@ class CommentInputFieldState extends State<CommentInputField> {
               data.replyTo == 0 ? '回复冒泡：' : '回复楼层：' + data.replyTo.toString(),
           suffix: Text(
             commentLengthIndicator,
-            style: TextUtil.base.w400.ProductSans.sp(14).replySuffix(context),
+            style: TextUtil.base.w400.NotoSansSC.sp(14).replySuffix(context),
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15.r),
@@ -2178,7 +2177,7 @@ class _SearchableDropdownDialogState extends State<SearchableDropdownDialog> {
             if (selectedItem.value == "") return old!;
             return ElevatedButton(
               style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(
+                backgroundColor: WidgetStateProperty.all(
                     WpyTheme.of(context).get(WpyColorKey.primaryActionColor)),
               ),
               onPressed: () async {

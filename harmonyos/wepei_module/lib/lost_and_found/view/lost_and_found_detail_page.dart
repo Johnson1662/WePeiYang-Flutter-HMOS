@@ -151,11 +151,9 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
             completer.complete(p);
           },
           onFailure: (e) {
-            // 处理错误
             if (!completer.isCompleted) completer.complete(null);
           });
     } catch (e) {
-      // 处理错误
       if (!completer.isCompleted) completer.complete(null);
     }
     return completer.future;
@@ -256,9 +254,9 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                 Navigator.of(context).pop();
                               },
                               style: ButtonStyle(
-                                minimumSize: MaterialStateProperty.all<Size>(
+                                minimumSize: WidgetStateProperty.all<Size>(
                                     Size(110.w, 40.h)),
-                                shape: MaterialStateProperty.all<
+                                shape: WidgetStateProperty.all<
                                     RoundedRectangleBorder>(
                                   RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10.r),
@@ -274,14 +272,14 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                             ElevatedButton(
                               onPressed: () {
                                 DateTime today = DateTime.now();
-                                String todayStr =
+                                String currentTodayStr =
                                     "${today.year}-${today.month}-${today.day}";
                                 //已经加载出联系方式
                                 if (model.phoneNum != '') {
                                   Navigator.of(context).pop();
                                 }
                                 //超过访问次数，且不是已经存储的
-                                if (todayStr ==
+                                if (currentTodayStr ==
                                         CommonPreferences.lafGetDate.value &&
                                     !CommonPreferences.lafGetNumId.value
                                         .contains("${widget.postId}") &&
@@ -303,7 +301,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                         if (string == null) {
                                         } else {
                                           CommonPreferences.lafGetDate.value =
-                                              todayStr;
+                                              currentTodayStr;
                                           model.phoneNum = string;
                                           if (CommonPreferences
                                                   .lafGetNum.value.length >=
@@ -315,13 +313,11 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                           }
                                           List<String> currentList =
                                               new List.from(CommonPreferences
-                                                      .lafGetNum.value ??
-                                                  []);
+                                                  .lafGetNum.value);
                                           currentList.add(string);
                                           List<String> currentList1 =
                                               new List.from(CommonPreferences
-                                                      .lafGetNumId.value ??
-                                                  []);
+                                                  .lafGetNumId.value);
                                           currentList1.add("${widget.postId}");
                                           CommonPreferences.lafGetNum.value =
                                               currentList;
@@ -338,13 +334,12 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                                 }
                               },
                               style: ButtonStyle(
-                                minimumSize: MaterialStateProperty.all<Size>(
+                                minimumSize: WidgetStateProperty.all<Size>(
                                     Size(110.w, 40.h)),
-                                backgroundColor:
-                                    MaterialStateProperty.all<Color>(
-                                        WpyTheme.of(context).get(
-                                            WpyColorKey.primaryActionColor)),
-                                shape: MaterialStateProperty.all<
+                                backgroundColor: WidgetStateProperty.all<Color>(
+                                    WpyTheme.of(context)
+                                        .get(WpyColorKey.primaryActionColor)),
+                                shape: WidgetStateProperty.all<
                                     RoundedRectangleBorder>(
                                   RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10.r),
@@ -406,10 +401,10 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                             Navigator.of(context).pop();
                           },
                           style: ButtonStyle(
-                            minimumSize: MaterialStateProperty.all<Size>(
+                            minimumSize: WidgetStateProperty.all<Size>(
                                 Size(110.w, 40.h)),
-                            shape: MaterialStateProperty.all<
-                                RoundedRectangleBorder>(
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
                               RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
@@ -439,12 +434,12 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                           },
                           style: ButtonStyle(
                             minimumSize:
-                                MaterialStateProperty.all<Size>(Size(110, 40)),
-                            backgroundColor: MaterialStateProperty.all<Color>(
+                                WidgetStateProperty.all<Size>(Size(110, 40)),
+                            backgroundColor: WidgetStateProperty.all<Color>(
                                 WpyTheme.of(context)
                                     .get(WpyColorKey.primaryActionColor)),
-                            shape: MaterialStateProperty.all<
-                                RoundedRectangleBorder>(
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
                               RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
@@ -487,7 +482,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                 child: Wrap(
                   children: <Widget>[
                     Card(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
                       ),
@@ -558,7 +553,7 @@ class _LostAndFoundDetailPageState extends State<LostAndFoundDetailPage> {
                       ),
                     ),
                     Card(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
                       ),
@@ -921,18 +916,24 @@ class _SingleImageWidgetState extends State<SingleImageWidget> {
   @override
   Widget build(BuildContext context) {
     Completer<ui.Image> completer = Completer<ui.Image>();
+    final cacheWidth =
+        (350.w * MediaQuery.of(context).devicePixelRatio).round();
     Image image = Image.network(
       widget.imageUrl,
       width: double.infinity,
       fit: BoxFit.fitWidth,
       alignment: Alignment.topCenter,
+      cacheWidth: cacheWidth,
     );
     if (!completer.isCompleted) {
       image.image
           .resolve(ImageConfiguration())
           .addListener(ImageStreamListener((ImageInfo info, bool _) {
-        if (!completer.isCompleted) completer.complete(info.image);
-      }));
+            if (!completer.isCompleted) completer.complete(info.image);
+          }, onError: (error, stackTrace) {
+            if (!completer.isCompleted)
+              completer.completeError(error, stackTrace);
+          }));
     }
 
     return FutureBuilder<ui.Image>(
@@ -956,15 +957,20 @@ class _SingleImageWidgetState extends State<SingleImageWidget> {
                                   arguments: ImageViewPageArgs(
                                       [widget.imageUrl], 1, 0, true),
                                 ),
-                            child: image),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight:
+                                    MediaQuery.of(context).size.height * 2,
+                              ),
+                              child: ClipRect(child: image),
+                            )),
                       ),
                       TextButton(
                           style: ButtonStyle(
                               alignment: Alignment.topRight,
-                              padding:
-                                  MaterialStateProperty.all(EdgeInsets.zero),
-                              overlayColor: MaterialStateProperty.all(
-                                  Colors.transparent)),
+                              padding: WidgetStateProperty.all(EdgeInsets.zero),
+                              overlayColor:
+                                  WidgetStateProperty.all(Colors.transparent)),
                           onPressed: () {
                             setState(() {
                               _picFullView = false;
@@ -1061,6 +1067,12 @@ class _SingleImageWidgetState extends State<SingleImageWidget> {
                       child: image),
                 );
               }
+            } else if (snapshot.hasError) {
+              return SizedBox(
+                width: 350.w,
+                height: 120.h,
+                child: WpyPic.errorPlaceHolder,
+              );
             } else {
               return Icon(
                 Icons.refresh,

@@ -9,7 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:numberpicker/numberpicker.dart';
 import 'package:provider/provider.dart';
-import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/widgets/SpoilerMask.dart';
@@ -272,10 +272,10 @@ class _NewPostPageState extends State<NewPostPage> {
       tag: "addNewPost",
       child: ElevatedButton(
         style: ButtonStyle(
-          elevation: MaterialStateProperty.all(0),
-          backgroundColor: MaterialStateProperty.all(
+          elevation: WidgetStateProperty.all(0),
+          backgroundColor: WidgetStateProperty.all(
               WpyTheme.of(context).get(WpyColorKey.primaryActionColor)),
-          shape: MaterialStateProperty.all(
+          shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(100),
             ),
@@ -346,7 +346,7 @@ class VoteFormController {
     } on DioException catch (e) {
       ToastProvider.error('发布失败: ${e.error.toString()}');
     } catch (e) {
-      Logger.reportError(e, StackTrace.current);
+      Log.e(e, StackTrace.current, 'feedback');
       ToastProvider.error('未知错误: ${e.toString()}');
     }
   }
@@ -565,7 +565,7 @@ class _NewVoteFormState extends State<NewVoteForm> {
           child: Center(
             child: Text(
               'POLL',
-              style: TextUtil.base.w400.PingFangSC
+              style: TextUtil.base.w400.NotoSansSC
                   .sp(10)
                   .bright(context)
                   .bold
@@ -789,7 +789,7 @@ class PostVariantSelector extends StatelessWidget {
                       style: TextUtil.base
                           .sp(16)
                           .w400
-                          .PingFangSC
+                          .NotoSansSC
                           .normal
                           .infoText(context)),
                 ),
@@ -815,7 +815,7 @@ class PostVariantSelector extends StatelessWidget {
                     SizedBox(width: 6),
                     Text(
                       options(context)[key]?['text'] as String,
-                      style: TextUtil.base.w400.medium.PingFangSC.sp(14),
+                      style: TextUtil.base.w400.medium.NotoSansSC.sp(14),
                     ),
                   ],
                 ),
@@ -876,7 +876,7 @@ class _CampusSelectorState extends State<CampusSelector> {
                   style: TextUtil.base
                       .sp(14)
                       .w400
-                      .PingFangSC
+                      .NotoSansSC
                       .normal
                       .primaryAction(context),
                 ),
@@ -894,7 +894,7 @@ class _CampusSelectorState extends State<CampusSelector> {
                 child: Center(
                   child: Text(
                     texts[0],
-                    style: TextUtil.base.w400.medium.PingFangSC.sp(12),
+                    style: TextUtil.base.w400.medium.NotoSansSC.sp(12),
                   ),
                 ),
               ),
@@ -903,14 +903,14 @@ class _CampusSelectorState extends State<CampusSelector> {
                 value: 1,
                 child: Center(
                     child: Text(texts[1],
-                        style: TextUtil.base.w400.medium.PingFangSC.sp(12))),
+                        style: TextUtil.base.w400.medium.NotoSansSC.sp(12))),
               ),
               PopupMenuItem<int>(
                 height: ScreenUtil().setHeight(30),
                 value: 2,
                 child: Center(
                     child: Text(texts[2],
-                        style: TextUtil.base.w400.medium.PingFangSC.sp(12))),
+                        style: TextUtil.base.w400.medium.NotoSansSC.sp(12))),
               ),
             ];
           },

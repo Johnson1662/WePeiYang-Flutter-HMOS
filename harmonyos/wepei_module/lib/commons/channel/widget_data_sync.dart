@@ -37,7 +37,6 @@ class WidgetDataSync {
       final payload = <String, dynamic>{
         'courseData': courseData,
         'currentWeek': currentWeek,
-        'userNumber': CommonPreferences.userNumber.value,
         'lastUpdate': DateTime.now().millisecondsSinceEpoch,
       };
       final encoded = json.encode(payload);
@@ -60,7 +59,6 @@ class WidgetDataSync {
 
   /// Triggers an immediate form update via MethodChannel.
   static void _triggerFormUpdate() {
-    _triggerEntryQrFormUpdate();
     try {
       // Read form ID saved by SDCFormAbility.onAddForm
       final formIdFile =
@@ -72,14 +70,6 @@ class WidgetDataSync {
       debugPrint('[WidgetDataSync] triggerFormUpdate: $formId');
     } catch (e) {
       debugPrint('[WidgetDataSync] triggerFormUpdate error: $e');
-    }
-  }
-
-  static void _triggerEntryQrFormUpdate() {
-    try {
-      _channel.invokeMethod('triggerEntryQrFormUpdate').catchError((_) {});
-    } catch (e) {
-      debugPrint('[WidgetDataSync] triggerEntryQrFormUpdate error: $e');
     }
   }
 }

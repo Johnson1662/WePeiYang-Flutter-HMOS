@@ -15,7 +15,6 @@ class TestMainPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _card(context, '推送测试', 'Push 通知、Intent 测试', TestRouter.pushTest),
-          _card(context, '更新测试', 'APK/SO 清理、检查更新', TestRouter.updateTest),
           _card(context, '求实论坛测试', 'Token 获取、接口测试', TestRouter.qsltTest),
           _card(context, '字体测试', 'PingFang / Noto 字体', TestRouter.fontTest),
         ],

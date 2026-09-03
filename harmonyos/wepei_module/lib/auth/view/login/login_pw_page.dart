@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'dart:convert';
 import 'package:wepei_module/auth/network/auth_service.dart';
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
-import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/auth/view/privacy/privacy_dialog.dart';
 import 'package:wepei_module/auth/view/privacy/user_agreement_dialog.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
@@ -23,69 +18,59 @@ class LoginPwWidget extends StatefulWidget {
 }
 
 class _LoginPwWidgetState extends State<LoginPwWidget> {
-  final checkNotifier = ValueNotifier<bool>(true); // 是否勾选隐私政策
+  final checkNotifier = ValueNotifier<bool>(false); // 是否勾选隐私政策
   bool _usePwLogin = true;
   String md = "";
+
   _login() async {
-    debugPrint('_login called');
+    // 隐藏键盘
     FocusScope.of(context).requestFocus(FocusNode());
     if (_usePwLogin) {
-      if (account == "" || password == "") {
-        showDialog(
-            context: context,
-            builder: (_) => AlertDialog(content: Text('账号或密码为空')));
-        return;
-      }
-      ToastProvider.running("登录中...");
-      debugPrint('calling pwLogin');
-      try {
-        await AuthService.pwLogin(account, password, onResult: (result) {
-          ToastProvider.cancelCurrent();
-          if (result['telephone'] == null || result['email'] == null) {
-            Navigator.pushNamed(context, AuthRouter.addInfo);
-          } else {
-            LakeTokenManager().refreshToken();
-            Navigator.pushNamedAndRemoveUntil(
-                context, HomeRouter.home, (route) => false);
-          }
-        }, onFailure: (e) {
-          ToastProvider.cancelCurrent();
-          showDialog(
-              context: context,
-              builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
-        });
-      } catch (e) {
-        ToastProvider.cancelCurrent();
-        showDialog(
-            context: context,
-            builder: (_) => AlertDialog(content: Text('网络异常: $e')));
+      if (account == "" || password == "")
+        ToastProvider.error('账号密码不能为空');
+      else if (!checkNotifier.value)
+        ToastProvider.error('请同意用户协议与隐私政策并继续');
+      else {
+        ToastProvider.running("登录中...");
+        AuthService.pwLogin(account, password,
+            onResult: (result) {
+              ToastProvider.cancelCurrent();
+              if (result['telephone'] == null || result['email'] == null) {
+                Navigator.pushNamed(context, AuthRouter.addInfo);
+              } else {
+                // 第一次登陸的時候載入使用者資料
+                // TODO: 這個方法和和新增資訊頁面的方法很醜陋，需要重構
+                // TODO: 應該統一管理token 而不是想到重新整理一下就重新請求
+                LakeTokenManager().refreshToken();
+                Navigator.pushNamedAndRemoveUntil(
+                    context, HomeRouter.home, (route) => false);
+              }
+            },
+            onFailure: (e) => ToastProvider.error(e.error.toString()));
       }
     } else {
       if (account == "") {
-        showDialog(
-            context: context,
-            builder: (_) => AlertDialog(content: Text('手机号为空')));
+        ToastProvider.error('手机号码不能为空');
       } else if (code == "") {
-        showDialog(
-            context: context,
-            builder: (_) => AlertDialog(content: Text('验证码为空')));
-      } else {
+        ToastProvider.error('短信验证码不能为空');
+      } else if (!checkNotifier.value)
+        ToastProvider.error('请同意用户协议与隐私政策并继续');
+      else {
         ToastProvider.running("登录中...");
-        AuthService.codeLogin(account, code, onResult: (result) {
-          ToastProvider.cancelCurrent();
-          if (result['telephone'] == null || result['email'] == null) {
-            Navigator.pushNamed(context, AuthRouter.addInfo);
-          } else {
-            LakeTokenManager().refreshToken();
-            Navigator.pushNamedAndRemoveUntil(
-                context, HomeRouter.home, (route) => false);
-          }
-        }, onFailure: (e) {
-          ToastProvider.cancelCurrent();
-          showDialog(
-              context: context,
-              builder: (_) => AlertDialog(content: Text('失败: ${e.error}')));
-        });
+        AuthService.codeLogin(account, code,
+            onResult: (result) {
+              ToastProvider.cancelCurrent();
+              if (result['telephone'] == null || result['email'] == null) {
+                Navigator.pushNamed(context, AuthRouter.addInfo);
+              } else {
+                // 第一次登陸的時候載入使用者資料
+                LakeTokenManager().refreshToken();
+
+                Navigator.pushNamedAndRemoveUntil(
+                    context, HomeRouter.home, (route) => false);
+              }
+            },
+            onFailure: (e) => ToastProvider.error(e.error.toString()));
       }
     }
   }
@@ -159,7 +144,7 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
                                     scaleY: 1.3,
                                     child: Checkbox(
                                       value: value,
-                                      side: MaterialStateBorderSide.resolveWith(
+                                      side: WidgetStateBorderSide.resolveWith(
                                         (_) => BorderSide(
                                             color: WpyTheme.of(context).get(
                                                 WpyColorKey.brightTextColor),
@@ -311,7 +296,6 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
                       .sp(14)
                       .NotoSansSC
                       .bright(context),
-                  obscureText: value,
                   cursorColor: WpyTheme.of(context)
                       .get(WpyColorKey.primaryBackgroundColor),
                   keyboardType: TextInputType.visiblePassword,
@@ -346,6 +330,7 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
                               .get(WpyColorKey.brightTextColor),
                         ),
                       )),
+                  obscureText: value,
                   onChanged: (input) => setState(() => password = input),
                 ),
               );
@@ -354,89 +339,7 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
         ),
         SizedBox(height: 50),
         WButton(
-          onPressed: () async {
-            final ctx = RouterManager.navigatorKey.currentState?.context;
-            if (ctx == null || account.isEmpty || password.isEmpty) return;
-            ToastProvider.running("登录中...");
-            try {
-              final dio = Dio(BaseOptions(
-                baseUrl: 'https://api.twt.edu.cn/api/',
-                connectTimeout: const Duration(seconds: 10),
-                receiveTimeout: const Duration(seconds: 10),
-                headers: AuthDio().headers ?? {},
-              ));
-              (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient =
-                  () {
-                final client = HttpClient();
-                client.badCertificateCallback = (cert, host, port) => true;
-                return client;
-              };
-              final rsp = await dio.post(
-                'auth/common',
-                data: {'account': account, 'password': password},
-                options:
-                    Options(contentType: Headers.formUrlEncodedContentType),
-              );
-              final ec = rsp.data['error_code'];
-              if (ec != null && ec != 0) {
-                final msg =
-                    rsp.data['msg'] ?? rsp.data['message'] ?? '错误码: $ec';
-                ToastProvider.cancelCurrent();
-                ToastProvider.error(msg);
-                return;
-              }
-              // Save login state
-              final data = rsp.data['result'] as Map? ?? {};
-              CommonPreferences.token.value = data['token'] ?? '';
-              CommonPreferences.account.value = account;
-              CommonPreferences.password.value = password;
-              CommonPreferences.nickname.value = data['nickname'] ?? '';
-              CommonPreferences.userNumber.value = data['userNumber'] ?? '';
-              CommonPreferences.phone.value = data['telephone'] ?? '';
-              CommonPreferences.email.value = data['email'] ?? '';
-              CommonPreferences.realName.value = data['realname'] ?? '';
-              CommonPreferences.department.value = data['department'] ?? '';
-              CommonPreferences.major.value = data['major'] ?? '';
-              CommonPreferences.stuType.value = data['stuType'] ?? '';
-              CommonPreferences.avatar.value = data['avatar'] ?? '';
-              CommonPreferences.isLogin.value = true;
-              // Persist login state
-              try {
-                final f =
-                    File('${Directory.systemTemp.path}/wepeiyang_state.json');
-                final state = <String, dynamic>{};
-                if (f.existsSync()) {
-                  final existing = jsonDecode(f.readAsStringSync());
-                  if (existing is Map) {
-                    state.addAll(Map<String, dynamic>.from(existing));
-                  }
-                }
-                state.addAll({
-                  'token': data['token'] ?? '',
-                  'account': account,
-                  'password': password,
-                  'nickname': data['nickname'] ?? '',
-                  'userNumber': data['userNumber'] ?? '',
-                  'avatar': data['avatar'] ?? '',
-                  'phone': data['telephone'] ?? '',
-                  'email': data['email'] ?? '',
-                  'realName': data['realname'] ?? '',
-                });
-                f.writeAsStringSync(jsonEncode(state));
-              } catch (_) {}
-              ToastProvider.cancelCurrent();
-              Navigator.pushNamedAndRemoveUntil(
-                  ctx, HomeRouter.home, (route) => false);
-            } on DioException catch (e) {
-              ToastProvider.cancelCurrent();
-              showDialog(
-                  context: context,
-                  builder: (_) =>
-                      AlertDialog(content: Text('错误: ${e.type} ${e.message}')));
-            } catch (e) {
-              ToastProvider.cancelCurrent();
-            }
-          },
+          onPressed: _login,
           child: Container(
             width: width - 60,
             height: 48,
@@ -454,7 +357,7 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
             ),
           ),
         ),
-        SizedBox(height: 23),
+        SizedBox(height: 23), //这里的数值调整是为了两个界面的短信登录等位置在同一个水平线上
         Row(
           children: [
             Spacer(),
@@ -523,7 +426,7 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
         decoration: BoxDecoration(
           color: WpyTheme.of(context)
               .get(WpyColorKey.primaryBackgroundColor)
-              .withOpacity(0.4),
+              .withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -602,38 +505,9 @@ class _LoginPwWidgetState extends State<LoginPwWidget> {
             ),
           ],
         ),
-        SizedBox(height: 11),
+        SizedBox(height: 11), // 这里的数值调整是为了两个界面的登录按钮对齐
         WButton(
-          onPressed: () async {
-            debugPrint('sms login');
-            if (account.isEmpty) {
-              showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(content: const Text('请输入手机号')));
-            } else if (code.isEmpty) {
-              showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(content: const Text('请输入验证码')));
-            } else {
-              ToastProvider.running("登录中...");
-              AuthService.codeLogin(
-                account,
-                code,
-                onResult: (_) {
-                  ToastProvider.cancelCurrent();
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, HomeRouter.home, (route) => false);
-                },
-                onFailure: (e) {
-                  ToastProvider.cancelCurrent();
-                  showDialog(
-                      context: context,
-                      builder: (_) =>
-                          AlertDialog(content: Text('失败: ${e.error}')));
-                },
-              );
-            }
-          },
+          onPressed: _login,
           child: Container(
             width: width - 60,
             height: 48,

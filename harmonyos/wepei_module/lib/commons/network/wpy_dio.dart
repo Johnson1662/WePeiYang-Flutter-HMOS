@@ -9,6 +9,7 @@ import 'package:dio/io.dart';
 import 'package:retry/retry.dart';
 import 'package:wepei_module/commons/environment/config.dart';
 import 'package:wepei_module/commons/util/logger.dart';
+import 'package:wepei_module/commons/network/ssl_whitelist.dart';
 
 export 'package:dio/dio.dart';
 

@@ -987,11 +987,12 @@ packages:
   package_info_plus:
     dependency: "direct main"
     description:
-      name: package_info_plus
-      sha256: "468c26b4254ab01979fa5e4a98cb343ea3631b9acee6f21028997419a80e1a20"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.0.1"
+      path: "packages/package_info_plus/package_info_plus"
+      ref: "br_package_info_plus-v8.1.0_ohos"
+      resolved-ref: "88701b5127dd2ad8f78924dfb758e27567499791"
+      url: "https://atomgit.com/openharmony-sig/flutter_plus_plugins.git"
+    source: git
+    version: "8.1.0"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -1601,10 +1602,11 @@ packages:
   url_launcher:
     dependency: "direct main"
     description:
-      name: url_launcher
-      sha256: f6a7e5c4835bb4e3026a04793a4199ca2d14c739ec378fdfe23fc8075d0439f8
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/url_launcher/url_launcher"
+      ref: "br_url_launcher-v6.3.2_ohos"
+      resolved-ref: f31db0d72e7a1d91dd023325a23dc2fba4b6ce4b
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+    source: git
     version: "6.3.2"
   url_launcher_android:
     dependency: transitive
@@ -1638,6 +1640,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
+  url_launcher_ohos:
+    dependency: transitive
+    description:
+      path: "packages/url_launcher/url_launcher_ohos"
+      ref: "br_url_launcher-v6.3.2_ohos"
+      resolved-ref: f31db0d72e7a1d91dd023325a23dc2fba4b6ce4b
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+    source: git
+    version: "6.3.2"
   url_launcher_platform_interface:
     dependency: transitive
     description:

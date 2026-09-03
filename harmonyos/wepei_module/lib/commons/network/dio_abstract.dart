@@ -12,7 +12,10 @@ abstract class DioAbstract {
   List<Interceptor> interceptors = [];
   InterceptorsWrapper? errorInterceptor = null;
   ResponseType responseType = ResponseType.json;
-  bool get SSL => false;
+
+  /// 是否校验 SSL 证书。为 false 的服务（图书馆自签证书域名）
+  /// 也仅放行 ssl_whitelist.dart 白名单内的域名，不再无条件信任所有证书。
+  bool SSL = true;
 
   late final Dio _dio;
 
@@ -31,7 +34,8 @@ abstract class DioAbstract {
     if (!SSL && adapter is IOHttpClientAdapter) {
       adapter.createHttpClient = () {
         final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
+        client.badCertificateCallback =
+            (cert, host, port) => shouldBypassSsl(host);
         return client;
       };
     }

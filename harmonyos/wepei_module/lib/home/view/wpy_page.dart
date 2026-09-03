@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/widgets/webview_page.dart';
 
 import 'package:flutter/material.dart';
@@ -347,7 +348,7 @@ class SliverCardsWidget extends StatelessWidget {
           return WButton(
             key: ValueKey(cardBean.route),
             onPressed: () {
-              if (Platform.operatingSystem == 'ohos') {
+              if (kIsOhos) {
                 // OHOS: use in-app WebView instead of url_launcher
                 final route = cardBean.route;
                 if (route.contains('wiki.tjubot.cn')) {
