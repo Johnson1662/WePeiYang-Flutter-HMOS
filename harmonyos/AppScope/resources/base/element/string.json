@@ -11,6 +11,10 @@
     {
       "name": "form_name_schedule",
       "value": "课表"
+    },
+    {
+      "name": "reason_microphone",
+      "value": "用于在小天 AI 与论坛评论中进行语音输入识别"
     }
   ]
 }

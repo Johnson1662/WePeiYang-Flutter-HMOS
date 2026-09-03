@@ -79,25 +79,7 @@ def material_from_env() -> dict | None:
 
 
 def discover_default_material() -> dict | None:
-    """debug 签名材料自动发现。
-    优先发现 HoKit 申请的含 READ_PASTEBOARD ACL 权限的专用证书材料；
-    若无则回退至 DevEco 默认材料（~/.ohos/config/default_harmonyos_*）。
-    """
-    hokit_dir = Path.home() / ".config" / "ho-kit" / "sign"
-    if hokit_dir.is_dir():
-        provisions = sorted(glob.glob(str(hokit_dir / "provisions" / "com.weipeiyang.cn_*.p7b")))
-        certs = sorted(glob.glob(str(hokit_dir / "certs" / "hokit_debug_*.cer")))
-        p12 = hokit_dir / "tools" / "ho-kit.p12"
-        if provisions and certs and p12.is_file():
-            return {
-                "certpath": certs[0],
-                "keyAlias": "hokit",
-                "keyPassword": "hokit9527",
-                "profile": provisions[0],
-                "signAlg": "SHA256withECDSA",
-                "storeFile": str(p12),
-                "storePassword": "hokit9527",
-            }
+    """debug 签名材料自动发现（使用 DevEco 默认 ~/.ohos/config/default_harmonyos_*）。"""
 
     config_dir = Path.home() / ".ohos" / "config"
     if not config_dir.is_dir():
@@ -144,13 +126,15 @@ def apply(target: Path) -> None:
             profile_file = current.get("profile")
             # 若当前 profile 不含 READ_PASTEBOARD ACL，也主动替换为更优的默认材料
             is_acl_missing = profile_file and Path(profile_file).is_file() and b"READ_PASTEBOARD" not in Path(profile_file).read_bytes()
+            key_pwd = current.get("keyPassword", "")
+            store_pwd = current.get("storePassword", "")
             paths = ("certpath", "profile", "storeFile")
             needs_fallback = (
                 not current
                 or not all(current.get(key) and Path(current[key]).is_file() for key in paths)
                 or is_acl_missing
-                or not current.get("keyPassword")
-                or not current.get("storePassword")
+                or len(key_pwd) < 32
+                or len(store_pwd) < 32
             )
         if needs_fallback:
             default = discover_default_material()

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:wepei_module/commons/channel/speech/speech_recognizer_channel.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import '../API/aliyun_isi_client.dart';
 import '../API/aliyun_token_client.dart';
 import 'speech_record_manager.dart';
@@ -46,7 +48,12 @@ class RecordController extends ChangeNotifier {
   @override
   void dispose() {
     _maxDurationTimer?.cancel();
-    _recordManager.dispose();
+    if (kIsOhos) {
+      SpeechRecognizerChannel.instance.cancelListening();
+      SpeechRecognizerChannel.instance.clearCallbacks();
+    } else {
+      _recordManager.dispose();
+    }
     super.dispose();
   }
 
@@ -62,6 +69,56 @@ class RecordController extends ChangeNotifier {
   }
 
   Future<void> _startRecording() async {
+    if (kIsOhos) {
+      _resultText = "";
+      _errorMessage = "";
+      _updateState(RecordState.processing);
+
+      final granted =
+          await SpeechRecognizerChannel.instance.requestPermission();
+      if (!granted) {
+        _errorMessage = "请授予麦克风权限以使用语音输入";
+        _updateState(RecordState.error);
+        return;
+      }
+
+      SpeechRecognizerChannel.instance.setCallbacks(
+        onResult: (text, isFinal) {
+          _resultText = text;
+          if (isFinal) {
+            _updateState(RecordState.success);
+          } else {
+            notifyListeners();
+          }
+        },
+        onError: (err) {
+          _errorMessage = err;
+          _updateState(RecordState.error);
+        },
+        onComplete: () {
+          if (_state == RecordState.recording ||
+              _state == RecordState.processing) {
+            _updateState(RecordState.success);
+          }
+        },
+      );
+
+      final started = await SpeechRecognizerChannel.instance.startListening();
+      if (started) {
+        _updateState(RecordState.recording);
+        _maxDurationTimer = Timer(_maxRecordDuration, () {
+          if (_state == RecordState.recording) {
+            toggleRecording();
+            _errorMessage = '录音时间已达上限（60秒），已自动停止。';
+          }
+          _maxDurationTimer?.cancel();
+        });
+      } else {
+        _errorMessage = "语音识别引擎启动失败";
+        _updateState(RecordState.error);
+      }
+      return;
+    }
     try {
       // 1. 开始录音时，清空上一次的结果
       _resultText = "";
@@ -111,6 +168,11 @@ class RecordController extends ChangeNotifier {
   Future<void> _stopAndRecognize() async {
     // 确保在停止处理前，取消任何可能正在运行的定时器
     _maxDurationTimer?.cancel();
+    if (kIsOhos) {
+      _updateState(RecordState.processing);
+      await SpeechRecognizerChannel.instance.stopListening();
+      return;
+    }
     try {
       final path = await _recordManager.stopRecording();
 

@@ -20,6 +20,7 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 // EntryQrService / EntryQrFormAbility / EntryQrFormCard 已删除。
 import deviceInfo from '@ohos.deviceInfo';
 import { PushService } from '../push/PushService';
+import { SpeechRecognizerHandler } from '../speech/SpeechRecognizerHandler';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -490,6 +491,7 @@ class SaveImgHandler implements MethodCallHandler {
 
 export default class EntryAbility extends FlutterAbility {
   private engine: FlutterEngine | null = null;
+  private speechHandler: SpeechRecognizerHandler | null = null;
 
   private extractCardRoute(want: Want): string {
     const directRoute = want.parameters?.['route'];
@@ -569,6 +571,22 @@ export default class EntryAbility extends FlutterAbility {
       StandardMethodCodec.INSTANCE
     );
     pushChannel.setMethodCallHandler(new PushHandler());
+
+    const speechChannel = new MethodChannel(
+      flutterEngine.getDartExecutor(),
+      'com.twt.service/speech_recognizer',
+      StandardMethodCodec.INSTANCE
+    );
+    this.speechHandler = new SpeechRecognizerHandler(this.context, speechChannel);
+    speechChannel.setMethodCallHandler(this.speechHandler);
+  }
+
+  onDestroy(): void {
+    if (this.speechHandler !== null) {
+      this.speechHandler.destroy();
+      this.speechHandler = null;
+    }
+    super.onDestroy();
   }
 }
 

@@ -414,13 +414,10 @@ class _inputBoxState extends State<inputBox> {
 
   // 开始/停止录音的包装方法
   Future<void> _toggleRecording() async {
-    if (kIsOhos) {
-      ToastProvider.error('当前设备暂不支持语音输入');
-      return;
-    }
     final inputState = Provider.of<xiaotianInputState>(context, listen: false);
 
     if (!_recordController.isRecording) {
+      if (!kIsOhos) {
       final status = await Permission.microphone.status;
       if (status.isPermanentlyDenied) {
         if (!mounted) return;
@@ -469,6 +466,7 @@ class _inputBoxState extends State<inputBox> {
         );
         return;
       }
+      } // kIsOhos
 
       final controller = inputState.textController;
       final text = controller.text;
@@ -568,9 +566,7 @@ class _inputBoxState extends State<inputBox> {
                               _recordController.state == RecordState.processing;
                           bool isRecording = _recordController.isRecording;
                           return WButton(
-                            // OHOS 无 record/permission_handler 实现，禁用语音入口
-                            onPressed:
-                                (isProcessing || kIsOhos) ? null : _toggleRecording,
+                            onPressed: isProcessing ? null : _toggleRecording,
                             child: isProcessing
                                 ? SizedBox(
                                     width: 24.r,
