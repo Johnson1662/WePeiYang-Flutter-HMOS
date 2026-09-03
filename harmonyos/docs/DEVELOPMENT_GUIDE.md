@@ -40,7 +40,7 @@ Flutter 负责页面、状态、网络和业务；ArkTS 宿主负责 Ability、�
 
 - Flutter：`/media/johnson/Data/Development/flutter_flutter/bin/flutter`，OHOS 分支 `oh-3.41.9-dev`
 - OHOS SDK：`HOS_SDK_HOME=/home/johnson/.local/share/deveco-clt/sdk`
-- CLI：`devecocli`，优先于直接调用 Hvigor、OHPM 或 HDC
+- CLI：`devecocli` (v1.3.1)，已登录华为开发者团队账号（陈梓豪 `30086000793103745`）
 - 测试设备：HUAWEI Pura 70 Pro，设备序列号由 `devecocli device list` 返回
 
 命令需要在仓库根目录执行时使用 `python3`；需要在 Flutter 模块执行时使用模块目录作为工作目录。
@@ -59,6 +59,9 @@ python3 scripts/sync_ohos_native.py
 
 cd wepei_module/.ohos
 devecocli build --build-mode debug
+
+# 若声明了 READ_PASTEBOARD 受限权限，需在根目录执行专属 ACL 签名脚本：
+python3 scripts/sign_with_hokit.py
 ```
 
 输出位于：

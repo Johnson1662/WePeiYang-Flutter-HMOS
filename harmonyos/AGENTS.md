@@ -47,6 +47,8 @@ cd ../..
 python3 scripts/sync_ohos_native.py
 cd wepei_module/.ohos
 devecocli build --build-mode debug
+cd ../..
+python3 scripts/sign_with_hokit.py    # 注入 READ_PASTEBOARD ACL 权限签名
 ```
 
 部署已有 HAP：
@@ -66,6 +68,8 @@ Release：
 
 ```bash
 devecocli build --build-mode release
+cd ../..
+python3 scripts/sign_with_hokit.py    # 注入 READ_PASTEBOARD ACL 权限签名
 devecocli run --skip-build --device <device-serial>
 ```
 
