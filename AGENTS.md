@@ -4,7 +4,7 @@
 
 WePeiYang-Flutter is the Flutter-based mobile client for 微北洋 (WePeiYang), the official campus app of Tianjin University (TJU). It provides features including course scheduling, GPA tracking, campus forum (feedback/QA/lost-and-found), study room finder, AI chatbot (小天), and account management.
 
-The project targets Android, iOS, Windows, and HarmonyOS NEXT (OHOS) platforms. OHOS support uses a custom Flutter SDK fork (`oh-3.41.9-dev`) with `devecocli` as the build tool.
+The project targets Android, iOS, Windows, and HarmonyOS NEXT (OHOS) platforms. OHOS support uses the official OpenHarmony Flutter SDK (`gitcode.com/openharmony-tpc/flutter_flutter`, branch `oh-3.41.9-dev`; prefer `oh-3.41.9-release` for release builds) with `devecocli` as the build tool.
 
 ---
 
@@ -230,7 +230,7 @@ Custom `WpyTheme` (InheritedWidget) with 8 color schemes defined in `lib/commons
 
 ## Runtime/Tooling Preferences
 
-- **Flutter SDK:** Custom fork at `D:\Development\flutter_flutter` (OHOS branch: `oh-3.41.9-dev`)
+- **Flutter SDK:** Official OpenHarmony SDK from `gitcode.com/openharmony-tpc/flutter_flutter`; Windows path `D:\Development\flutter_flutter`, Linux path `/media/johnson/Data/Development/flutter_flutter`. Dev branch `oh-3.41.9-dev`, release branch `oh-3.41.9-release` (shared engine `42d3d75a`)
 - **Dart SDK:** ^3.0.0 (root), ^3.6.2 (OHOS module)
 - **Package manager:** `dart pub` / `flutter pub get`; `PUB_CACHE` set to `D:\pub-cache` for OHOS builds
 - **OHOS build tool:** `devecocli` (wraps hvigor + ohpm + hdc); run from `.ohos/` directory

@@ -1,0 +1,53 @@
+{
+  // 模板：正式签名注入示例。复制到本地后由环境变量驱动 scripts/configure_ohos_signing.py
+  // 写入生成的 wepei_module/.ohos/build-profile.json5，本文件本身不参与构建。
+  //
+  // 环境变量：
+  //   OHOS_CERT_PATH / OHOS_PROFILE_PATH / OHOS_STORE_FILE
+  //   OHOS_KEY_ALIAS（默认 debugKey）/ OHOS_KEY_PWD / OHOS_STORE_PWD
+  //   OHOS_SIGN_ALG（默认 SHA256withECDSA）
+  //   OHOS_COMPATIBLE_SDK / OHOS_TARGET_SDK（可选，覆盖 SDK 版本）
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/path/to/release.cer",
+          "keyAlias": "releaseKey",
+          "keyPassword": "<KEY_PASSWORD>",
+          "profile": "/path/to/releaseProfile.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/path/to/release.p12",
+          "storePassword": "<STORE_PASSWORD>"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.1.0(18)",
+        "targetSdkVersion": "5.1.0(18)",
+        "runtimeOS": "HarmonyOS"
+      }
+    ],
+    "buildModeSet": [
+      { "name": "debug" },
+      { "name": "profile" },
+      { "name": "release" }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": ["default"]
+        }
+      ]
+    }
+  ]
+}

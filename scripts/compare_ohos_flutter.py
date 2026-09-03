@@ -46,6 +46,14 @@ OHOS_MARKERS = (
     "DefaultCookieJar",
     "SharedPreferencesWithCache",
     "_isOhos",
+    "kIsOhos",
+    "util/platform.dart",
+    "ssl_whitelist.dart",
+    "shouldBypassSsl",
+    "openAppMarket",
+    "app_market.dart",
+    "url_launcher_ohos.dart",
+    "launchUrlSafe",
     "hasTjuCredentials",
     "syncTjuBindingState",
     "wepeiyang_state.json",
@@ -71,29 +79,55 @@ OHOS_CONTEXT_PATH_MARKERS = (
 # list explicit: a new file still needs normal marker-based classification.
 CONFIRMED_OHOS_PATHS = frozenset(
     {
+        "auth/network/auth_service.dart",
         "auth/view/info/unbind_dialogs.dart",
+        "auth/view/info/avatar_crop_page.dart",
+        "auth/view/info/tju_bind_page.dart",
+        "auth/view/settings/debug_info_page.dart",
         "auth/view/settings/general_setting_page.dart",
+        "auth/view/settings/setting_page.dart",
+        "auth/view/settings/theme_setting.dart",
         "auth/view/settings/toolbar_manage_page.dart",
         "auth/view/user/account_upgrade_dialog.dart",
         "auth/view/user/logout_dialog.dart",
         "auth/view/user/user_avatar_image.dart",
+        "commons/network/dio_abstract.dart",
+        "commons/network/image_cache_service.dart",
         "commons/network/net_check_interceptor.dart",
+        "commons/preferences/common_prefs.dart",
+        "commons/speech_to_text/model/speech_record_manager.dart",
+        "commons/test/test_main_page.dart",
+        "commons/test/test_router.dart",
         "commons/util/log/file_log_output.dart",
         "commons/util/router_manager.dart",
         "commons/util/toast_provider.dart",
         "commons/webview/wby_webview.dart",
+        "commons/widgets/wpy_pic.dart",
         "feedback/feedback_router.dart",
+        "feedback/view/image_view/image_view_page.dart",
         "feedback/view/lake_home_page/home_page.dart",
         "feedback/view/lake_home_page/lake_notifier.dart",
         "feedback/view/lake_home_page/normal_sub_page.dart",
+        "feedback/view/new_post_page.dart",
+        "feedback/view/post_detail_page.dart",
         "feedback/view/profile_page.dart",
         "feedback/view/reply_detail_page.dart",
         "feedback/view/search_page.dart",
+        "feedback/view/search_result_page.dart",
+        "home/home_router.dart",
         "home/view/cas_qr_page.dart",
         "home/view/home_page.dart",
+        "home/view/web_views/news_page.dart",
         "home/view/web_views/summary_page.dart",
+        "home/view/wpy_page.dart",
+        "lost_and_found/view/lost_and_found_post_page.dart",
         "lost_and_found/view/lost_and_found_search_page.dart",
         "lost_and_found/view/lost_and_found_search_result_page.dart",
+        "main.dart",
+        "schedule/model/course_provider.dart",
+        "schedule/page/course_page.dart",
+        "studyroom/model/studyroom_service.dart",
+        "test/widget_test.dart",
     }
 )
 
@@ -101,11 +135,18 @@ CONFIRMED_OHOS_ASSET_PATHS = frozenset(
     {
         "fonts/zh/NotoSansSC-Medium.otf",
         "fonts/zh/NotoSansSC-Medium.ttf",
+        # 第三方组件许可声明（OHOS 上架合规材料，见 COMPETITION_CODE_PLAN.md Phase 4）
+        "NOTICE.txt",
     }
 )
 CONFIRMED_OHOS_ASSET_PREFIXES = ("images/app_icons/",)
 
 OHOS_MISSING_PATH_MARKERS = (
+    # OHOS 不允许应用内下载 APK / 热更新（替换 libapp.so），整个更新模块被移除，
+    # "检查更新"入口改为跳转鸿蒙应用市场（见 wepei_module lib/commons/util/app_market.dart）。
+    "/commons/update/",
+    "/commons/channel/install/",
+    "/commons/test/update_test_page.dart",
     "/home/view/web_views/course_review_page.dart",
 )
 
@@ -266,13 +307,14 @@ def classify_hunk(hunk: list[str], path: str, ohos_text: str) -> str:
     if path.lstrip("/") in CONFIRMED_OHOS_PATHS:
         return "OHOS_ADAPTATION"
     changed = "\n".join(changed_lines(hunk))
+    # 只看差异行本身是否含 OHOS 标记。此前用整个 OHOS 文件兜底
+    # （has_ohos_marker(ohos_text)），会把 adapted 文件里无关的普通漂移
+    # 一并误判为适配，造成假阴性，已移除；未分类差异一律 REVIEW。
     if has_ohos_marker(changed):
         return "OHOS_ADAPTATION"
     if any(marker in f"/{path}" for marker in OHOS_PATH_MARKERS):
         return "OHOS_ADAPTATION"
     if any(marker in f"/{path}" for marker in OHOS_CONTEXT_PATH_MARKERS):
-        return "OHOS_CONTEXT"
-    if has_ohos_marker(ohos_text):
         return "OHOS_CONTEXT"
     return "REVIEW"
 

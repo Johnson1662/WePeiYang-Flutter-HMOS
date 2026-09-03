@@ -31,11 +31,13 @@ def main() -> None:
         "feature.dart",
         "",
     ) == "OHOS_ADAPTATION"
+    # 收紧后的规则：差异行本身不含 OHOS 标记时，即使整文件含 OHOS 代码
+    # 也不再自动归为 OHOS_CONTEXT，需人工确认（防止 adapted 文件里混入漂移）。
     assert classify_hunk(
         hunk("+final label = 'updated';"),
         "feature.dart",
         "final path = ImageSave.takePhoto();",
-    ) == "OHOS_CONTEXT"
+    ) == "REVIEW"
     assert classify_hunk(
         hunk("+final label = 'updated';"), "feature.dart", ""
     ) == "REVIEW"

@@ -10,3 +10,6 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+# 构建产物 HAR 不入库，由 flutter build har 生成（见 docs/DEVELOPMENT_GUIDE.md）
+*.har
+entry/libs/
