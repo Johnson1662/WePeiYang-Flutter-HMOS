@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 
 import 'push_intent.dart';
@@ -71,9 +72,22 @@ class PushManager extends ChangeNotifier {
     });
   }
 
-  // 在用户同意隐私协议后，开启个推
+  // 在用户同意隐私协议后，开启推送
   // TODO: iOS逻辑还可以完善
   Future<void> initGeTuiSdk() async {
+    if (kIsOhos) {
+      // OHOS：走 Push Kit（com.twt.service/push 通道，见 entry/src/main/ets/push/PushService.ets）
+      try {
+        final ok = await _pushChannel
+                .invokeMethod<bool>('initPush')
+                .timeout(const Duration(seconds: 3)) ??
+            false;
+        openPush = ok;
+      } catch (_) {
+        openPush = false;
+      }
+      return;
+    }
     if (Platform.isAndroid) {
       try {
         final result = await _pushChannel.invokeMethod<String>("initGeTuiSdk").timeout(const Duration(seconds: 3)).catchError((_) {});
@@ -122,10 +136,22 @@ class PushManager extends ChangeNotifier {
   // 在设置里，可以手动打开推送
   Future<void> turnOnPushService(
       Function success, Function failure, Function error) async {
-    // OHOS: no native push channel; toggle locally
-    if (!Platform.isAndroid && !Platform.isIOS) {
-      openPush = true;
-      success();
+    if (kIsOhos) {
+      // OHOS：Push Kit 通道（通知开关由系统控制，返回即视为成功）
+      try {
+        final result = await _pushChannel
+            .invokeMethod<String>('turnOnPushService')
+            .timeout(const Duration(seconds: 3));
+        if (result == 'open push service success') {
+          openPush = true;
+          success();
+        } else {
+          openPush = false;
+          failure();
+        }
+      } catch (_) {
+        error();
+      }
       return;
     }
     try {
@@ -162,10 +188,17 @@ class PushManager extends ChangeNotifier {
   }
 
   Future<void> turnOffPushService(Function success, Function error) async {
-    // OHOS: no native push channel; toggle locally
-    if (!Platform.isAndroid && !Platform.isIOS) {
-      openPush = false;
-      success();
+    if (kIsOhos) {
+      // OHOS：Push Kit 通道
+      try {
+        await _pushChannel
+            .invokeMethod('turnOffPushService')
+            .timeout(const Duration(seconds: 3));
+        openPush = false;
+        success();
+      } catch (_) {
+        error();
+      }
       return;
     }
     try {
@@ -179,6 +212,10 @@ class PushManager extends ChangeNotifier {
 
   Future<void> getCurrentCanReceivePush(
       Function(bool) success, Function(Object) error, Function noResult) async {
+    if (kIsOhos) {
+      noResult.call();
+      return;
+    }
     try {
       final result =
           await _pushChannel.invokeMethod<bool>("getCurrentCanReceivePush").timeout(const Duration(seconds: 3)).catchError((_) {});
@@ -193,6 +230,17 @@ class PushManager extends ChangeNotifier {
   }
 
   Future<String?> getCid() async {
+    if (kIsOhos) {
+      // OHOS：返回 Push Kit token
+      try {
+        return await _pushChannel
+            .invokeMethod<String>('getToken')
+            .timeout(const Duration(seconds: 3))
+            .catchError((_) => null);
+      } catch (_) {
+        return null;
+      }
+    }
     try {
       return await _pushChannel.invokeMethod<String>("getCid").timeout(const Duration(seconds: 3))
           .timeout(const Duration(seconds: 3)).catchError((_) {});
@@ -203,6 +251,7 @@ class PushManager extends ChangeNotifier {
 
   Future<void> cancelNotification(
       int id, Function success, Function error) async {
+    if (kIsOhos) return;
     try {
       await _pushChannel.invokeMethod("cancelNotification", {"id", id}).timeout(const Duration(seconds: 3)).catchError((_) {});
       success();
@@ -212,6 +261,7 @@ class PushManager extends ChangeNotifier {
   }
 
   Future<void> cancelAllNotification(Function success, Function error) async {
+    if (kIsOhos) return;
     try {
       await _pushChannel.invokeMethod("cancelAllNotification").timeout(const Duration(seconds: 3)).catchError((_) {});
       success();
@@ -221,6 +271,7 @@ class PushManager extends ChangeNotifier {
   }
 
   Future<String?> getIntentUri<T extends PushIntent>(T intent) async {
+    if (kIsOhos) return null;
     try {
       final r = await _pushChannel.invokeMethod<String>(
         "getIntentUri",

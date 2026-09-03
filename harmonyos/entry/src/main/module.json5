@@ -5,9 +5,9 @@
     "description": "$string:app_name",
     "mainElement": "EntryAbility",
     "deviceTypes": [
-      "phone",
-      "tablet",
-      "2in1"
+      // 仅声明 phone：当前 UI 按 390x844 设计，未做平板/2in1 响应式，
+      // 声明与实现不符会被应用市场审核驳回（见 docs/COMPETITION_CODE_PLAN.md Phase 4）
+      "phone"
     ],
     "deliveryWithInstall": true,
     "installationFree": false,
@@ -22,7 +22,7 @@
           "abilities": ["EntryAbility"],
           "when": "inuse"
         }
-      },
+      }
     ],
     "pages": "$profile:main_pages",
     "extensionAbilities": [
@@ -40,15 +40,14 @@
         ]
       },
       {
-        "name": "EntryQrFormAbility",
-        "srcEntry": "./ets/widget/EntryQrFormAbility.ets",
-        "label": "$string:form_name_entry_qr",
-        "description": "入校码桌面卡片",
-        "type": "form",
+        "name": "EntryBackupAbility",
+        "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",
+        "type": "backup",
+        "exported": false,
         "metadata": [
           {
-            "name": "ohos.extension.form",
-            "resource": "$profile:qr_form_widget_config"
+            "name": "ohos.extension.backup",
+            "resource": "$profile:backup_config"
           }
         ]
       }

@@ -16,8 +16,10 @@ import pasteboard from '@ohos.pasteboard';
 import { BusinessError } from '@ohos.base';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { formBindingData, formProvider } from '@kit.FormKit';
-import { EntryQrData, loadEntryQrData } from '../widget/EntryQrService';
+// 入校码卡片已下线（校方授权落地前不冒充学校教务接口）；
+// EntryQrService / EntryQrFormAbility / EntryQrFormCard 已删除。
 import deviceInfo from '@ohos.deviceInfo';
+import { PushService } from '../push/PushService';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -75,9 +77,6 @@ class SaveImgHandler implements MethodCallHandler {
         }
         break;
       }
-      case 'triggerEntryQrFormUpdate':
-        this.triggerEntryQrFormUpdate(result);
-        break;
       case 'getDeviceInfo':
         this.getDeviceInfo(result);
         break;
@@ -100,6 +99,18 @@ class SaveImgHandler implements MethodCallHandler {
         AppStorage.Set<boolean>('flutterFirstFrame', true);
         result.success(true);
         break;
+      case 'consumePendingRoute': {
+        // 服务卡片点击直达：返回并清空待跳转路由（冷启动场景）
+        const pendingRoute: string = AppStorage.Get<string>('pendingRoute') ?? '';
+        AppStorage.Set<string>('pendingRoute', '');
+        result.success(pendingRoute);
+        break;
+      }
+      case 'getFilesDir': {
+        // 应用持久化文件目录（非 cache，清后台/清理缓存不丢失）
+        result.success(this.context.filesDir);
+        break;
+      }
       default:
         result.notImplemented();
     }
@@ -358,40 +369,6 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
-  private triggerEntryQrFormUpdate(result: MethodResult): void {
-    try {
-      const formIdPath: string = this.context.cacheDir + '/entry_qr_form_id.txt';
-      const formId: string = fs.readTextSync(formIdPath).trim();
-      if (formId.length === 0) {
-        result.success(false);
-        return;
-      }
-      loadEntryQrData([
-        this.context.cacheDir,
-        this.context.getApplicationContext().cacheDir
-      ]).then((data: EntryQrData) => {
-        const formData: formBindingData.FormBindingData =
-          formBindingData.createFormBindingData({
-            qrContent: data.qrContent,
-            status: data.status,
-            lastUpdate: data.lastUpdate
-          });
-        formProvider.updateForm(formId, formData).then(() => {
-          result.success(true);
-        }).catch((error: Error) => {
-          console.warn(TAG, 'update entry QR form failed: ' + JSON.stringify(error));
-          result.success(false);
-        });
-      }).catch((error: Error) => {
-        console.warn(TAG, 'load entry QR data failed: ' + JSON.stringify(error));
-        result.success(false);
-      });
-    } catch (e) {
-      console.warn(TAG, 'trigger entry QR form failed: ' + JSON.stringify(e));
-      result.success(false);
-    }
-  }
-
   private getDeviceInfo(result: MethodResult): void {
     result.success({
       deviceType: deviceInfo.deviceType,
@@ -512,15 +489,68 @@ class SaveImgHandler implements MethodCallHandler {
 }
 
 export default class EntryAbility extends FlutterAbility {
+  private engine: FlutterEngine | null = null;
+
+  private extractCardRoute(want: Want): string {
+    const directRoute = want.parameters?.['route'];
+    if (typeof directRoute === 'string' && directRoute !== '') {
+      return directRoute;
+    }
+    const params = want.parameters?.['params'];
+    if (typeof params === 'string' && params !== '') {
+      try {
+        const parsed = JSON.parse(params) as Record<string, Object>;
+        if (typeof parsed?.['route'] === 'string') {
+          return parsed['route'] as string;
+        }
+      } catch (_) {}
+    } else if (typeof params === 'object' && params !== null) {
+      const record = params as Record<string, Object>;
+      if (typeof record['route'] === 'string') {
+        return record['route'] as string;
+      }
+    }
+    return '';
+  }
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     console.info(TAG, 'onCreate: setting viewId');
     AppStorage.Set<string>('viewId', this.context.abilityInfo.name);
+    // 服务卡片点击直达：冷启动时路由参数从 want 带入
+    const coldRoute: string = this.extractCardRoute(want);
+    if (coldRoute !== '') {
+      AppStorage.Set<string>('pendingRoute', coldRoute);
+    }
     super.onCreate(want, launchParam);
     console.info(TAG, 'onCreate: done');
   }
 
+  onNewWant(want: Want, launchParams: AbilityConstant.LaunchParam): void {
+    // 热启动（应用已在运行）时卡片点击直达
+    super.onNewWant(want, launchParams);
+    const route: string = this.extractCardRoute(want);
+    if (route === '') return;
+    const firstFrame: boolean = AppStorage.Get<boolean>('flutterFirstFrame') ?? false;
+    if (firstFrame) {
+      // Flutter 已就绪，直接推送路由
+      const flutterEngine = this.engine;
+      if (flutterEngine != null) {
+        const pushChannel = new MethodChannel(
+          flutterEngine.getDartExecutor(),
+          'com.twt.service/push',
+          StandardMethodCodec.INSTANCE
+        );
+        pushChannel.invokeMethod('openRoute', { 'route': route });
+      }
+      return;
+    }
+    // Flutter 尚未就绪，缓存给冷启动后的 flutterFirstFrame consume
+    AppStorage.Set<string>('pendingRoute', route);
+  }
+
   configureFlutterEngine(flutterEngine: FlutterEngine) {
     console.info(TAG, 'configureFlutterEngine START');
+    this.engine = flutterEngine;
     super.configureFlutterEngine(flutterEngine);
     console.info(TAG, 'super done');
     GeneratedPluginRegistrant.registerWith(flutterEngine);
@@ -532,5 +562,35 @@ export default class EntryAbility extends FlutterAbility {
       StandardMethodCodec.INSTANCE
     );
     channel.setMethodCallHandler(new SaveImgHandler(this.context));
+
+    const pushChannel = new MethodChannel(
+      flutterEngine.getDartExecutor(),
+      'com.twt.service/push',
+      StandardMethodCodec.INSTANCE
+    );
+    pushChannel.setMethodCallHandler(new PushHandler());
+  }
+}
+
+/** 华为推送（Push Kit）通道：Dart 侧 PushManager 通过 com.twt.service/push 调用。 */
+class PushHandler implements MethodCallHandler {
+  async onMethodCall(call: MethodCall, result: MethodResult): Promise<void> {
+    switch (call.method) {
+      case 'initPush':
+        result.success(await PushService.init());
+        break;
+      case 'getToken':
+        result.success(await PushService.getToken());
+        break;
+      case 'turnOnPushService':
+        // Push Kit 的开关由系统通知权限控制，这里保持兼容返回成功
+        result.success('open push service success');
+        break;
+      case 'turnOffPushService':
+        result.success(true);
+        break;
+      default:
+        result.notImplemented();
+    }
   }
 }

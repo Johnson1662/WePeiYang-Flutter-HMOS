@@ -6,7 +6,7 @@
  * widget page via formBindingData.
  */
 import fs from '@ohos.file.fs';
-import { FormExtensionAbility, formBindingData, formProvider } from '@kit.FormKit';
+import { FormExtensionAbility, formBindingData, formInfo, formProvider } from '@kit.FormKit';
 import { Context } from '@kit.AbilityKit';
 
 const TAG = 'SDCFormAbility';
@@ -83,6 +83,13 @@ function formatTimePair(startUnit: number, endUnit: number): [string, string] {
 export default class ScheduleFormAbility extends FormExtensionAbility {
   onAddForm(want: import('@kit.AbilityKit').Want): formBindingData.FormBindingData {
     console.log(TAG, 'onAddForm called');
+    let dimension = '2*4';
+    try {
+      const dimKey = formInfo.FormParam.DIMENSION_KEY || 'ohos.extra.param.key.form_dimension';
+      const dim = (want.parameters ? want.parameters[dimKey] : null) as number;
+      if (dim === 2) dimension = '2*2';
+      else if (dim === 4) dimension = '4*4';
+    } catch (_) {}
     // Save the form ID so EntryAbility can trigger immediate updates
     try {
       const path: string = this.context.cacheDir + '/schedule_form_id.txt';
@@ -98,7 +105,7 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
     } catch (e) {
       console.error(TAG, 'onAddForm: save formId failed: ' + JSON.stringify(e));
     }
-    return this.loadFormData();
+    return this.loadFormData(dimension);
   }
 
   onUpdateForm(formId: string): void {
@@ -117,7 +124,7 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
   }
 
   /// Read the JSON file written by the Flutter app and build form data.
-  private loadFormData(): formBindingData.FormBindingData {
+  private loadFormData(dimension?: string): formBindingData.FormBindingData {
     // Try to read from application-level cache
     let courseDataStr: string = '';
     let currentWeek: number = 1;
@@ -190,10 +197,14 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
 
     todayCourses.sort((a: CourseItem, b: CourseItem) => a.time.localeCompare(b.time));
     console.info(TAG, 'loadFormData: found ' + todayCourses.length + ' courses today');
-    return formBindingData.createFormBindingData({
+    const bindingObj: Record<string, Object> = {
       courses: todayCourses,
       isEmpty: todayCourses.length === 0,
       lastUpdate: Date.now(),
-    });
+    };
+    if (dimension) {
+      bindingObj['formDimension'] = dimension;
+    }
+    return formBindingData.createFormBindingData(bindingObj);
   }
 }

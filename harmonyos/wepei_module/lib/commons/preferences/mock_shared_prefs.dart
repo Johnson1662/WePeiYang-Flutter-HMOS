@@ -1,18 +1,39 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:wepei_module/commons/util/storage_util.dart';
 
 /// In-memory implementation of SharedPreferences-like API for platforms
 /// (like HarmonyOS) that don't have the native shared_preferences plugin.
 /// Backed by a JSON file on disk so state survives app restarts.
+/// 存放在持久化的 filesDir（非 cache），清后台/清理缓存不丢失登录态。
 class MockSharedPreferences {
   static MockSharedPreferences? _instance;
-  static final File _stateFile =
+
+  static File get _stateFile =>
+      File('${StorageUtil.filesDir.path}/wepeiyang_prefs.json');
+
+  /// 旧版本把 prefs 写在 cache 目录（Directory.systemTemp），
+  /// 迁移到持久化 filesDir 后做一次性搬运。
+  static File get _legacyStateFile =>
       File('${Directory.systemTemp.path}/wepeiyang_prefs.json');
 
   final Map<String, Object> _store = {};
 
   MockSharedPreferences._() {
+    _migrateLegacyFile();
     _load();
+  }
+
+  void _migrateLegacyFile() {
+    try {
+      if (!_stateFile.existsSync() && _legacyStateFile.existsSync()) {
+        _legacyStateFile.copySync(_stateFile.path);
+      }
+    } catch (_) {
+      // Best-effort migration.
+    }
   }
 
   static Future<MockSharedPreferences> getInstance() async {
@@ -42,12 +63,23 @@ class MockSharedPreferences {
   }
 
   /// Writes the current [_store] to the JSON state file.
+  ///
+  /// 防抖合并写入：图片缓存等高频写（如滚动加载图片时逐条写 imageExpiresMap）
+  /// 原本每次都是全量同步写盘，会阻塞 UI 线程导致卡顿。
+  /// 现在 300ms 内合并为一次落盘，且不阻塞调用方。
+  Timer? _saveTimer;
+
   void _save() {
-    try {
-      _stateFile.writeAsStringSync(jsonEncode(_store));
-    } catch (_) {
-      // Best-effort persistence — never throw on write failure.
-    }
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 300), () {
+      try {
+        final tmpFile = File('${_stateFile.path}.tmp');
+        tmpFile.writeAsStringSync(jsonEncode(_store));
+        tmpFile.renameSync(_stateFile.path);
+      } catch (_) {
+        // Best-effort persistence — never throw on write failure.
+      }
+    });
   }
 
   String? getString(String key) => _store[key] as String?;

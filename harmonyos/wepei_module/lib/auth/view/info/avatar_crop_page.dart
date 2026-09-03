@@ -6,6 +6,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wepei_module/auth/auth_router.dart';
 import 'package:wepei_module/auth/view/user/user_avatar_image.dart';
+import 'package:wepei_module/commons/channel/image_save/image_save.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/commons/widgets/w_button.dart';
 import 'package:wepei_module/feedback/network/feedback_service.dart';
@@ -25,6 +27,13 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
   File? file;
 
   loadAssets() async {
+    // OHOS：wechat_assets_picker/image_cropper 无 OHOS 实现，走系统 Picker（免权限）并跳过裁剪
+    if (kIsOhos) {
+      final picked = await ImageSave.pickImagesFromGallery();
+      if (picked.isEmpty) return;
+      _uploadAvatar(File(picked.first));
+      return;
+    }
     final List<AssetEntity>? assets = await AssetPicker.pickAssets(context,
         pickerConfig: AssetPickerConfig(
             maxAssets: 1,
@@ -68,11 +77,13 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
           title: '裁剪',
         ));
     if (croppedFile == null) return; // 取消裁剪图片的情况
-    List<File> update = [croppedFile];
-    // 弹出sheet
-    Navigator.pop(context);
+    _uploadAvatar(croppedFile);
+  }
+
+  /// 上传头像（OHOS 与常规平台共用）
+  void _uploadAvatar(File image) {
     FeedbackService.postPic(
-        images: update,
+        images: [image],
         onResult: (result) {
           FeedbackService.uploadAvatars(result[0], onSuccess: () {
             ToastProvider.success("头像上传成功");
@@ -84,16 +95,21 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
           ToastProvider.error(e.error.toString());
         });
     setState(() {
-      this.file = croppedFile;
+      this.file = image;
     });
-    if (!mounted) return;
   }
 
-  pickAndCropImage(BuildContext context, ImageSource source) async {
+  pickAndCropImage(ImageSource source) async {
+    if (kIsOhos) {
+      // OHOS：拍照走系统 cameraPicker（免权限），跳过裁剪
+      final path = await ImageSave.takePhoto();
+      if (path == null || path.isEmpty) return;
+      _uploadAvatar(File(path));
+      return;
+    }
     final image =
         await ImagePicker().pickImage(source: source, imageQuality: 50);
     if (image == null) return; // 取消选择图片的情况
-    Navigator.pop(context);
     File? croppedFile = await ImageCropper().cropImage(
         sourcePath: image.path,
         cropStyle: CropStyle.circle,
@@ -118,22 +134,7 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
           title: '裁剪',
         ));
     if (croppedFile == null) return; // 取消裁剪图片的情况
-    List<File> update = [croppedFile];
-    FeedbackService.postPic(
-        images: update,
-        onResult: (result) {
-          FeedbackService.uploadAvatars(result[0], onSuccess: () {
-            ToastProvider.success("头像上传成功");
-          }, onFailure: (e) {
-            ToastProvider.error(e.error.toString());
-          });
-        },
-        onFailure: (e) {
-          ToastProvider.error(e.error.toString());
-        });
-    setState(() {
-      this.file = croppedFile;
-    });
+    _uploadAvatar(croppedFile);
   }
 
   showActionButtons(BuildContext context) {
@@ -147,14 +148,16 @@ class _AvatarCropPageState extends State<AvatarCropPage> {
                 ListTile(
                   leading: Icon(Icons.photo_camera),
                   title: Text("拍照"),
-                  onTap: () async {
-                    pickAndCropImage(context, ImageSource.camera);
+                  onTap: () {
+                    Navigator.pop(context);
+                    pickAndCropImage(ImageSource.camera);
                   },
                 ),
                 ListTile(
                   leading: Icon(Icons.photo_library),
                   title: Text("相册"),
-                  onTap: () async {
+                  onTap: () {
+                    Navigator.pop(context);
                     loadAssets();
                   },
                 ),
