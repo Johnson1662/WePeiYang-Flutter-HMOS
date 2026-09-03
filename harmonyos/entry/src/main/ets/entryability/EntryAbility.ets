@@ -213,21 +213,7 @@ class SaveImgHandler implements MethodCallHandler {
   private getClipboardText(result: MethodResult): void {
     console.info(TAG, 'getClipboardText called');
     try {
-      const atManager = abilityAccessCtrl.createAtManager();
-      const permissions: Permissions[] = ['ohos.permission.READ_PASTEBOARD'];
-      atManager.requestPermissionsFromUser(this.context, permissions).then((data) => {
-        const grantStatus: number[] = data.authResults;
-        if (grantStatus.length > 0 && grantStatus[0] === 0) {
-          console.info(TAG, 'clipboard permission granted');
-          this.readPasteboard(result);
-        } else {
-          console.warn(TAG, 'clipboard permission denied by user');
-          result.success(null);
-        }
-      }).catch((err: BusinessError) => {
-        console.warn(TAG, 'requestPermissionsFromUser failed: ' + JSON.stringify(err));
-        result.success(null);
-      });
+      this.readPasteboard(result);
     } catch (e) {
       console.warn(TAG, 'getClipboardText failed: ' + JSON.stringify(e));
       result.success(null);
