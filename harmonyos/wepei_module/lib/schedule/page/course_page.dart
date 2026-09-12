@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:wepei_module/commons/channel/image_save/image_save.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
@@ -78,13 +78,18 @@ class _CoursePageState extends State<CoursePage> {
 
   Future<void> takeScreenshot() async {
     ToastProvider.running("生成截图中");
-    screenshotController.captureAsUiImage(pixelRatio: 4.0).then((image) async {
-      await screenshotController
-          .captureFromLongWidget(Stack(
+    try {
+      final image =
+          await screenshotController.captureAsUiImage(pixelRatio: 4.0);
+      if (image == null) {
+        ToastProvider.error("图片生成失败");
+        return;
+      }
+      final value = await screenshotController.captureFromLongWidget(Stack(
         children: [
           Container(
-            width: image?.width.toDouble(),
-            height: image?.height.toDouble(),
+            width: image.width.toDouble(),
+            height: image.height.toDouble(),
             child: CustomPaint(
               painter: ScheduleBackgroundPrinter(
                 primaryActionColor:
@@ -103,17 +108,20 @@ class _CoursePageState extends State<CoursePage> {
           Container(
             margin: EdgeInsets.symmetric(vertical: 10.r),
             child: CustomPaint(
-              painter: CustomImagePainter(image!),
+              painter: CustomImagePainter(image),
             ),
           )
         ],
-      ))
-          .then((value) async {
-        final fullPath = await saveImageToPath(value);
-        GallerySaver.saveImage(fullPath!, albumName: "微北洋");
-        ToastProvider.success("图片保存成功");
-      });
-    });
+      ));
+      await ImageSave.saveImageFromBytes(
+        value,
+        'wpy_screenshot_${DateTime.now().millisecondsSinceEpoch}.png',
+        album: true,
+      );
+      ToastProvider.success("图片保存成功");
+    } catch (e) {
+      ToastProvider.error("图片保存失败");
+    }
   }
 
   @override
