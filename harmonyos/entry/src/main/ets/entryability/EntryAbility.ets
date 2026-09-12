@@ -21,6 +21,8 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 import deviceInfo from '@ohos.deviceInfo';
 import { PushService } from '../push/PushService';
 import { SpeechRecognizerHandler } from '../speech/SpeechRecognizerHandler';
+import { systemShare } from '@kit.ShareKit';
+import { uniformTypeDescriptor as utd } from '@kit.ArkData';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -49,6 +51,11 @@ class SaveImgHandler implements MethodCallHandler {
       case 'savePictureToAlbum': {
         const path = call.argument('path') as string;
         this.saveToAlbum(path, result);
+        break;
+      }
+      case 'shareImage': {
+        const path = call.argument('path') as string;
+        this.shareImage(path, result);
         break;
       }
       case 'takePhoto':
@@ -485,6 +492,32 @@ class SaveImgHandler implements MethodCallHandler {
     } catch (e) {
       console.error(TAG, 'all save paths failed: ' + JSON.stringify(e));
       result.success({ saved: false, album: false });
+    }
+  }
+
+  private async shareImage(path: string, result: MethodResult): Promise<void> {
+    try {
+      console.info(TAG, 'shareImage called with path: ' + path);
+      if (!path) {
+        result.success(false);
+        return;
+      }
+      const uri = fileUri.getUriFromPath(path);
+      const shareData = new systemShare.SharedData({
+        utd: utd.UniformDataType.IMAGE,
+        uri: uri,
+        title: '分享图片',
+      });
+      const controller = new systemShare.ShareController(shareData);
+      await controller.show(this.context, {
+        previewMode: systemShare.SharePreviewMode.DETAIL,
+        selectionMode: systemShare.SelectionMode.SINGLE,
+      });
+      console.info(TAG, 'systemShare.show success');
+      result.success(true);
+    } catch (e) {
+      console.error(TAG, 'shareImage failed: ' + JSON.stringify(e));
+      result.success(false);
     }
   }
 }

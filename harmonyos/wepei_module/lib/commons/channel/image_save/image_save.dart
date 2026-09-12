@@ -68,6 +68,20 @@ class ImageSave {
     }
   }
 
+  /// 分享图片（调起鸿蒙系统级跨应用分享面板 ShareKit）。
+  /// 成功拉起返回 true，失败返回 false。
+  static Future<bool> shareImage(String path) async {
+    try {
+      final res = await _channel
+          .invokeMethod<bool>('shareImage', {'path': path})
+          .timeout(const Duration(seconds: 10));
+      return res ?? false;
+    } catch (e) {
+      debugPrint('[ImageSave] shareImage failed: $e');
+      return false;
+    }
+  }
+
   /// Take a photo via OHOS system camera (harmonyos only).
   /// Returns the file path of the captured photo, or null on failure.
   static Future<String?> takePhoto() async {

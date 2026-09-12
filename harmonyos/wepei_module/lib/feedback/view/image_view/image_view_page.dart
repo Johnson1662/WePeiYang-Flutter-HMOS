@@ -278,13 +278,16 @@ class _ImageViewPageState extends State<ImageViewPage>
         _imageUrlAt(indexNow),
         filename: _imageFileNameAt(indexNow));
     if (kIsOhos) {
-      // OHOS：share_plus 无实现，分享降级为保存到系统相册
-      await ImageSave.saveImageFromUrl(
-        _imageUrlAt(indexNow),
-        _imageFileNameAt(indexNow),
-        album: true,
-      );
-      ToastProvider.success('已保存到相册');
+      // OHOS：调起系统级 ShareKit 跨应用分享面板
+      final success = await ImageSave.shareImage(path);
+      if (!success) {
+        await ImageSave.saveImageFromUrl(
+          _imageUrlAt(indexNow),
+          _imageFileNameAt(indexNow),
+          album: true,
+        );
+        ToastProvider.success('已保存到相册');
+      }
       return;
     }
     await SharePlus.instance
