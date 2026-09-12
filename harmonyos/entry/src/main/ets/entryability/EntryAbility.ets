@@ -502,11 +502,46 @@ class SaveImgHandler implements MethodCallHandler {
         result.success(false);
         return;
       }
-      const uri = fileUri.getUriFromPath(path);
+
+      // 1. 获取文件扩展名与精准 UTD 类型（微信/QQ 等严格依赖精确 UTD 匹配发送界面）
+      let ext = '.jpg';
+      const lastDot = path.lastIndexOf('.');
+      if (lastDot >= 0) {
+        ext = path.substring(lastDot).toLowerCase();
+      }
+      let utdTypeId: string = utd.UniformDataType.IMAGE;
+      try {
+        const detected = utd.getUniformDataTypeByFilenameExtension(ext, utd.UniformDataType.IMAGE);
+        if (detected) {
+          utdTypeId = detected;
+        }
+      } catch (_) {}
+
+      // 2. 将待分享文件复制到标准的跨应用授权共享沙箱目录 context.filesDir/share/
+      // 避免源文件位于 temp/cache 目录时导致目标应用（如微信）读取权限受限从而无法展示选人界面
+      const shareDir = this.context.filesDir + '/share';
+      try {
+        await fileIo.mkdir(shareDir, true);
+      } catch (_) {}
+
+      const rawFileName = path.split('/').pop() || `share_${Date.now()}${ext}`;
+      const fileName = rawFileName.endsWith(ext) ? rawFileName : `${rawFileName}${ext}`;
+      const destPath = `${shareDir}/${fileName}`;
+
+      const srcFile = await fileIo.open(path, fileIo.OpenMode.READ_ONLY);
+      const dstFile = await fileIo.open(destPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.TRUNC);
+      await fileIo.copyFile(srcFile.fd, dstFile.fd);
+      await fileIo.close(srcFile);
+      await fileIo.close(dstFile);
+
+      // 3. 生成符合跨应用分享安全规范的沙箱应用文件 URI
+      const uri = fileUri.getUriFromPath(destPath);
+      console.info(TAG, `shareImage: uri=${uri}, utd=${utdTypeId}`);
+
       const shareData = new systemShare.SharedData({
-        utd: utd.UniformDataType.IMAGE,
+        utd: utdTypeId,
         uri: uri,
-        title: '分享图片',
+        title: fileName,
       });
       const controller = new systemShare.ShareController(shareData);
       await controller.show(this.context, {
