@@ -61,6 +61,8 @@ OHOS_MARKERS = (
     "OHOS",
     "HarmonyOS",
     "com.twt.service/",
+    "PlatformDispatcher",
+    "isSystemDarkMode",
 )
 
 OHOS_PATH_MARKERS = (
@@ -101,6 +103,7 @@ CONFIRMED_OHOS_PATHS = frozenset(
         "commons/util/log/file_log_output.dart",
         "commons/util/router_manager.dart",
         "commons/util/toast_provider.dart",
+        "commons/themes/wpy_theme.dart",
         "commons/webview/wby_webview.dart",
         "commons/widgets/wpy_pic.dart",
         "feedback/feedback_router.dart",

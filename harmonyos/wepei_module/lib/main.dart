@@ -163,6 +163,7 @@ class WePeiYangAppState extends State<WePeiYangApp>
       WePeiYangApp.navigatorState =
           RouterManager.navigatorKey.currentState ?? Navigator.of(context);
       WbyFontLoader.initFonts();
+      WpyTheme.updateAutoDarkTheme();
       unawaited(const MethodChannel('com.twt.service/saveImg')
           .invokeMethod('flutterFirstFrame')
           .catchError((_) {}));
@@ -179,16 +180,15 @@ class WePeiYangAppState extends State<WePeiYangApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      WpyTheme.updateAutoDarkTheme(context);
+      WpyTheme.updateAutoDarkTheme();
     }
   }
 
   @override
-  void didChangePlatformBrightness() async {
+  void didChangePlatformBrightness() {
     super.didChangePlatformBrightness();
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    WpyTheme.updateAutoDarkTheme(context);
+    // 移除 400ms 冗余延迟，实现系统切换深浅色毫秒级跟手刷新
+    WpyTheme.updateAutoDarkTheme();
   }
 
   void checkEventList() {}
@@ -270,7 +270,18 @@ class WePeiYangAppState extends State<WePeiYangApp>
                   navigatorKey: RouterManager.navigatorKey,
                   debugShowCheckedModeBanner: false,
                   title: '微北洋',
+                  themeMode: globalTheme.value.meta.brightness == Brightness.dark
+                      ? ThemeMode.dark
+                      : ThemeMode.light,
                   theme: ThemeData.light().copyWith(
+                    platform: TargetPlatform.android,
+                    pageTransitionsTheme: const PageTransitionsTheme(
+                      builders: {
+                        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+                      },
+                    ),
+                  ),
+                  darkTheme: ThemeData.dark().copyWith(
                     platform: TargetPlatform.android,
                     pageTransitionsTheme: const PageTransitionsTheme(
                       builders: {

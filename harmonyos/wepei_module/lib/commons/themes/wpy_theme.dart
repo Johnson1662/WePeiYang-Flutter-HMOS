@@ -25,16 +25,21 @@ class WpyTheme extends InheritedWidget {
     return oldWidget.themeData.meta.themeId != themeData.meta.themeId;
   }
 
-  static Future<bool> isDarkMode(BuildContext context) async {
+  static bool get isSystemDarkMode {
+    return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+  }
+
+  static Future<bool> isDarkMode([BuildContext? context]) async {
     if (Platform.isIOS) {
       // 使用iOS原生代码检测是否启用了暗黑模式
       bool isDarkModeEnabled = await iOSThemeService.isDarkModeEnabled();
       return isDarkModeEnabled;
     } else {
-      // 对于其他平台，使用Flutter的MediaQuery来检测
-      return MediaQuery.of(context).platformBrightness == Brightness.dark;
+      // 权威系统亮度源，直接从 PlatformDispatcher 读取，无需 context，毫秒级响应
+      return isSystemDarkMode;
     }
-  } // 事实上不需要单独通过iOS原生代码来获取iOS深色模式状态，MediaQuery就够用了...
+  }
 
   Color? get primary => themeData.data.primaryColor;
 
@@ -61,7 +66,12 @@ class WpyTheme extends InheritedWidget {
   static void init() {
     final themeId = CommonPreferences.appThemeId.value;
     final darkThemeId = CommonPreferences.appDarkThemeId.value;
-    final brightness = CommonPreferences.usingDarkTheme.value;
+    int brightness = CommonPreferences.usingDarkTheme.value;
+    // 若开启跟随系统，冷启动首帧直接对齐当前系统亮度，彻底解决深色下冷启动闪白
+    if (CommonPreferences.autoDarkTheme.value) {
+      brightness = isSystemDarkMode ? 1 : 0;
+      CommonPreferences.usingDarkTheme.value = brightness;
+    }
     final theme = WpyThemeData.themeList.firstWhere((element) {
       return element.meta.themeId == (brightness == 0 ? themeId : darkThemeId);
     }, orElse: () => WpyThemeData.themeList[0]);
@@ -88,7 +98,7 @@ class WpyTheme extends InheritedWidget {
         brightness == Brightness.dark ? 1 : 0;
   }
 
-  static Future<void> updateAutoDarkTheme(BuildContext context) async {
+  static Future<void> updateAutoDarkTheme([BuildContext? context]) async {
     if (!CommonPreferences.autoDarkTheme.value) return;
 
     if (await isDarkMode(context)) {
