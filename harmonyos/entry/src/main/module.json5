@@ -30,6 +30,9 @@
           "abilities": ["EntryAbility"],
           "when": "inuse"
         }
+      },
+      {
+        "name": "ohos.permission.ACCESS_BIOMETRIC"
       }
     ],
     "pages": "$profile:main_pages",

@@ -21,6 +21,7 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 import deviceInfo from '@ohos.deviceInfo';
 import { PushService } from '../push/PushService';
 import { SpeechRecognizerHandler } from '../speech/SpeechRecognizerHandler';
+import { UserAuthHandler } from '../userauth/UserAuthHandler';
 import { systemShare } from '@kit.ShareKit';
 import { uniformTypeDescriptor as utd } from '@kit.ArkData';
 
@@ -647,6 +648,13 @@ export default class EntryAbility extends FlutterAbility {
     );
     this.speechHandler = new SpeechRecognizerHandler(this.context, speechChannel);
     speechChannel.setMethodCallHandler(this.speechHandler);
+
+    const authChannel = new MethodChannel(
+      flutterEngine.getDartExecutor(),
+      'com.twt.service/user_auth',
+      StandardMethodCodec.INSTANCE
+    );
+    authChannel.setMethodCallHandler(new UserAuthHandler(authChannel));
   }
 
   onDestroy(): void {

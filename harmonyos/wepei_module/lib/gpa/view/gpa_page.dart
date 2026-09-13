@@ -18,6 +18,8 @@ import 'package:wepei_module/gpa/view/gpa_curve_detail.dart';
 
 import '../../commons/themes/wpy_theme.dart';
 import '../../commons/widgets/w_button.dart';
+import 'package:wepei_module/commons/channel/user_auth/user_auth.dart';
+import 'package:wepei_module/commons/util/platform.dart';
 
 class GPAPage extends StatefulWidget {
   @override
@@ -26,11 +28,25 @@ class GPAPage extends StatefulWidget {
 
 class _GPAPageState extends State<GPAPage> {
   late final List<Color> _gpaColors = GPAColor.blue(context);
+  bool _authenticated = !kIsOhos;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (kIsOhos) {
+        final ok = await UserAuth.authenticate(title: '验证以查看个人成绩');
+        if (!ok) {
+          if (mounted) Navigator.pop(context);
+          return;
+        }
+        if (mounted) {
+          setState(() {
+            _authenticated = true;
+          });
+        }
+      }
+
       if (CommonPreferences.firstClassesDialog.value) {
         CommonPreferences.firstClassesDialog.value = false;
         showDialog(
@@ -48,6 +64,17 @@ class _GPAPageState extends State<GPAPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_authenticated) { // kIsOhos 生物认证隐私守卫
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark
+            .copyWith(systemNavigationBarColor: _gpaColors[0]),
+        child: Scaffold(
+          appBar: GPAAppBar(_gpaColors),
+          backgroundColor: _gpaColors[0],
+          body: const SizedBox.shrink(),
+        ),
+      );
+    }
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark
           .copyWith(systemNavigationBarColor: _gpaColors[0]),
