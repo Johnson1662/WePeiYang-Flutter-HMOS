@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint, ValueNotifier;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 import 'package:wepei_module/home/view/wpy_page.dart';
 import 'package:wepei_module/commons/util/platform.dart';
 
@@ -26,15 +26,22 @@ class CommonPreferences {
       debugPrint(
           '[CommonPreferences] Using MockSharedPreferences for HarmonyOS');
       mockPref = await MockSharedPreferences.getInstance();
-      // Initialize real SharedPreferences with mock values to prevent MissingPluginException
-      SharedPreferences.setMockInitialValues({});
+      // Connect real SharedPreferences to our persistent MockSharedPreferencesStore
+      SharedPreferencesStorePlatform.instance =
+          MockSharedPreferencesStore(mockPref!);
     }
     try {
       sharedPref = await SharedPreferences.getInstance()
           .timeout(const Duration(seconds: 3));
     } catch (e) {
       debugPrint('[CommonPreferences] SharedPreferences init failed: $e');
-      SharedPreferences.setMockInitialValues({});
+      if (kIsOhos && mockPref != null) {
+        SharedPreferencesStorePlatform.instance =
+            MockSharedPreferencesStore(mockPref!);
+      } else {
+        // ignore: invalid_use_of_visible_for_testing_member
+        SharedPreferences.setMockInitialValues({});
+      }
       sharedPref = await SharedPreferences.getInstance()
           .timeout(const Duration(seconds: 3));
     }

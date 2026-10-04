@@ -59,6 +59,7 @@ dependencies:
   screenshot: any
   share_plus: any
   shared_preferences: any
+  shared_preferences_platform_interface: any
   simple_html_css: any
   simple_url_preview_v2:
     git:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/extension/extensions.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/dialog_provider.dart';
@@ -60,25 +61,34 @@ class _LostAndFoundSearchPageState extends State<LostAndFoundSearchPage> {
 
   @override
   void initState() {
-    _foundSearchHistoryList = ValueNotifier([])
-      ..addListener(() {
-        _addHistory();
-      });
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      try {
-        _prefs = await SharedPreferences.getInstance();
-      } catch (_) {
-        _prefs = null;
-      }
-      if (_prefs?.getStringList('feedback_found_search_history') == null) {
-        _addHistory();
-      } else {
-        _foundSearchHistoryList.value =
-            _prefs!.getStringList('feedback_found_search_history')!;
-      }
-    });
     super.initState();
+    try {
+      _prefs = CommonPreferences.sharedPref;
+    } catch (_) {
+      _prefs = null;
+    }
+    final saved =
+        _prefs?.getStringList('feedback_found_search_history') ?? [];
+    _foundSearchHistoryList = ValueNotifier(List<String>.from(saved))
+      ..addListener(_addHistory);
+
+    if (_prefs == null) {
+      SharedPreferences.getInstance().then((p) {
+        if (!mounted) return;
+        _prefs = p;
+        final history = p.getStringList('feedback_found_search_history');
+        if (history != null && _foundSearchHistoryList.value.isEmpty) {
+          _foundSearchHistoryList.value = List<String>.from(history);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _foundSearchHistoryList.removeListener(_addHistory);
+    _foundSearchHistoryList.dispose();
+    super.dispose();
   }
 
   @override

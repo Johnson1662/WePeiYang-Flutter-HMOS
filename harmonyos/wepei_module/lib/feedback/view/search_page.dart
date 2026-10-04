@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/extension/extensions.dart';
 import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/dialog_provider.dart';
@@ -29,25 +30,33 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   void initState() {
-    _searchHistoryList = ValueNotifier([])
-      ..addListener(() {
-        _addHistory();
-      });
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      try {
-        _prefs = await SharedPreferences.getInstance();
-      } catch (_) {
-        _prefs = null;
-      }
-      if (_prefs?.getStringList('feedback_search_history') == null) {
-        _addHistory();
-      } else {
-        _searchHistoryList.value =
-            _prefs!.getStringList('feedback_search_history')!;
-      }
-    });
     super.initState();
+    try {
+      _prefs = CommonPreferences.sharedPref;
+    } catch (_) {
+      _prefs = null;
+    }
+    final saved = _prefs?.getStringList('feedback_search_history') ?? [];
+    _searchHistoryList = ValueNotifier(List<String>.from(saved))
+      ..addListener(_addHistory);
+
+    if (_prefs == null) {
+      SharedPreferences.getInstance().then((p) {
+        if (!mounted) return;
+        _prefs = p;
+        final history = p.getStringList('feedback_search_history');
+        if (history != null && _searchHistoryList.value.isEmpty) {
+          _searchHistoryList.value = List<String>.from(history);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchHistoryList.removeListener(_addHistory);
+    _searchHistoryList.dispose();
+    super.dispose();
   }
 
   @override
