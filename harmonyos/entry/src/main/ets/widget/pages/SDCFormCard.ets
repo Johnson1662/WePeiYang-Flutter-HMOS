@@ -1,5 +1,27 @@
 const formStorage = new LocalStorage();
 
+/**
+ * 星期手写体底图，与 Android 小组件共用同一套素材
+ * （android/app/src/main/res/drawable/{monday..sunday}.png）。
+ */
+const DAY_ART: Record<number, Resource> = {
+  1: $r('app.media.monday'),
+  2: $r('app.media.tuesday'),
+  3: $r('app.media.wednesday'),
+  4: $r('app.media.thursday'),
+  5: $r('app.media.friday'),
+  6: $r('app.media.saturday'),
+  7: $r('app.media.sunday'),
+};
+
+// 与 Android widget_schedule_card_item.xml 对齐的排版常量：
+// 卡片底 #FFFFFF / 圆角 12dp，课程名 14sp 粗体 #000000，教室与时间 13.33sp #A2A2A2，
+// 左侧色条 2.67×37.33dp tint #4f586b。
+const CARD_BG = '#FFFFFF';
+const TEXT_NAME = '#000000';
+const TEXT_META = '#A2A2A2';
+const BAR_COLOR = '#4F586B';
+
 @Entry(formStorage)
 @Component
 struct SDCFormCard {
@@ -7,45 +29,84 @@ struct SDCFormCard {
   @LocalStorageProp('isEmpty') isEmpty: boolean = true;
   // 系统在添加卡片时注入当前卡片尺寸，如 "2*2"、"2*4"、"4*4"
   @LocalStorageProp('formDimension') formDimension: string = '2*4';
+  @LocalStorageProp('weekday') weekday: number = 1;
 
-  /** 4*4 大卡片展示更多课程，2*2 紧凑卡片最多 1 门 */
+  private isHuge(): boolean {
+    return this.formDimension === '4*4';
+  }
+
+  private isSmall(): boolean {
+    return this.formDimension === '2*2';
+  }
+
+  /** 4*4 大卡片展示更多课程，2*2 紧凑卡片最多 1 门（与 Android 2×2 一致） */
   private maxCourseCount(): number {
-    if (this.formDimension === '4*4') {
+    if (this.isHuge()) {
       return 4;
     }
-    if (this.formDimension === '2*2') {
+    if (this.isSmall()) {
       return 1;
     }
     return 2;
   }
 
+  /** 星期底图高度：2×2 卡片放得下 54dp 素材的等比缩放 */
+  private artHeight(): number {
+    return this.isHuge() ? 58 : (this.isSmall() ? 42 : 48);
+  }
+
+  private artWidth(): string {
+    return this.isHuge() ? '38%' : (this.isSmall() ? '62%' : '50%');
+  }
+
+  private nameSize(): number {
+    return this.isHuge() ? 17 : 14;
+  }
+
+  private metaSize(): number {
+    return this.isHuge() ? 14 : 13;
+  }
+
+  private barHeight(): number {
+    return this.isHuge() ? 42 : 36;
+  }
+
+  /** 空态文案与 Android widget_empty_view_day/night.xml 对齐 */
+  private emptyText(): string {
+    const hour = new Date().getHours();
+    return hour >= 6 && hour <= 18 ? '今日无课 :)\n做点有意义的事吧' : '夜深了\n做个早睡的人吧~';
+  }
+
+  private dayArt(): Resource {
+    return DAY_ART[this.weekday] ?? DAY_ART[1];
+  }
+
   build() {
     Column() {
+      // 星期手写体底图（与 Android 一致：顶部、靠左、等比缩放）
       Row() {
-        Text('课程表')
-          .fontSize(this.formDimension === '4*4' ? 22 : 18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF');
+        Image(this.dayArt())
+          .width(this.artWidth())
+          .height(this.artHeight())
+          .objectFit(ImageFit.Contain);
         Blank();
-        Text(this.isEmpty ? '假期' : '今日安排')
-          .fontSize(this.formDimension === '4*4' ? 13 : 11)
-          .fontColor('rgba(255, 255, 255, 0.8)');
       }
-      .width('100%')
-      .padding({ bottom: this.formDimension === '4*4' ? 12 : 8 });
+      .width('100%');
 
       if (this.isEmpty || this.courses.length === 0) {
         Column() {
-          Text('今天没有课程啦，\n假期愉快！')
-            .fontSize(this.formDimension === '4*4' ? 16 : 13)
-            .fontColor('rgba(255, 255, 255, 0.9)')
-            .textAlign(TextAlign.Center)
-            .lineHeight(this.formDimension === '4*4' ? 24 : 20);
+          Text(this.emptyText())
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(TEXT_NAME)
+            .lineHeight(22)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
         }
         .width('100%')
         .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center);
+        .padding({ left: 8, top: 4 })
+        .alignItems(HorizontalAlign.Start);
       } else {
         Column() {
           ForEach(
@@ -53,27 +114,27 @@ struct SDCFormCard {
             (item: object, index: number) => {
               Row() {
                 Column()
-                  .width(4)
-                  .height(this.formDimension === '4*4' ? 42 : 36)
+                  .width(3)
+                  .height(this.barHeight())
                   .borderRadius(2)
-                  .backgroundColor('#2563EB');
+                  .backgroundColor(BAR_COLOR);
                 Column() {
                   Text((item as Record<string, Object>)['name'] as string)
-                    .fontSize(this.formDimension === '4*4' ? 15 : 13)
+                    .fontSize(this.nameSize())
                     .fontWeight(FontWeight.Bold)
-                    .fontColor('#FFFFFF')
+                    .fontColor(TEXT_NAME)
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis });
                   Row() {
                     Text((item as Record<string, Object>)['location'] as string)
                       .layoutWeight(1)
-                      .fontSize(this.formDimension === '4*4' ? 13 : 11)
-                      .fontColor('rgba(255, 255, 255, 0.7)')
+                      .fontSize(this.metaSize())
+                      .fontColor(TEXT_META)
                       .maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis });
                     Text((item as Record<string, Object>)['time'] as string)
-                      .fontSize(this.formDimension === '4*4' ? 13 : 11)
-                      .fontColor('rgba(255, 255, 255, 0.7)')
+                      .fontSize(this.metaSize())
+                      .fontColor(TEXT_META)
                       .maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis })
                       .margin({ left: 6 });
@@ -82,23 +143,22 @@ struct SDCFormCard {
                   .margin({ top: 2 });
                 }
                 .layoutWeight(1)
-                .padding({ left: 8, right: 4 });
+                .alignItems(HorizontalAlign.Start)
+                .padding({ left: 6, right: 4 });
               }
               .width('100%')
-              .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-              .backgroundColor('rgba(255, 255, 255, 0.12)')
-              .borderRadius(10)
+              .padding({ left: 6, right: 6, top: 5, bottom: 5 })
               .margin({
-                bottom: index === this.courses.slice(0, this.maxCourseCount()).length - 1 ? 0 : 5
+                bottom: index === this.courses.slice(0, this.maxCourseCount()).length - 1 ? 0 : 8
               });
             },
             (item: object, index: number) => index.toString()
           );
           if (this.courses.length > this.maxCourseCount()) {
             Text(`等 ${this.courses.length} 门课程`)
-              .fontSize(11)
-              .fontColor('rgba(255, 255, 255, 0.6)')
-              .margin({ top: 4 });
+              .fontSize(12)
+              .fontColor(TEXT_META)
+              .margin({ top: 4, left: 6 });
           }
         }
         .width('100%')
@@ -108,9 +168,9 @@ struct SDCFormCard {
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 14, right: 14, top: 10, bottom: 10 })
-    .backgroundColor('#1E293B')
-    .borderRadius(16)
+    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .backgroundColor(CARD_BG)
+    .borderRadius(12)
     .onClick(() => {
       // 点击卡片直达课表页；路由参数在 EntryAbility 侧转发给 Flutter
       postCardAction(this, {

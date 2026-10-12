@@ -24,6 +24,7 @@ interface ScheduleFormBinding {
   isEmpty: boolean;
   lastUpdate: number;
   formDimension?: string;
+  weekday?: number;
 }
 
 interface CourseArrange {
@@ -209,6 +210,7 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
       isEmpty: todayCourses.length === 0,
       lastUpdate: Date.now(),
       formDimension: dimension || '2*4',
+      weekday: getTodayWeekday(),
     };
     return formBindingData.createFormBindingData(bindingObj);
   }
