@@ -39,20 +39,9 @@ struct SDCFormCard {
     return this.formDimension === '2*2';
   }
 
-  /** 4*4 大卡片展示更多课程，2*2 紧凑卡片最多 1 门（与 Android 2×2 一致） */
-  private maxCourseCount(): number {
-    if (this.isHuge()) {
-      return 4;
-    }
-    if (this.isSmall()) {
-      return 1;
-    }
-    return 2;
-  }
-
-  /** 星期底图高度：2×2 卡片放得下 54dp 素材的等比缩放 */
+  /** 星期底图高度 */
   private artHeight(): number {
-    return this.isHuge() ? 58 : (this.isSmall() ? 42 : 48);
+    return this.isHuge() ? 54 : (this.isSmall() ? 32 : 34);
   }
 
   private artWidth(): string {
@@ -60,14 +49,18 @@ struct SDCFormCard {
   }
 
   private nameSize(): number {
-    return this.isHuge() ? 17 : 14;
+    return this.isHuge() ? 17 : (this.isSmall() ? 13 : 14);
   }
 
   private metaSize(): number {
-    return this.isHuge() ? 14 : 13;
+    return this.isHuge() ? 14 : (this.isSmall() ? 12 : 13);
   }
 
+  /** 2×2 窄卡片里教室与时间分两行，色条要跟着变高 */
   private barHeight(): number {
+    if (this.isSmall()) {
+      return 46;
+    }
     return this.isHuge() ? 42 : 36;
   }
 
@@ -81,6 +74,67 @@ struct SDCFormCard {
     return DAY_ART[this.weekday] ?? DAY_ART[1];
   }
 
+  /**
+   * 单条课程。窄卡片（2×2）把教室、时间各放一行，
+   * 避免时间把教室挤到只剩几个 vp。
+   */
+  @Builder
+  courseRow(item: Record<string, Object>, inlineMeta: boolean) {
+    Row() {
+      Column()
+        .width(3)
+        .height(this.barHeight())
+        .borderRadius(2)
+        .backgroundColor(BAR_COLOR);
+      Column() {
+        Text(item['name'] as string)
+          .fontSize(this.nameSize())
+          .fontWeight(FontWeight.Bold)
+          .fontColor(TEXT_NAME)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+        if (inlineMeta) {
+          Row() {
+            Text(item['location'] as string)
+              .layoutWeight(1)
+              .fontSize(this.metaSize())
+              .fontColor(TEXT_META)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+            Text(item['time'] as string)
+              .fontSize(this.metaSize())
+              .fontColor(TEXT_META)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .margin({ left: 6 });
+          }
+          .width('100%')
+          .margin({ top: 2 });
+        } else {
+          Text(item['location'] as string)
+            .width('100%')
+            .fontSize(this.metaSize())
+            .fontColor(TEXT_META)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 2 });
+          Text(item['time'] as string)
+            .width('100%')
+            .fontSize(this.metaSize())
+            .fontColor(TEXT_META)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 1 });
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 6, right: 4 });
+    }
+    .width('100%')
+    .padding({ left: 6, right: 6, top: 4, bottom: 4 });
+  }
+
   build() {
     Column() {
       // 星期手写体底图（与 Android 一致：顶部、靠左、等比缩放）
@@ -91,15 +145,16 @@ struct SDCFormCard {
           .objectFit(ImageFit.Contain);
         Blank();
       }
-      .width('100%');
+      .width('100%')
+      .margin({ bottom: 6 });
 
       if (this.isEmpty || this.courses.length === 0) {
         Column() {
           Text(this.emptyText())
-            .fontSize(16)
+            .fontSize(this.isSmall() ? 14 : 16)
             .fontWeight(FontWeight.Bold)
             .fontColor(TEXT_NAME)
-            .lineHeight(22)
+            .lineHeight(this.isSmall() ? 20 : 22)
             .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
         }
@@ -108,62 +163,21 @@ struct SDCFormCard {
         .padding({ left: 8, top: 4 })
         .alignItems(HorizontalAlign.Start);
       } else {
-        Column() {
+        // 卡片内滚动查看今天全部课程（List 原生支持卡片能力）
+        List({ space: 6 }) {
           ForEach(
-            this.courses.slice(0, this.maxCourseCount()),
+            this.courses,
             (item: object, index: number) => {
-              Row() {
-                Column()
-                  .width(3)
-                  .height(this.barHeight())
-                  .borderRadius(2)
-                  .backgroundColor(BAR_COLOR);
-                Column() {
-                  Text((item as Record<string, Object>)['name'] as string)
-                    .fontSize(this.nameSize())
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor(TEXT_NAME)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis });
-                  Row() {
-                    Text((item as Record<string, Object>)['location'] as string)
-                      .layoutWeight(1)
-                      .fontSize(this.metaSize())
-                      .fontColor(TEXT_META)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis });
-                    Text((item as Record<string, Object>)['time'] as string)
-                      .fontSize(this.metaSize())
-                      .fontColor(TEXT_META)
-                      .maxLines(1)
-                      .textOverflow({ overflow: TextOverflow.Ellipsis })
-                      .margin({ left: 6 });
-                  }
-                  .width('100%')
-                  .margin({ top: 2 });
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start)
-                .padding({ left: 6, right: 4 });
+              ListItem() {
+                this.courseRow(item as Record<string, Object>, !this.isSmall());
               }
-              .width('100%')
-              .padding({ left: 6, right: 6, top: 5, bottom: 5 })
-              .margin({
-                bottom: index === this.courses.slice(0, this.maxCourseCount()).length - 1 ? 0 : 8
-              });
             },
             (item: object, index: number) => index.toString()
           );
-          if (this.courses.length > this.maxCourseCount()) {
-            Text(`等 ${this.courses.length} 门课程`)
-              .fontSize(12)
-              .fontColor(TEXT_META)
-              .margin({ top: 4, left: 6 });
-          }
         }
         .width('100%')
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start);
+        .scrollBar(BarState.Off);
       }
     }
     .width('100%')
