@@ -1,4 +1,5 @@
 {
-  "startWindowType": "REQUIRED_HIDE",
-  "startWindowBackgroundColor": "$color:start_window_background"
+  "startWindowBackgroundColor": "$color:start_window_background",
+  "startWindowBackgroundImage": "$media:start_window_splash",
+  "startWindowBackgroundImageFit": "Cover"
 }
