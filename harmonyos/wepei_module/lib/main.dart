@@ -34,7 +34,7 @@ import 'commons/util/logger.dart';
 import 'commons/util/navigator_observers.dart';
 import 'commons/util/router_manager.dart';
 import 'auth/network/splash_service.dart';
-
+import 'commons/widgets/colored_icon.dart';
 import 'commons/widgets/wpy_pic.dart';
 import 'commons/util/storage_util.dart';
 import 'commons/util/text_util.dart';
@@ -368,16 +368,14 @@ class _SplashScreenState extends State<SplashScreen> {
         withHolder: false,
       );
     } else {
-      // 与系统启动页(entry/media/start_window_splash.png，Fit=Cover)共用同一构图：
-      // 整屏铺满、不按主题染色，避免原生启动页到 Flutter 首帧出现尺寸/配色跳变。
       final asset = isDarkMode
           ? 'assets/images/splash_screen_dark.png'
           : 'assets/images/splash_screen.png';
-      content = Image.asset(
-        asset,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
+      content = Padding(
+        padding: const EdgeInsets.all(30),
+        child: Center(
+          child: ColoredIcon(asset, color: WpyTheme.of(context).primary),
+        ),
       );
     }
 
@@ -459,9 +457,6 @@ class _SplashScreenState extends State<SplashScreen> {
           _navigateHome();
         },
       );
-      /// 首帧不死等 updateToken 的网络往返：回调或超时任一先到就进首页，
-      /// token 刷新继续在后台跑（_navigateOnce 幂等，只会跳一次）。
-      unawaited(Future.delayed(const Duration(milliseconds: 600), _navigateHome));
     } else {
       /// 没登录过的话，多看一会的启动页再跳转到登录页
       await Future.delayed(const Duration(seconds: 1));

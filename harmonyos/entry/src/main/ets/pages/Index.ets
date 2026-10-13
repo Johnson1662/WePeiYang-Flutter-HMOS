@@ -151,18 +151,13 @@ struct Index {
   }
 
   build() {
-    Stack() {
-      // Flutter 首帧前 XComponent 是透明的：这一层垫上与系统启动页同图、同 Cover 构图的底图，
-      // 避免启动页撤下到 Flutter 首帧之间露出白屏（或桌面）。Flutter 首帧绘制后自动被盖住。
-      Image($r('app.media.start_window_splash'))
-        .objectFit(ImageFit.Cover)
-        .syncLoad(true) // 同步解码，否则首帧会先露出底色形成一次闪白
-        .width('100%')
-        .height('100%')
+    Column() {
       FlutterPage({ viewId: this.viewId })
     }
     .width('100%')
     .height('100%')
+    // Flutter 首帧前 XComponent 是透明的：铺一层与启动页同色的底，
+    // 让这段交接是「空白」而不是露出桌面（对齐 Android 不透明的 windowBackground）
     .backgroundColor($r('app.color.start_window_background'))
   }
 
