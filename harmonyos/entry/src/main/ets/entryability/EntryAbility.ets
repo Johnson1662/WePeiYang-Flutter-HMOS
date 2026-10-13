@@ -96,8 +96,9 @@ class SaveImgHandler implements MethodCallHandler {
           const parsed: Record<string, Object> = JSON.parse(jsonStr);
           const courseData: string = (parsed['courseData'] as string) || '';
           const currentWeek: number = (parsed['currentWeek'] as number) || 1;
+          const termStart: number = (parsed['termStart'] as number) || 0;
           const userNumber: string = (parsed['userNumber'] as string) || '';
-          this.syncWidgetCourseData(courseData, currentWeek, userNumber, result);
+          this.syncWidgetCourseData(courseData, currentWeek, termStart, userNumber, result);
         } catch (e) {
           console.warn(TAG, 'syncWidgetCourseData parse error: ' + JSON.stringify(e));
           result.success(false);
@@ -411,29 +412,32 @@ class SaveImgHandler implements MethodCallHandler {
     }
   }
 
-  private syncWidgetCourseData(courseData: string, currentWeek: number, userNumber: string, result: MethodResult): void {
+  private syncWidgetCourseData(courseData: string, currentWeek: number, termStart: number, userNumber: string, result: MethodResult): void {
     try {
       const jsonStr = JSON.stringify({
         courseData: courseData,
         currentWeek: currentWeek,
+        termStart: termStart,
         userNumber: userNumber,
         lastUpdate: Date.now()
       });
-      
-      // Write to application cache dir
-      const appCtx = this.context.getApplicationContext();
-      const path1 = appCtx.cacheDir + '/schedule_widget_data.json';
-      const f1 = fs.openSync(path1, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
-      fs.writeSync(f1.fd, jsonStr);
-      fs.closeSync(f1);
-      
-      // Also write to own cache dir
-      const path2 = this.context.cacheDir + '/schedule_widget_data.json';
-      const f2 = fs.openSync(path2, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
-      fs.writeSync(f2.fd, jsonStr);
-      fs.closeSync(f2);
-      
-      hilog.info(0x0001, TAG, 'syncWidgetCourseData: written to both dirs');
+
+      // filesDir 是持久目录：cache 目录会被系统清理，清掉后卡片会一直停在旧数据，
+      // 所以持久副本放第一位，cache 副本只作兼容回退。
+      const paths: string[] = [
+        this.context.filesDir + '/schedule_widget_data.json',
+        this.context.cacheDir + '/schedule_widget_data.json',
+        this.context.getApplicationContext().cacheDir + '/schedule_widget_data.json',
+      ];
+      for (const p of paths) {
+        // TRUNC 必带：新内容比旧内容短时不截断会留下尾部残留，JSON.parse 会直接失败
+        const f = fs.openSync(p, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
+        fs.writeSync(f.fd, jsonStr);
+        fs.closeSync(f);
+      }
+
+      hilog.info(0x0001, TAG, 'syncWidgetCourseData: written %{public}d bytes to %{public}d paths',
+        jsonStr.length, paths.length);
       result.success(true);
     } catch (e) {
       hilog.warn(0x0001, TAG, 'syncWidgetCourseData failed: %{public}s', JSON.stringify(e));

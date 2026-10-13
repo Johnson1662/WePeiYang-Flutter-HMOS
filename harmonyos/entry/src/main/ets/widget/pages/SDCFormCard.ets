@@ -30,6 +30,8 @@ struct SDCFormCard {
   // 系统在添加卡片时注入当前卡片尺寸，如 "2*2"、"2*4"、"4*4"
   @LocalStorageProp('formDimension') formDimension: string = '2*4';
   @LocalStorageProp('weekday') weekday: number = 1;
+  // 课表数据尚未同步（首次添加或数据被清理），与「今天没课」要区分开
+  @LocalStorageProp('hasData') hasData: boolean = false;
 
   private isHuge(): boolean {
     return this.formDimension === '4*4';
@@ -66,6 +68,9 @@ struct SDCFormCard {
 
   /** 空态文案与 Android widget_empty_view_day/night.xml 对齐 */
   private emptyText(): string {
+    if (!this.hasData) {
+      return '打开微北洋\n同步今日课表';
+    }
     const hour = new Date().getHours();
     return hour >= 6 && hour <= 18 ? '今日无课 :)\n做点有意义的事吧' : '夜深了\n做个早睡的人吧~';
   }

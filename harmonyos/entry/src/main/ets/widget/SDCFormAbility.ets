@@ -25,7 +25,13 @@ interface ScheduleFormBinding {
   lastUpdate: number;
   formDimension?: string;
   weekday?: number;
+  hasData?: boolean;
 }
+
+/// 卡片数据文件：filesDir 优先（cache 会被系统清理），cache 目录仅作兼容回退
+const DATA_FILE = 'schedule_widget_data.json';
+const FORM_ID_FILE = 'schedule_form_id.txt';
+const FORM_DIM_FILE = 'schedule_form_dims.json';
 
 interface CourseArrange {
   weekday: number;
@@ -100,15 +106,16 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
     } catch (_) {}
     // Save the form ID so EntryAbility can trigger immediate updates
     try {
-      const path: string = this.context.cacheDir + '/schedule_form_id.txt';
+      const path: string = this.context.filesDir + '/' + FORM_ID_FILE;
       const params: Record<string, Object> = want.parameters as Record<string, Object>;
       const extraForm: Record<string, Object> = (params ? params['ohos.extra.form'] : null) as Record<string, Object>;
       const formId: string = extraForm ? (extraForm['formId'] as string) : '';
       if (formId) {
-        const wf = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+        const wf = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
         fs.writeSync(wf.fd, formId);
         fs.closeSync(wf);
-        console.log(TAG, 'onAddForm: saved formId ' + formId);
+        this.saveFormDim(formId, dimension);
+        console.log(TAG, 'onAddForm: saved formId ' + formId + ' dimension ' + dimension);
       }
     } catch (e) {
       console.error(TAG, 'onAddForm: save formId failed: ' + JSON.stringify(e));
@@ -117,8 +124,10 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
   }
 
   onUpdateForm(formId: string): void {
-    console.info(TAG, 'onUpdateForm called');
-    const formData: formBindingData.FormBindingData = this.loadFormData();
+    // onUpdateForm 只带 formId，尺寸要用添加时记下来的；否则会用默认值覆盖真实尺寸
+    const dimension: string = this.readFormDims()[formId] ?? '2*4';
+    console.info(TAG, 'onUpdateForm called, dimension=' + dimension);
+    const formData: formBindingData.FormBindingData = this.loadFormData(dimension);
     try {
       formProvider.updateForm(formId, formData);
     } catch (e) {
@@ -126,42 +135,90 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
     }
   }
 
+  onRemoveForm(formId: string): void {
+    console.info(TAG, 'onRemoveForm called');
+    this.removeFormDim(formId);
+  }
+
   onCastToForm(formId: string): void {
     console.info(TAG, 'onCastToForm called');
     this.onUpdateForm(formId);
   }
 
-  /// Read the JSON file written by the Flutter app and build form data.
-  private loadFormData(dimension?: string): formBindingData.FormBindingData {
-    // Try to read from application-level cache
-    let courseDataStr: string = '';
-    let currentWeek: number = 1;
-    // Try to read from cache dir (same as Flutter's Directory.systemTemp)
+  /// 每个 formId 的卡片尺寸，存在 filesDir（cache 被清理也不会丢）
+  private formDimPath(): string {
+    return this.context.filesDir + '/' + FORM_DIM_FILE;
+  }
+
+  private readFormDims(): Record<string, string> {
     try {
-      const path: string = this.context.cacheDir + '/schedule_widget_data.json';
-      console.log(TAG, 'loadFormData: trying ' + path);
-      const text: string = fs.readTextSync(path);
-      const data: Record<string, Object> = JSON.parse(text);
-      courseDataStr = (data['courseData'] as string) || '';
-      currentWeek = (data['currentWeek'] as number) || 1;
-      console.log(TAG, 'loadFormData: read ok, week=' + currentWeek + ' dataLen=' + courseDataStr.length);
+      const text: string = fs.readTextSync(this.formDimPath());
+      return JSON.parse(text) as Record<string, string>;
     } catch (e) {
-      console.error(TAG, 'loadFormData: tempDir failed: ' + JSON.stringify(e));
-      // Fallback: try application cache dir
-      try {
-        const appCtx: Context = this.context.getApplicationContext();
-        const path2: string = appCtx.cacheDir + '/schedule_widget_data.json';
-        console.log(TAG, 'loadFormData: fallback ' + path2);
-        const text2: string = fs.readTextSync(path2);
-        const data2: Record<string, Object> = JSON.parse(text2);
-        courseDataStr = (data2['courseData'] as string) || '';
-        currentWeek = (data2['currentWeek'] as number) || 1;
-        console.log(TAG, 'loadFormData: fallback ok, week=' + currentWeek);
-      } catch (e2) {
-        console.error(TAG, 'loadFormData: all paths failed');
+      return {};
+    }
+  }
+
+  private writeFormDims(dims: Record<string, string>): void {
+    try {
+      const wf = fs.openSync(this.formDimPath(), fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
+      fs.writeSync(wf.fd, JSON.stringify(dims));
+      fs.closeSync(wf);
+    } catch (e) {
+      console.warn(TAG, 'writeFormDims failed: ' + JSON.stringify(e));
+    }
+  }
+
+  private saveFormDim(formId: string, dimension: string): void {
+    const dims: Record<string, string> = this.readFormDims();
+    dims[formId] = dimension;
+    this.writeFormDims(dims);
+  }
+
+  private removeFormDim(formId: string): void {
+    const dims: Record<string, string> = this.readFormDims();
+    const next: Record<string, string> = {};
+    for (const key of Object.keys(dims)) {
+      if (key !== formId) {
+        next[key] = dims[key];
       }
     }
-    
+    this.writeFormDims(next);
+  }
+
+  /// Read the JSON file written by the Flutter app and build form data.
+  private loadFormData(dimension?: string): formBindingData.FormBindingData {
+    let courseDataStr: string = '';
+    let currentWeek: number = 1;
+    let termStart: number = 0;
+    // filesDir 优先，cache 目录只作兼容回退（系统清理缓存后仍能读到持久副本）
+    const appCtx: Context = this.context.getApplicationContext();
+    const candidates: string[] = [
+      this.context.filesDir + '/' + DATA_FILE,
+      this.context.cacheDir + '/' + DATA_FILE,
+      appCtx.cacheDir + '/' + DATA_FILE,
+    ];
+    for (const path of candidates) {
+      try {
+        const text: string = fs.readTextSync(path);
+        const data: Record<string, Object> = JSON.parse(text);
+        courseDataStr = (data['courseData'] as string) || '';
+        currentWeek = (data['currentWeek'] as number) || 1;
+        termStart = (data['termStart'] as number) || 0;
+        console.info(TAG, 'loadFormData: read ok from ' + path + ' dataLen=' + courseDataStr.length);
+        break;
+      } catch (e) {
+        console.warn(TAG, 'loadFormData: miss ' + path);
+      }
+    }
+
+    // 学期开始时间可用时自己推算周次：不依赖 App 上次写入，跨周/跨天卡片能自己滚动
+    if (termStart > 0) {
+      const nowSec: number = Math.floor(Date.now() / 1000);
+      const diff: number = nowSec - termStart;
+      currentWeek = diff <= 0 ? 1 : Math.min(24, Math.ceil(diff / 604800));
+    }
+
     if (!courseDataStr) {
       console.error(TAG, 'loadFormData: no course data found');
     }
@@ -211,6 +268,7 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
       lastUpdate: Date.now(),
       formDimension: dimension || '2*4',
       weekday: getTodayWeekday(),
+      hasData: courseDataStr.length > 0,
     };
     return formBindingData.createFormBindingData(bindingObj);
   }
