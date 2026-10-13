@@ -124,8 +124,10 @@ export default class ScheduleFormAbility extends FormExtensionAbility {
   }
 
   onUpdateForm(formId: string): void {
-    // onUpdateForm 只带 formId，尺寸要用添加时记下来的；否则会用默认值覆盖真实尺寸
-    const dimension: string = this.readFormDims()[formId] ?? '2*4';
+    // onUpdateForm 只带 formId（FormInfo 是卡片模板信息，取不到实例尺寸），
+    // 尺寸只能用 onAddForm 时记下的记录。查不到时默认按紧凑档渲染：
+    // 紧凑档在宽卡片上只是偏小，宽档在窄卡片上会把教室挤没。
+    const dimension: string = this.readFormDims()[formId] ?? '2*2';
     console.info(TAG, 'onUpdateForm called, dimension=' + dimension);
     const formData: formBindingData.FormBindingData = this.loadFormData(dimension);
     try {
