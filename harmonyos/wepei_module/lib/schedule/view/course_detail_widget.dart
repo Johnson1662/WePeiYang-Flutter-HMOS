@@ -12,6 +12,7 @@ import 'package:wepei_module/schedule/model/course.dart';
 import 'package:wepei_module/schedule/model/course_provider.dart';
 
 import '../../commons/themes/wpy_theme.dart';
+import 'package:wepei_module/schedule/model/schedule_day_rules.dart';
 
 /// 课程表每个item之间的垂直、水平间距
 const double verStep = 6;

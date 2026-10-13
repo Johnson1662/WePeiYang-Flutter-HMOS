@@ -14,6 +14,7 @@ import 'package:wepei_module/feedback/view/search_result_page.dart';
 
 import '../../commons/themes/wpy_theme.dart';
 import '../../commons/widgets/w_button.dart';
+import 'package:wepei_module/feedback/util/post_search_util.dart';
 
 class SearchPage extends StatefulWidget {
   @override

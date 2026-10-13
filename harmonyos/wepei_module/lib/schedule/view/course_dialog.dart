@@ -12,6 +12,7 @@ import 'package:wepei_module/schedule/page/edit_detail_page.dart';
 import '../../commons/preferences/common_prefs.dart';
 import '../../commons/themes/wpy_theme.dart';
 import '../../commons/widgets/w_button.dart';
+import 'package:wepei_module/schedule/model/schedule_day_rules.dart';
 
 void showCourseDialog(BuildContext context, List<Pair<Course, int>> pairs) =>
     showDialog(

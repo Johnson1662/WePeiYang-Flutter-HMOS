@@ -1,7 +1,7 @@
 name: wepei_module
 description: WePeiYang Flutter module for HarmonyOS
 
-version: 4.6.2+195
+version: 4.6.3+196
 environment:
   sdk: ">=3.6.2 <4.0.0"
 
@@ -75,6 +75,8 @@ dependencies:
   image_size_getter: any
   flutter_staggered_grid_view: any
   transparent_image: any
+  flutter_math_fork: ^0.7.4
+  markdown: ^7.3.1
   package_info_plus: any
   glass: any
   qr_code_tools: any
@@ -89,6 +91,11 @@ dev_dependencies:
   build_runner: any
 
 dependency_overrides:
+  # flutter_math_fork：原版 0.7.4 的 switch (platform) 未覆盖 TargetPlatform.ohos
+  # （OHOS 引擎新增平台枚举），OHOS 内核编译不过，故内置打好补丁的本地副本。
+  # 升级时需重新合并 4 处 case TargetPlatform.ohos（已并入 desktop 组）。
+  flutter_math_fork:
+    path: packages/flutter_math_fork
   # OpenHarmony 官方 OHOS 适配：url_launcher（flutter/packages 的 TPC 镜像，含 ohos 实现）
   url_launcher:
     git:

@@ -71,6 +71,13 @@ class CommonPreferences {
   static final bed = PrefsBean<String>('bed');
   static final accountUpgrade = PrefsBean<List>('accountUpgrade');
 
+  /// 求实论坛分区的自定义顺序，仅保存后端分区 id；空列表表示跟随后端默认顺序。
+  /// 客户端生成的“精华”分区固定在首位.
+  static final feedbackTabOrder =
+      PrefsBean<List<String>>('feedbackTabOrder', []);
+  static final includeCustomCourseHours =
+      PrefsBean<bool>('includeCustomCourseHours', false);
+
   /// 求实论坛相关
   static final lakeToken = PrefsBean<String>('lakeToken', '');
   static final lakeUid = PrefsBean<String>('feedbackUid');
@@ -84,6 +91,10 @@ class CommonPreferences {
   static final feedbackLastLostAndFoundWeCo =
       PrefsBean<String>('feedbackLastWeKo');
   static final avatarBoxMyUrl = PrefsBean<String>('avatarBoxMyUrl');
+
+  /// 手动调课/休息的日期覆盖表（JSON）
+  static final scheduleDayOverrides =
+      PrefsBean<String>('scheduleDayOverrides', '{}');
 
   /// 已折叠置顶帖的分区 id 集合（跨会话记忆）
   static final collapsedTopTabs =
@@ -270,6 +281,7 @@ class CommonPreferences {
   /// 清除所有缓存
   static void clearAllPrefs() {
     mockPref?.clear();
+    scheduleDayOverrides.clear();
     sharedPref.clear();
     firstPrivacy.value = false; //隐私政策不重复显示了
   }

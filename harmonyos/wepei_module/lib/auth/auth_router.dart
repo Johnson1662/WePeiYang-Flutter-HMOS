@@ -18,6 +18,7 @@ import 'package:wepei_module/auth/view/settings/general_setting_page.dart';
 import 'package:wepei_module/auth/view/settings/schedule_setting_page.dart';
 import 'package:wepei_module/auth/view/settings/setting_page.dart';
 import 'package:wepei_module/auth/view/settings/shield_setting_page.dart';
+import 'package:wepei_module/auth/view/settings/feedback_tab_order_page.dart';
 import 'package:wepei_module/auth/view/settings/toolbar_manage_page.dart';
 import 'package:wepei_module/auth/view/user/about_twt_page.dart';
 import 'package:wepei_module/auth/view/user/debug_page.dart';

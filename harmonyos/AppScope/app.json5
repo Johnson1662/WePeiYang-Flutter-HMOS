@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.weipeiyang.cn",
     "vendor": "example",
-    "versionCode": 195,
-    "versionName": "4.6.2",
+    "versionCode": 196,
+    "versionName": "4.6.3",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
   }

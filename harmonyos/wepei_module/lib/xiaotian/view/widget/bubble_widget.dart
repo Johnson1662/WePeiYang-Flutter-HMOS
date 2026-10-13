@@ -21,6 +21,8 @@ import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'dart:async';
 import '../sendMessage.dart';
 import 'back_dialog.dart';
+import 'package:markdown/markdown.dart' show ExtensionSet;
+import 'ai_markdown_latex.dart';
 
 class bubbleFromAi extends StatefulWidget {
   bubbleFromAi({

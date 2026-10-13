@@ -1,4 +1,5 @@
 import 'dart:convert' show json;
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel;
@@ -9,11 +10,73 @@ import 'package:wepei_module/commons/preferences/common_prefs.dart';
 import 'package:wepei_module/commons/util/toast_provider.dart';
 import 'package:wepei_module/schedule/extension/logic_extension.dart';
 import 'package:wepei_module/schedule/model/course.dart';
+import 'package:wepei_module/schedule/model/schedule_day_rules.dart';
 import 'package:wepei_module/commons/channel/widget_data_sync.dart';
+import 'package:wepei_module/commons/util/log/log.dart';
 import 'package:wepei_module/schedule/network/custom_course_service.dart';
 import 'package:wepei_module/schedule/network/schdule_service.dart';
 
 class CourseProvider with ChangeNotifier {
+  ScheduleDayRules get dayRules => ScheduleDayRules.restore(
+      CommonPreferences.scheduleDayOverrides.value,
+      DateTime.fromMillisecondsSinceEpoch(CommonPreferences.termStart.value * 1000),
+      weekCount,
+      CommonPreferences.termName.value,
+      CommonPreferences.tjuuname.value);
+
+  List<Course> schoolCoursesForWeek(int week) =>
+      dayRules.schoolCoursesForWeek(week, _schoolCourses);
+
+  List<Course> coursesForWeek(int week) => [
+        ...schoolCoursesForWeek(week),
+        ..._customCourses,
+      ];
+
+  List<Pair<Course, int>> coursesForDate(DateTime date) {
+    final rules = dayRules;
+    if (!rules.contains(date)) return [];
+    final week = rules.weekOf(date);
+    final pairs = <Pair<Course, int>>[];
+    for (final course in coursesForWeek(week)) {
+      for (var i = 0; i < course.arrangeList.length; i++) {
+        final arrange = course.arrangeList[i];
+        if (arrange.weekday == date.weekday && arrange.weekList.contains(week)) {
+          if (course.type == 1) course.index = _customCourses.indexOf(course);
+          pairs.add(Pair(course, i));
+        }
+      }
+    }
+    return pairs;
+  }
+
+  Future<void> setDayOverride(DateTime date, ScheduleDayOverride? rule) async {
+    final rules = dayRules;
+    if (!rules.contains(date)) throw ArgumentError('请选择本学期内的日期');
+    if (rule?.sourceDate != null &&
+        (scheduleDate(rule!.sourceDate!) == scheduleDate(date) ||
+            !rules.hasOriginalCourses(rule.sourceDate!, _schoolCourses))) {
+      throw ArgumentError('请选择另一个有学校课程的日期');
+    }
+    final key = scheduleDateKey(date);
+    if (rule == null) {
+      rules.days.remove(key);
+    } else {
+      rules.days[key] = rule;
+    }
+    final saved = await CommonPreferences.sharedPref.setString(
+        'scheduleDayOverrides',
+        rules.encode(CommonPreferences.termName.value, CommonPreferences.tjuuname.value));
+    if (!saved) throw StateError('日期调整保存失败');
+    notifyListeners();
+    if (Platform.isAndroid) {
+      try {
+        await _widgetChannel.invokeMethod('refreshScheduleWidget');
+      } catch (e, stack) {
+        Log.e(e, stack, 'schedule');
+      }
+    }
+  }
+
   /// 学校课程
   List<Course> _schoolCourses = [];
 
@@ -23,6 +86,14 @@ class CourseProvider with ChangeNotifier {
   List<Course> _customCourses = [];
 
   List<Course> get customCourses => _customCourses;
+
+  bool get includeCustomCourseHours =>
+      CommonPreferences.includeCustomCourseHours.value;
+
+  set includeCustomCourseHours(bool value) {
+    CommonPreferences.includeCustomCourseHours.value = value;
+    notifyListeners();
+  }
 
   void addCustomCourse(Course course) {
     _customCourses.add(course);
@@ -50,9 +121,8 @@ class CourseProvider with ChangeNotifier {
     CommonPreferences.courseData.value =
         json.encode(CourseTable(_schoolCourses, _customCourses));
     CommonPreferences.customUpdatedAt.value = time;
-    _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
-    // Sync to OHOS service widget
-    WidgetDataSync.syncCourseDataToFile();
+    _widgetChannel.invokeMethod("refreshScheduleWidget");
+    WidgetDataSync.syncCourseDataToFile(); // Sync to OHOS 课表卡片
     // remote
     CustomCourseService.postCustomTable(_customCourses, time);
   }
@@ -75,10 +145,10 @@ class CourseProvider with ChangeNotifier {
   void updateSchoolCourses(List<Course> courses) {
     _schoolCourses = courses;
     notifyListeners();
-    _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
+    _widgetChannel.invokeMethod("refreshScheduleWidget");
+    WidgetDataSync.syncCourseDataToFile(); // Sync to OHOS 课表卡片
     CommonPreferences.courseData.value =
         json.encode(CourseTable(_schoolCourses, _customCourses));
-    WidgetDataSync.syncCourseDataToFile();
   }
 
   int get selectedWeek => _selectedWeek;
@@ -116,7 +186,7 @@ class CourseProvider with ChangeNotifier {
       //   if (data == null) throw WpyDioException(error: '云端获取课表失败');
       //   _schoolCourses = data.item1;
       //   notifyListeners();
-      //   _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
+      //   _widgetChannel.invokeMethod("refreshScheduleWidget");
       await ClassesService.getClasses(context);
     } on DioException catch (_) {
       showDialog(
@@ -133,17 +203,8 @@ class CourseProvider with ChangeNotifier {
     void Function(DioException)? onFailure,
   }) {
     ScheduleService.fetchCourses(onResult: (courses) {
-      if (courses.isEmpty) {
-        // 防止刷出来一个空课表
-        return;
-      }
-      _schoolCourses = courses;
-      notifyListeners();
-      // 通知小组件更新
-      _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
-      CommonPreferences.courseData.value =
-          json.encode(CourseTable(_schoolCourses, _customCourses));
-      WidgetDataSync.syncCourseDataToFile();
+      // 有效空课表覆盖旧学期的数据
+      updateSchoolCourses(courses);
       onSuccess?.call();
     }, onFailure: (e) {
       onFailure?.call(e);
@@ -165,8 +226,8 @@ class CourseProvider with ChangeNotifier {
             notifyListeners();
             CommonPreferences.courseData.value =
                 json.encode(CourseTable(_schoolCourses, _customCourses));
-            _widgetChannel.invokeMethod("refreshScheduleWidget").catchError((_) {});
-            WidgetDataSync.syncCourseDataToFile();
+            _widgetChannel.invokeMethod("refreshScheduleWidget");
+    WidgetDataSync.syncCourseDataToFile(); // Sync to OHOS 课表卡片
           }
         });
       });

@@ -14,6 +14,7 @@ import '../../commons/widgets/w_button.dart';
 import '../feedback_router.dart';
 import 'components/post_card.dart';
 import 'new_post_page.dart';
+import 'package:wepei_module/feedback/util/post_search_util.dart';
 
 class SearchResultPage extends StatefulWidget {
   final SearchResultPageArgs args;
