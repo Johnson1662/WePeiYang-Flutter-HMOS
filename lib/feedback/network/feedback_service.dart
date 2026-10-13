@@ -95,6 +95,18 @@ final feedbackPicPostDio = FeedbackPicPostDio();
 final feedbackAdminPostDio = FeedbackAdminPostDio();
 
 class FeedbackService with AsyncTimer {
+  // 同一条内容赞踩互斥
+  static final _pendingReactions = <String>{};
+
+  static Future<void> _runReaction(String key, Future<void> Function() action) async {
+    if (!_pendingReactions.add(key)) return;
+    try {
+      await action();
+    } finally {
+      _pendingReactions.remove(key);
+    }
+  }
+
 
   static List<String> get shieldComment =>
       CommonPreferences.shieldComment.value;
@@ -125,6 +137,7 @@ class FeedbackService with AsyncTimer {
 
     //没匹配上，开始该评论的评论的匹配
     if(item.subFloors.isNotEmpty) {
+      final originalSubFloorCount = item.subFloors.length;
       List<Floor> subFloors = [];
       for (final subitem in item.subFloors) {
         if (!CommentBlockCheck(subitem)) {
@@ -132,6 +145,8 @@ class FeedbackService with AsyncTimer {
         }
       }
       item.subFloors = subFloors;
+      item.subFloorCnt -= originalSubFloorCount - subFloors.length;
+      if (item.subFloorCnt < 0) item.subFloorCnt = 0;
     }
 
     return false;
@@ -628,7 +643,7 @@ class FeedbackService with AsyncTimer {
     required OnSuccess onSuccess,
     required OnFailure onFailure,
   }) async {
-    AsyncTimer.runRepeatChecked('postHitLike', () async {
+    await _runReaction('post:$id', () async {
       try {
         await feedbackDio.post('post/like',
             formData: FormData.fromMap({
@@ -668,7 +683,7 @@ class FeedbackService with AsyncTimer {
     required OnSuccess onSuccess,
     required OnFailure onFailure,
   }) async {
-    AsyncTimer.runRepeatChecked('postHitDislike', () async {
+    await _runReaction('post:$id', () async {
       try {
         await feedbackDio.post('post/dis',
             formData: FormData.fromMap({
@@ -736,7 +751,7 @@ class FeedbackService with AsyncTimer {
       required bool isLike,
       required OnSuccess onSuccess,
       required OnFailure onFailure}) async {
-    AsyncTimer.runRepeatChecked('commentHitLike', () async {
+    await _runReaction('floor:$id', () async {
       try {
         await feedbackDio.post('floor/like',
             formData: FormData.fromMap({
@@ -755,7 +770,7 @@ class FeedbackService with AsyncTimer {
       required bool isDis,
       required OnSuccess onSuccess,
       required OnFailure onFailure}) async {
-    AsyncTimer.runRepeatChecked('commentHitDislike', () async {
+    await _runReaction('floor:$id', () async {
       try {
         await feedbackDio.post('floor/dis',
             formData: FormData.fromMap({
