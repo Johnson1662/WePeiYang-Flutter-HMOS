@@ -24,6 +24,7 @@ import { SpeechRecognizerHandler } from '../speech/SpeechRecognizerHandler';
 import { UserAuthHandler } from '../userauth/UserAuthHandler';
 import { systemShare } from '@kit.ShareKit';
 import { uniformTypeDescriptor as utd } from '@kit.ArkData';
+import { updateManager } from '@kit.AppGalleryKit';
 
 // Legacy — kept for Index.ets PickerDialog (currently unused)
 export function resolvePickerResult(paths: string[]): void {
@@ -74,8 +75,11 @@ class SaveImgHandler implements MethodCallHandler {
       case 'openWebView':
         this.openWebView('' + call['argument'], result);
         break;
-      case 'openInBrowser':
-        this.openInBrowser('' + call['argument'], result);
+      case 'checkAppUpdate':
+        this.checkAppUpdate(result);
+        break;
+      case 'showAppUpdateDialog':
+        this.showAppUpdateDialog(result);
         break;
       case 'triggerFormUpdate': {
         const formId: string = (call.argument as Object) as string;
@@ -123,6 +127,45 @@ class SaveImgHandler implements MethodCallHandler {
       }
       default:
         result.notImplemented();
+    }
+  }
+
+  private async checkAppUpdate(result: MethodResult): Promise<void> {
+    try {
+      const checked = await updateManager.checkAppUpdate(this.context);
+      switch (checked.updateAvailable) {
+        case updateManager.UpdateAvailableCode.LATER_VERSION_NOT_EXIST:
+          result.success(false);
+          return;
+        case updateManager.UpdateAvailableCode.LATER_VERSION_EXIST:
+          result.success(true);
+          return;
+        default:
+          // 未上架时可能返回 -1；不能把未知状态当成“没有新版本”。
+          result.error('APP_UPDATE_UNAVAILABLE', '暂无法获取应用市场版本',
+            String(checked.updateAvailable));
+      }
+    } catch (e) {
+      const error = e as BusinessError;
+      console.warn(TAG, 'checkAppUpdate failed: ' + JSON.stringify(error));
+      result.error('APP_UPDATE_CHECK_FAILED', '检查更新失败',
+        error.code + ': ' + error.message);
+    }
+  }
+
+  private async showAppUpdateDialog(result: MethodResult): Promise<void> {
+    try {
+      const status = await updateManager.showUpdateDialog(this.context);
+      if (status === updateManager.ShowUpdateResultCode.SHOW_DIALOG_SUCCESS) {
+        result.success(null);
+      } else {
+        result.error('APP_UPDATE_DIALOG_FAILED', '无法显示更新提示', status.toString());
+      }
+    } catch (e) {
+      const error = e as BusinessError;
+      console.warn(TAG, 'showAppUpdateDialog failed: ' + JSON.stringify(error));
+      result.error('APP_UPDATE_DIALOG_FAILED', '无法显示更新提示',
+        error.code + ': ' + error.message);
     }
   }
 
@@ -281,43 +324,6 @@ class SaveImgHandler implements MethodCallHandler {
       result.success(true);
     } catch (e) {
       console.warn(TAG, 'copyToClipboard failed: ' + JSON.stringify(e));
-      result.success(false);
-    }
-  }
-
-  private async openInBrowser(url: string, result: MethodResult): Promise<void> {
-    try {
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        console.info(TAG, 'openInBrowser: url=' + url);
-        // Wrap in new microtask to ensure UI thread dispatch
-        await new Promise<void>((resolve) => {
-          setTimeout(async () => {
-            try {
-              await this.context.openLink(url, { appLinkingOnly: false });
-              console.info(TAG, 'openInBrowser: openLink succeeded');
-              result.success(true);
-            } catch (e) {
-              console.warn(TAG, 'openLink failed: ' + JSON.stringify(e));
-              try {
-                await this.context.startAbility({
-                  bundleName: 'com.huawei.hmos.browser',
-                  uri: url,
-                });
-                console.info(TAG, 'openInBrowser: Huawei Browser succeeded');
-                result.success(true);
-              } catch (e2) {
-                console.error(TAG, 'Huawei Browser also failed: ' + JSON.stringify(e2));
-                result.success(false);
-              }
-            }
-            resolve();
-          }, 0);
-        });
-      } else {
-        result.success(false);
-      }
-    } catch (e) {
-      console.warn(TAG, 'openInBrowser failed: ' + JSON.stringify(e));
       result.success(false);
     }
   }

@@ -249,6 +249,23 @@ cd harmonyos/wepei_module
 
 真机需覆盖：结束应用进程后点击课表卡片，显示缓存课程，返回后进入首页；应用已运行时点击仍能打开课表；未登录时先显示登录页。桌面端回归检查不能代替这三条真机路径。
 
+### 应用市场检查更新
+
+设置页的“检查更新”通过 `com.twt.service/saveImg` 调用 AppGallery Kit，不再打开市场详情网页：
+
+- `checkAppUpdate` 明确返回 `LATER_VERSION_NOT_EXIST` 时，提示“已是最新版本”。
+- 返回 `LATER_VERSION_EXIST` 时，调用 `showUpdateDialog` 显示官方升级弹窗。
+- 未上架、未知状态（包括 `-1`）、查询失败或弹窗失败时，提示“暂无法检查更新，请稍后重试”，不能当作没有新版。
+
+版本查询超时为 15 秒；官方弹窗的用户操作等待不计入该超时。检查和弹窗处理期间禁止重复点击，结束后恢复入口。
+
+```bash
+cd harmonyos/wepei_module
+"$HOME/Development/flutter_flutter/bin/flutter" test --no-pub test/settings_update_test.dart
+```
+
+桌面端回归通过模拟原生通道验证加载态、防重复点击、无新版、查询失败后重试和弹窗失败。真实升级需在应用市场上架后，用相同应用身份及匹配签名、较低 `versionCode` 的安装包验证；本机回归和 Release 构建不能代替市场查询、升级弹窗与安装结果验证。接入条件见[官方应用内更新指南](https://developer.huawei.com/consumer/cn/doc/HarmonyOS-Guides/store-update)。
+
 ### 常见问题
 
 - **HAP 不是最新代码**：确认先构建 HAR，再运行 `sync_ohos_native.py`，最后执行 `devecocli build`。

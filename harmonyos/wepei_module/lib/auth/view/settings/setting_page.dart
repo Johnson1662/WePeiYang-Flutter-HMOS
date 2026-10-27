@@ -16,6 +16,7 @@ import 'package:wepei_module/commons/themes/template/wpy_theme_data.dart';
 import 'package:wepei_module/commons/util/app_market.dart';
 import 'package:wepei_module/commons/util/router_manager.dart';
 import 'package:wepei_module/commons/util/text_util.dart';
+import 'package:wepei_module/commons/util/toast_provider.dart';
 
 import '../../../commons/themes/wpy_theme.dart';
 import '../../../commons/util/dialog_provider.dart';
@@ -29,6 +30,7 @@ class SettingPage extends StatefulWidget {
 class _SettingPageState extends State<SettingPage> {
   String md = '';
   String iosLocalVersion = '';
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
@@ -42,6 +44,24 @@ class _SettingPageState extends State<SettingPage> {
 
       iosLocalVersion = await LocalSetting.getBundleVersion();
     });
+  }
+
+  Future<void> _checkUpdate() async {
+    if (_checkingUpdate) return;
+    setState(() => _checkingUpdate = true);
+    try {
+      final available = await checkAppUpdate();
+      if (mounted && !available) {
+        ToastProvider.success('已是最新版本');
+      }
+    } catch (e) {
+      debugPrint('[AppUpdate] $e');
+      if (mounted) {
+        ToastProvider.error('暂无法检查更新，请稍后重试');
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
   }
 
   @override
@@ -220,10 +240,7 @@ class _SettingPageState extends State<SettingPage> {
               onLongPress: () {
                 Navigator.pushNamed(context, AuthRouter.debugInfo);
               },
-              onTap: () {
-                // OHOS 不允许应用内下载安装 APK 或热更新，检查更新即跳转应用市场详情页
-                openAppMarket();
-              },
+              onTap: _checkingUpdate ? null : _checkUpdate,
               child: Row(
                 children: [
                   Icon(Icons.update,
@@ -232,7 +249,8 @@ class _SettingPageState extends State<SettingPage> {
                       size: 20.w),
                   SizedBox(width: 12.w),
                   Expanded(
-                    child: Text('检查更新', style: mainTextStyle),
+                    child: Text(_checkingUpdate ? '正在检查更新…' : '检查更新',
+                        style: mainTextStyle),
                   ),
                   Text(
                       "${'当前版本'}: " +

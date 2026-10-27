@@ -1,12 +1,18 @@
-import 'package:wepei_module/commons/channel/image_save/image_save.dart';
+import 'package:flutter/services.dart';
 
-/// 鸿蒙应用市场应用详情页。
-///
-/// OHOS 不允许应用内下载安装 APK 或替换 libapp.so 热更新，
-/// 版本更新统一由系统应用市场承载，因此这里只负责把用户送到详情页。
-/// 打开方式走 EntryAbility 的 `openInBrowser` 通道（系统浏览器），
-/// 不依赖无 OHOS 实现的 url_launcher。
-const String kAppMarketDetailUrl =
-    'https://appgallery.huawei.com/app/detail?id=com.weipeiyang.cn';
+const _channel = MethodChannel('com.twt.service/saveImg');
 
-Future<bool> openAppMarket() => ImageSave.openInBrowser(kAppMarketDetailUrl);
+/// 有新版时显示 AppGallery 官方升级弹窗；仅明确无新版时返回 false。
+Future<bool> checkAppUpdate() async {
+  final available = await _channel
+      .invokeMethod<bool>('checkAppUpdate')
+      .timeout(const Duration(seconds: 15));
+  if (available == null) {
+    throw StateError('应用市场未返回检查结果');
+  }
+  if (available) {
+    // 升级弹窗由用户操作结束，不把交互等待计入版本查询超时。
+    await _channel.invokeMethod<void>('showAppUpdateDialog');
+  }
+  return available;
+}
