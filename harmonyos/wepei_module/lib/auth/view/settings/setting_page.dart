@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -52,7 +54,21 @@ class _SettingPageState extends State<SettingPage> {
     try {
       final available = await checkAppUpdate();
       if (mounted && !available) {
-        ToastProvider.success('已是最新版本');
+        // 未上架的应用市场也可能返回“无更高版本”，不能断言应用自身已是最新。
+        ToastProvider.success('应用市场暂无更新版本');
+      }
+    } on PlatformException catch (e) {
+      debugPrint('[AppUpdate] $e');
+      if (!mounted) return;
+      ToastProvider.error(switch (e.code) {
+        'APP_UPDATE_UNAVAILABLE' => '应用市场暂未提供该应用，无法检查更新',
+        'APP_UPDATE_TIMEOUT' => '检查更新超时，请稍后重试',
+        _ => '暂无法检查更新，请稍后重试',
+      });
+    } on TimeoutException catch (e) {
+      debugPrint('[AppUpdate] $e');
+      if (mounted) {
+        ToastProvider.error('检查更新超时，请稍后重试');
       }
     } catch (e) {
       debugPrint('[AppUpdate] $e');

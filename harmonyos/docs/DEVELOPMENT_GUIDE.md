@@ -253,11 +253,11 @@ cd harmonyos/wepei_module
 
 设置页的“检查更新”通过 `com.twt.service/saveImg` 调用 AppGallery Kit，不再打开市场详情网页：
 
-- `checkAppUpdate` 明确返回 `LATER_VERSION_NOT_EXIST` 时，提示“已是最新版本”。
+- `checkAppUpdate` 明确返回 `LATER_VERSION_NOT_EXIST` 时，提示“应用市场暂无更新版本”。未上架的应用市场也可能返回该值，因此文案只陈述市场没有更高版本，不断言应用自身已是最新。
 - 返回 `LATER_VERSION_EXIST` 时，调用 `showUpdateDialog` 显示官方升级弹窗。
-- 未上架、未知状态（包括 `-1`）、查询失败或弹窗失败时，提示“暂无法检查更新，请稍后重试”，不能当作没有新版。
+- 返回未知状态（包括 `-1`）时提示“应用市场暂未提供该应用，无法检查更新”；查询超时提示“检查更新超时，请稍后重试”；其他查询或弹窗失败提示“暂无法检查更新，请稍后重试”。这些情况都不能当作没有新版。
 
-版本查询超时为 15 秒；官方弹窗的用户操作等待不计入该超时。检查和弹窗处理期间禁止重复点击，结束后恢复入口。
+原生查询在 8 秒内没有结果时返回 `APP_UPDATE_TIMEOUT`，Dart 侧另有 15 秒兜底超时；官方弹窗的用户操作等待不计入超时。检查和弹窗处理期间禁止重复点击，结束后恢复入口。
 
 ```bash
 cd harmonyos/wepei_module

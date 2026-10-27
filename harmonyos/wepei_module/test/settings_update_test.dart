@@ -66,7 +66,7 @@ void main() {
     expect(checks, 1);
     query.complete(false);
     await tester.pumpAndSettle();
-    expect(find.text('已是最新版本'), findsOneWidget);
+    expect(find.text('应用市场暂无更新版本'), findsOneWidget);
     expect(find.text('检查更新'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
@@ -87,12 +87,31 @@ void main() {
     await _openSettings(tester);
     await tester.tap(find.text('检查更新'));
     await tester.pumpAndSettle();
-    expect(find.text('暂无法检查更新，请稍后重试'), findsOneWidget);
-    expect(find.text('已是最新版本'), findsNothing);
+    expect(find.text('应用市场暂未提供该应用，无法检查更新'), findsOneWidget);
+    expect(find.text('应用市场暂无更新版本'), findsNothing);
     unavailable = false;
     await tester.tap(find.text('检查更新'));
     await tester.pumpAndSettle();
-    expect(find.text('已是最新版本'), findsOneWidget);
+    expect(find.text('应用市场暂无更新版本'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('timed out market query reports timeout and releases the entry',
+      (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      _channel,
+      (_) => Completer<bool>().future,
+    );
+    await _openSettings(tester);
+    await tester.tap(find.text('检查更新'));
+    await tester.pump();
+    expect(find.text('正在检查更新…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 16));
+    await tester.pumpAndSettle();
+    expect(find.text('检查更新超时，请稍后重试'), findsOneWidget);
+    expect(find.text('应用市场暂无更新版本'), findsNothing);
+    expect(find.text('检查更新'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
   });
@@ -116,7 +135,7 @@ void main() {
     await tester.tap(find.text('检查更新'));
     await tester.pumpAndSettle();
     expect(find.text('暂无法检查更新，请稍后重试'), findsOneWidget);
-    expect(find.text('已是最新版本'), findsNothing);
+    expect(find.text('应用市场暂无更新版本'), findsNothing);
     dialogFails = false;
     await tester.tap(find.text('检查更新'));
     await tester.pump();
@@ -125,7 +144,7 @@ void main() {
     dialog.complete();
     await tester.pumpAndSettle();
     expect(find.text('检查更新'), findsOneWidget);
-    expect(find.text('已是最新版本'), findsNothing);
+    expect(find.text('应用市场暂无更新版本'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

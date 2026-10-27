@@ -131,8 +131,21 @@ class SaveImgHandler implements MethodCallHandler {
   }
 
   private async checkAppUpdate(result: MethodResult): Promise<void> {
+    console.info(TAG, 'checkAppUpdate: start');
+    let replied: boolean = false;
+    // 未上架等异常情况下 SDK 可能长时间不返回，必须给出确定的答复。
+    const timeoutId: number = setTimeout(() => {
+      if (replied) return;
+      replied = true;
+      console.warn(TAG, 'checkAppUpdate: timed out');
+      result.error('APP_UPDATE_TIMEOUT', '检查更新超时', 'timeout');
+    }, 8000);
     try {
       const checked = await updateManager.checkAppUpdate(this.context);
+      if (replied) return;
+      replied = true;
+      clearTimeout(timeoutId);
+      console.info(TAG, 'checkAppUpdate: available=' + checked.updateAvailable);
       switch (checked.updateAvailable) {
         case updateManager.UpdateAvailableCode.LATER_VERSION_NOT_EXIST:
           result.success(false);
@@ -146,6 +159,9 @@ class SaveImgHandler implements MethodCallHandler {
             String(checked.updateAvailable));
       }
     } catch (e) {
+      if (replied) return;
+      replied = true;
+      clearTimeout(timeoutId);
       const error = e as BusinessError;
       console.warn(TAG, 'checkAppUpdate failed: ' + JSON.stringify(error));
       result.error('APP_UPDATE_CHECK_FAILED', '检查更新失败',
