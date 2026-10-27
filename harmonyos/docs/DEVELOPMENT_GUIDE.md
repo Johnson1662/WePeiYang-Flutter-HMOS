@@ -236,6 +236,19 @@ devecocli build --build-mode debug
 
 真机验证至少覆盖：启动、登录、图片选择、图片保存、帖子/评论图片、WebView 页面、地图·校历、主题切换和系统返回键。
 
+### 课表卡片冷启动回归
+
+卡片的 `route` 参数也会被 OHOS Flutter 当作引擎初始路由。`MaterialApp.onGenerateInitialRoutes` 必须先创建开屏页，完成导航器、课表缓存和登录态初始化，再通过 `consumePendingRoute` 打开课表。仅设置 `initialRoute: '/'` 无效：当前 Flutter SDK 优先采用引擎路由。
+
+`com.twt.service/push` 的 Dart 接收器统一注册在 App 根部，同时处理卡片导航、推送权限和消息事件；`PushManager` 不能再调用 `setMethodCallHandler`，否则会覆盖卡片接收器。
+
+```bash
+cd harmonyos/wepei_module
+"$HOME/Development/flutter_flutter/bin/flutter" test --no-pub test/widget_cold_start_test.dart
+```
+
+真机需覆盖：结束应用进程后点击课表卡片，显示缓存课程，返回后进入首页；应用已运行时点击仍能打开课表；未登录时先显示登录页。桌面端回归检查不能代替这三条真机路径。
+
 ### 常见问题
 
 - **HAP 不是最新代码**：确认先构建 HAR，再运行 `sync_ohos_native.py`，最后执行 `devecocli build`。

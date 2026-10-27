@@ -13,19 +13,6 @@ import 'request_push_dialog.dart';
 export 'push_intent.dart';
 
 class PushManager extends ChangeNotifier {
-  PushManager() {
-    _pushChannel.setMethodCallHandler((call) async {
-      switch (call.method) {
-        case 'refreshPushPermission':
-          openPush = false;
-          break;
-        default:
-          break;
-      }
-      return Future.value(0);
-    });
-  }
-
   bool _openPush = Platform.isIOS ? true : false;
 
   bool get openPush => _openPush;

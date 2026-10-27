@@ -136,8 +136,7 @@ void _loadLoginState() {
   } catch (_) {}
 }
 
-// OHOS 侧仅 com.twt.service/saveImg 与 com.twt.service/push 有原生实现，
-// 其中 push 目前只作为接收端（setMethodCallHandler），见下方 _pushChannel 用法。
+// OHOS 推送与卡片事件共用此通道，Dart 接收器只在 App 根部注册一次。
 final _pushChannel = MethodChannel('com.twt.service/push');
 
 class WePeiYangApp extends StatefulWidget {
@@ -214,9 +213,10 @@ class WePeiYangAppState extends State<WePeiYangApp>
             ...scheduleProviders,
             ChangeNotifierProvider(create: (_) => CampusProvider()),
             ChangeNotifierProvider(create: (_) => TimeProvider()),
+            ChangeNotifierProvider(create: (_) => PushManager()),
             ChangeNotifierProvider(
               lazy: false,
-              create: (_) {
+              create: (context) {
                 final messageProvider = MessageProvider()
                   ..refreshFeedbackCount();
                 _pushChannel.setMethodCallHandler((call) async {
@@ -229,6 +229,9 @@ class WePeiYangAppState extends State<WePeiYangApp>
                             ?.pushNamed(arguments['route'] as String);
                       }
                       return 'success';
+                    case 'refreshPushPermission':
+                      context.read<PushManager>().openPush = false;
+                      return 0;
                     case 'refreshFeedbackMessageCount':
                       await messageProvider.refreshFeedbackCount();
                       return 'success';
@@ -250,7 +253,6 @@ class WePeiYangAppState extends State<WePeiYangApp>
             ),
             ...feedbackProviders,
             ...lostAndFoundProviders,
-            ChangeNotifierProvider(create: (_) => PushManager()),
             ChangeNotifierProvider(create: (_) => AnimationProvider()),
             ChangeNotifierProvider(create: (_) => xiaotianInputState()),
             ChangeNotifierProvider(
@@ -289,7 +291,15 @@ class WePeiYangAppState extends State<WePeiYangApp>
                       },
                     ),
                   ),
-                  home: const SplashScreen(),
+                  // OHOS 会把卡片的 route 同时作为引擎初始路由；先完成启动，
+                  // 再由 SplashScreen 消费 pendingRoute，不能直接构建课表。
+                  onGenerateInitialRoutes: (_) => [
+                    MaterialPageRoute(
+                      settings: const RouteSettings(
+                          name: Navigator.defaultRouteName),
+                      builder: (_) => const SplashScreen(),
+                    ),
+                  ],
                   navigatorObservers: [
                     AppRouteAnalysis(),
                     PageStackObserver(),

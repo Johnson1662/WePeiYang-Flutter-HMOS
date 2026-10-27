@@ -87,6 +87,8 @@ dependencies:
   flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: any
   build_runner: any
 
