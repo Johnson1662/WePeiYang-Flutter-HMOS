@@ -230,7 +230,7 @@ Custom `WpyTheme` (InheritedWidget) with 8 color schemes defined in `lib/commons
 
 ## Runtime/Tooling Preferences
 
-- **Flutter SDK:** Official OpenHarmony SDK from `gitcode.com/openharmony-tpc/flutter_flutter`; Windows path `D:\Development\flutter_flutter`, Linux path `/media/johnson/Data/Development/flutter_flutter`. Dev branch `oh-3.41.9-dev`, release branch `oh-3.41.9-release` (shared engine `42d3d75a`)
+- **Flutter SDK:** Official OpenHarmony SDK from `gitcode.com/openharmony-tpc/flutter_flutter`; Windows path `D:\Development\flutter_flutter`, Linux path `~/Development/flutter_flutter`. Dev branch `oh-3.41.9-dev`, release branch `oh-3.41.9-release` (shared engine `42d3d75a`)
 - **Dart SDK:** ^3.0.0 (root), ^3.6.2 (OHOS module)
 - **Package manager:** `dart pub` / `flutter pub get`; `PUB_CACHE` set to `D:\pub-cache` for OHOS builds
 - **OHOS build tool:** `devecocli` (wraps hvigor + ohpm + hdc); run from `.ohos/` directory
